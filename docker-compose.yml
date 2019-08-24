@@ -2,11 +2,51 @@ version: "3"
 
 services:
 
-  broker:
-    image: eclipse-mosquitto
-    ports:
-      - 1883:1883
-      - 9001:9001
-    #volumes:
-    #  - mosquitto.conf:/mosquitto/config/mosquitto.conf
+  prometheus-base:
+    image: prom/prometheus
+    container_name: prometheus-base
+    restart: always
+    volumes:
+        - ./prometheus-base/prometheus.yml:/etc/prometheus/prometheus.yml
+        - prometheus-base:/prometheus
 
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    user: "104"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+    environment:
+      GF_SERVER_ROOT_URL: 'http://iot2.pavoucek.net'
+      GF_SMTP_ENABLED: 'true'
+      GF_SMTP_HOST: 'mail.pavoucek.net:25'
+      GF_SMTP_FROM_ADDRESS: 'nezerka@betulapendula.com'
+      GF_SMTP_FROM_NAME: 'Monitoring'
+      GF_SMTP_USER: 'nezerka@betulapendula.com'
+      GF_SMTP_PASSWORD: 'xxx'
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/nginx-passwd:/etc/nginx/.htpasswd
+
+#  broker:
+#    image: eclipse-mosquitto
+#    ports:
+#      - 1883:1883
+#      - 9001:9001
+#    #volumes:
+#    #  - mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+volumes:
+    prometheus-base:
+    grafana:
