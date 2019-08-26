@@ -40,6 +40,7 @@ func listen(uri *url.URL, topic string) {
 }
 
 func main() {
+    // in format tcp://localhost:1883
     uri, err := url.Parse(os.Getenv("MQTT"))
     if err != nil {
         log.Fatal(err)
@@ -53,11 +54,8 @@ func main() {
     // subscribe for messages from my clients
     go listen(uri, "test/#")
 
-    // subscribe for system messages
-    go listen(uri, "$SYS")
-
     client := connect("pub", uri)
-    timer := time.NewTicker(5 * time.Second)
+    timer := time.NewTicker(1 * time.Second)
     for t := range timer.C {
         fmt.Printf("-> [%s], message: %s\n", topic, t.String())
         client.Publish(topic, 0, false, t.String())
