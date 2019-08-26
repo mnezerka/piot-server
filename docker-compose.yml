@@ -39,13 +39,13 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/nginx-passwd:/etc/nginx/.htpasswd
 
-#  broker:
-#    image: eclipse-mosquitto
-#    ports:
-#      - 1883:1883
-#      - 9001:9001
-#    #volumes:
-#    #  - mosquitto.conf:/mosquitto/config/mosquitto.conf
+  mqtt:
+    build: ./mosquitto
+    image: mosquitto
+    ports:
+      - 1883:1883
+    volumes:
+      - ./mosquitto/conf:/etc/mosquitto
 
 volumes:
     prometheus-base:
