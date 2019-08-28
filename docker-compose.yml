@@ -2,6 +2,12 @@ version: "3"
 
 services:
 
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
   prometheus-base:
     image: prom/prometheus
     container_name: prometheus-base
@@ -35,9 +41,12 @@ services:
     ports:
       - "8080:8080"
       - "8081:8081"
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/nginx-passwd:/etc/nginx/.htpasswd
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
 
   mqtt:
     build: ./mosquitto
