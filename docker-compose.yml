@@ -59,6 +59,13 @@ services:
     volumes:
       - ./mosquitto/conf:/etc/mosquitto
 
+  mqtt-exporter:
+    image: sapcc/mosquitto-exporter:0.6.0
+    environment:
+      BROKER_ENDPOINT: tcp://mqtt:1883
+      MQTT_USER: mon
+      MQTT_PASS: mon
+
 volumes:
     prometheus-base:
     grafana:

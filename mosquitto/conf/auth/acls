@@ -1,3 +1,6 @@
 user test
 topic read test/#
 topic write test/#
+
+user mon
+topic read $SYS/#
