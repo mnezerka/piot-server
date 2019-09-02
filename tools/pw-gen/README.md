@@ -3,7 +3,6 @@
 Build binary:
 
 ```
-go get
 go build
 ```
 
