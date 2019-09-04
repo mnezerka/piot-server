@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -9,6 +9,6 @@ var (
 	Version   = "1.0"
 )
 
-func versionString() string {
+func VersionString() string {
 	return fmt.Sprintf("%s, %s", Version, runtime.Version())
 }

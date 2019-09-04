@@ -3,39 +3,42 @@ package handler
 import (
     "context"
     "encoding/json"
-    "fmt"
-    "go-login/config/db"
-    "go-login/model"
+    //"fmt"
+    "piot-server/config"
+    "piot-server/config/db"
+    "piot-server/model"
     "io/ioutil"
-    "log"
+    //"log"
     "net/http"
-
-    jwt "github.com/dgrijalva/jwt-go"
+    //jwt "github.com/dgrijalva/jwt-go"
     "github.com/mongodb/mongo-go-driver/bson"
     "golang.org/x/crypto/bcrypt"
 )
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func RegisterHandler(a *config.AppContext, w http.ResponseWriter, r *http.Request) (int, error) {
 
     w.Header().Set("Content-Type", "application/json")
 
     var user model.User
 
+    // decode json from request body
     body, _ := ioutil.ReadAll(r.Body)
     err := json.Unmarshal(body, &user)
-    var res model.ResponseResult
+
+    var response model.ResponseResult
+
     if err != nil {
-        res.Error = err.Error()
-        json.NewEncoder(w).Encode(res)
-        return
+        response.Error = err.Error()
+        json.NewEncoder(w).Encode(response)
+        return 500, err
     }
 
     collection, err := db.GetDBCollection()
 
     if err != nil {
-        res.Error = err.Error()
-        json.NewEncoder(w).Encode(res)
-        return
+        response.Error = err.Error()
+        json.NewEncoder(w).Encode(response)
+        return 500, err
     }
     var result model.User
     err = collection.FindOne(context.TODO(), bson.D{{"username", user.Username}}).Decode(&result)
@@ -45,29 +48,29 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
             hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 5)
 
             if err != nil {
-                res.Error = "Error While Hashing Password, Try Again"
-                json.NewEncoder(w).Encode(res)
-                return
+                response.Error = "Error While Hashing Password, Try Again"
+                json.NewEncoder(w).Encode(response)
+                return 500, err
             }
             user.Password = string(hash)
 
             _, err = collection.InsertOne(context.TODO(), user)
             if err != nil {
-                res.Error = "Error While Creating User, Try Again"
-                json.NewEncoder(w).Encode(res)
-                return
+                response.Error = "Error While Creating User, Try Again"
+                json.NewEncoder(w).Encode(response)
+                return 500, err
             }
-            res.Result = "Registration Successful"
-            json.NewEncoder(w).Encode(res)
-            return
+            response.Result = "Registration Successful"
+            json.NewEncoder(w).Encode(response)
+            return 200, nil
         }
 
-        res.Error = err.Error()
-        json.NewEncoder(w).Encode(res)
-        return
+        response.Error = err.Error()
+        json.NewEncoder(w).Encode(response)
+        return 500, err
     }
 
-    res.Result = "Username already Exists!!"
-    json.NewEncoder(w).Encode(res)
-    return
+    response.Result = "Username already Exists!!"
+    json.NewEncoder(w).Encode(response)
+    return 200, nil
 }

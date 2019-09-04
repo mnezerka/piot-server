@@ -5,64 +5,37 @@ import (
     "net/http"
     "os"
     "github.com/urfave/cli"
-    //mqtt "github.com/eclipse/paho.mqtt.golang"
     "github.com/gorilla/mux"
     "piot-server/handler"
+    "piot-server/config"
+    "piot-server/config/db"
 )
 
 const (
     appName = "PIOT Server"
 )
 
-var (
-    topics = map[string]string{
-        "test":            "The total number of bytes received since the broker started.",
-    }
-)
-
-func main() {
-    app := cli.NewApp()
-
-    app.Name = appName
-    app.Version = versionString()
-    app.Authors = []cli.Author{
-        {
-            Name:  "Michal Nezerka",
-            Email: "michal.nezerka@gmail.com",
-        },
-    }
-    app.Usage = "Management of IOT things"
-    app.Action = runServer
-    app.Flags = []cli.Flag{
-        cli.StringFlag{
-            Name:   "endpoint,e",
-            Usage:  "Endpoint for the Mosquitto message broker",
-            EnvVar: "BROKER_ENDPOINT",
-            Value:  "tcp://127.0.0.1:1883",
-        },
-        cli.StringFlag{
-            Name:   "bind-address,b",
-            Usage:  "Listen address for API HTTP endpoint",
-            Value:  "0.0.0.0:9096",
-            EnvVar: "BIND_ADDRESS",
-        },
-    }
-
-    app.Run(os.Args)
-}
-
 func runServer(c *cli.Context) {
-    log.Printf("Starting PIOT server %s", versionString())
+    log.Printf("Starting PIOT server %s", config.VersionString())
+
+    // create global context for all handlers
+    db, err := db.GetDB(c.GlobalString("mongodb-uri"))
+    fatalfOnError(err, "Failed to open database on %s", c.GlobalString("mongodb-uri"))
+
+    ctx := &config.AppContext{Db: db}
 
     r := mux.NewRouter()
 
-    r.HandleFunc("/", serveVersion)
+    r.HandleFunc("/", handler.RootHandler)
 
-    r.HandleFunc("/register", handler.RegisterHandler).
+    //r.HandleFunc("/register", handler.AppHandler{ctx, handler.RegisterHandler}).
+    //    Methods("POST")
+
+    r.PathPrefix("/register").Handler(handler.AppHandler{ctx, handler.RegisterHandler}).
         Methods("POST")
 
     log.Printf("Listening on %s...", c.GlobalString("bind-address"))
-    err := http.ListenAndServe(c.GlobalString("bind-address"), r)
+    err = http.ListenAndServe(c.GlobalString("bind-address"), r)
     fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
@@ -71,4 +44,43 @@ func fatalfOnError(err error, msg string, args ...interface{}) {
         log.Fatalf(msg, args...)
         os.Exit(1)
     }
+}
+
+
+
+func main() {
+    app := cli.NewApp()
+
+    app.Name = appName
+    app.Version = config.VersionString()
+    app.Authors = []cli.Author{
+        {
+            Name:  "Michal Nezerka",
+            Email: "michal.nezerka@gmail.com",
+        },
+    }
+    app.Usage = "Management of Pavoucek IOT things"
+    app.Action = runServer
+    app.Flags = []cli.Flag{
+        cli.StringFlag{
+            Name:   "mqtt-uri,q",
+            Usage:  "Endpoint for the Mosquitto message broker",
+            EnvVar: "MQTT_URI",
+            Value:  "tcp://localhost:1883",
+        },
+        cli.StringFlag{
+            Name:   "bind-address,b",
+            Usage:  "Listen address for API HTTP endpoint",
+            Value:  "0.0.0.0:9096",
+            EnvVar: "BIND_ADDRESS",
+        },
+        cli.StringFlag{
+            Name:   "mongodb-uri,m",
+            Usage:  "URI for the mongo database",
+            Value:  "mongodb://localhost:27017",
+            EnvVar: "MONGODB_URI",
+        },
+    }
+
+    app.Run(os.Args)
 }
