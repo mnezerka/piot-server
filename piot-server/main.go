@@ -6,6 +6,8 @@ import (
     "os"
     "github.com/urfave/cli"
     //mqtt "github.com/eclipse/paho.mqtt.golang"
+    "github.com/gorilla/mux"
+    "piot-server/handler"
 )
 
 const (
@@ -52,10 +54,15 @@ func main() {
 func runServer(c *cli.Context) {
     log.Printf("Starting PIOT server %s", versionString())
 
-    http.HandleFunc("/", serveVersion)
+    r := mux.NewRouter()
+
+    r.HandleFunc("/", serveVersion)
+
+    r.HandleFunc("/register", handler.RegisterHandler).
+        Methods("POST")
 
     log.Printf("Listening on %s...", c.GlobalString("bind-address"))
-    err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
+    err := http.ListenAndServe(c.GlobalString("bind-address"), r)
     fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
