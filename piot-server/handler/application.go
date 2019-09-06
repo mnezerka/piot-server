@@ -1,9 +1,12 @@
 package handler
 
 import (
-    "log"
+    "encoding/json"
+
+    //"log"
     "net/http"
     "piot-server/config"
+    "piot-server/model"
 )
 
 // Application handler
@@ -16,20 +19,16 @@ type AppHandler struct {
 // access our *appContext's fields (templates, loggers, etc.) as well.
 func (ah AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     // Updated to pass ah.appContext as a parameter to our handler type.
+    //status, err := ah.HandleFunc(ah.Context, w, r)
     status, err := ah.HandleFunc(ah.Context, w, r)
+    //log.Printf("HTTP %d: %q", status, err)
+
     if err != nil {
-        log.Printf("HTTP %d: %q", status, err)
-        switch status {
-        case http.StatusNotFound:
-            http.NotFound(w, r)
-            // And if we wanted a friendlier error page, we can
-            // now leverage our context instance - e.g.
-            // err := ah.renderTemplate(w, "http_404.tmpl", nil)
-        case http.StatusInternalServerError:
-            http.Error(w, http.StatusText(status), status)
-        default:
-            http.Error(w, http.StatusText(status), status)
-        }
+        var response model.ResponseResult
+        response.Error = err.Error()
+        http.Error(w, http.StatusText(status), status)
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
     }
 }
 

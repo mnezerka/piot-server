@@ -1,3 +1,8 @@
+/*
+ Resources:
+    https://www.sohamkamani.com/blog/golang/2019-01-01-jwt-authentication/
+*/
+
 package main
 
 import (
@@ -6,13 +11,10 @@ import (
     "os"
     "github.com/urfave/cli"
     "github.com/gorilla/mux"
+    "github.com/gorilla/handlers"
     "piot-server/handler"
     "piot-server/config"
     "piot-server/config/db"
-)
-
-const (
-    appName = "PIOT Server"
 )
 
 func runServer(c *cli.Context) {
@@ -28,14 +30,16 @@ func runServer(c *cli.Context) {
 
     r.HandleFunc("/", handler.RootHandler)
 
-    //r.HandleFunc("/register", handler.AppHandler{ctx, handler.RegisterHandler}).
-    //    Methods("POST")
-
     r.PathPrefix("/register").Handler(handler.AppHandler{ctx, handler.RegisterHandler}).
         Methods("POST")
 
+    r.PathPrefix("/signin").Handler(handler.AppHandler{ctx, handler.SigninHandler}).
+        Methods("POST")
+
+    r.HandleFunc("/refresh", handler.RefreshHandler)
+
     log.Printf("Listening on %s...", c.GlobalString("bind-address"))
-    err = http.ListenAndServe(c.GlobalString("bind-address"), r)
+    err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
     fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
@@ -46,12 +50,10 @@ func fatalfOnError(err error, msg string, args ...interface{}) {
     }
 }
 
-
-
 func main() {
     app := cli.NewApp()
 
-    app.Name = appName
+    app.Name = "PIOT Server"
     app.Version = config.VersionString()
     app.Authors = []cli.Author{
         {

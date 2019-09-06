@@ -1,8 +1,21 @@
 package model
 
+
+// Represents user as stored in database
 type User struct {
-    Username  string `json:"username"`
+    Email     string `json:"email"`
     Password  string `json:"password"`
+}
+
+// Used to read the username and password from the request body
+// for signin and authentication requests
+type Credentials struct {
+    Email     string `json:"email"`
+    Password  string `json:"password"`
+}
+
+// Used to serialize token as a response to authentication request
+type Token struct {
     Token     string `json:"token"`
 }
 

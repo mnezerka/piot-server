@@ -3,74 +3,246 @@ package handler
 import (
     "context"
     "encoding/json"
+    "errors"
+    "regexp"
+    "time"
     //"fmt"
     "piot-server/config"
-    "piot-server/config/db"
+    //"piot-server/config/db"
     "piot-server/model"
-    "io/ioutil"
     //"log"
     "net/http"
-    //jwt "github.com/dgrijalva/jwt-go"
+    jwt "github.com/dgrijalva/jwt-go"
     "github.com/mongodb/mongo-go-driver/bson"
     "golang.org/x/crypto/bcrypt"
 )
 
+// Create the JWT key used to create the signature
+var jwtKey = []byte("my_secret_key")
+
+const TOKEN_EXPIRATION = 5
+
+// Create a struct that will be encoded to a JWT.
+// We add jwt.StandardClaims as an embedded type, to provide fields
+// like expiry time
+type Claims struct {
+    Email string `json:"email"`
+    jwt.StandardClaims
+}
+
+func validateEmail(email string) bool {
+    Re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+    return Re.MatchString(email)
+}
+
+
 func RegisterHandler(a *config.AppContext, w http.ResponseWriter, r *http.Request) (int, error) {
 
-    w.Header().Set("Content-Type", "application/json")
-
-    var user model.User
-
     // decode json from request body
-    body, _ := ioutil.ReadAll(r.Body)
-    err := json.Unmarshal(body, &user)
+    var credentials model.Credentials
+    err := json.NewDecoder(r.Body).Decode(&credentials)
+    if err != nil {
+        return 400, err
+    }
+
+    // check required attributes
+    if len(credentials.Email) == 0 {
+        return 400, errors.New("Email field is empty or not specified!")
+    }
+    if len(credentials.Password) == 0 {
+        return 400, errors.New("Password field is empty or not specified!")
+    }
+    if !validateEmail(credentials.Email) {
+        return 400, errors.New("Email field has wrong format!")
+    }
+
+    // try to find existing user
+    var user model.User
+    collection := a.Db.Collection("users")
+    err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+    if err == nil {
+        //response.Result = "User identified by this email already exists!"
+        return 409, errors.New("User identified by this email already exists!")
+    }
+
+    // generate hash for given password (we don't store passwords in plain form)
+    hash, err := bcrypt.GenerateFromPassword([]byte(credentials.Password), 5)
+    if err != nil {
+        return 500, errors.New("Error while hashing password, try again")
+    }
+    user.Email = credentials.Email
+    user.Password = string(hash)
+
+    // user does not exist -> create new one
+    _, err = collection.InsertOne(context.TODO(), user)
+    if err != nil {
+        return 500, errors.New("User while creating user, try again")
+    }
 
     var response model.ResponseResult
+    response.Result = "Registration successful"
 
-    if err != nil {
-        response.Error = err.Error()
-        json.NewEncoder(w).Encode(response)
-        return 500, err
-    }
-
-    collection, err := db.GetDBCollection()
-
-    if err != nil {
-        response.Error = err.Error()
-        json.NewEncoder(w).Encode(response)
-        return 500, err
-    }
-    var result model.User
-    err = collection.FindOne(context.TODO(), bson.D{{"username", user.Username}}).Decode(&result)
-
-    if err != nil {
-        if err.Error() == "mongo: no documents in result" {
-            hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 5)
-
-            if err != nil {
-                response.Error = "Error While Hashing Password, Try Again"
-                json.NewEncoder(w).Encode(response)
-                return 500, err
-            }
-            user.Password = string(hash)
-
-            _, err = collection.InsertOne(context.TODO(), user)
-            if err != nil {
-                response.Error = "Error While Creating User, Try Again"
-                json.NewEncoder(w).Encode(response)
-                return 500, err
-            }
-            response.Result = "Registration Successful"
-            json.NewEncoder(w).Encode(response)
-            return 200, nil
-        }
-
-        response.Error = err.Error()
-        json.NewEncoder(w).Encode(response)
-        return 500, err
-    }
-
-    response.Result = "Username already Exists!!"
+    w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
+
     return 200, nil
+}
+
+func SigninHandler(a *config.AppContext, w http.ResponseWriter, r *http.Request) (int, error) {
+
+    // decode json from request body
+    var credentials model.Credentials
+    err := json.NewDecoder(r.Body).Decode(&credentials)
+    if err != nil {
+        return 400, err
+    }
+
+    // try to find user in database
+    var user model.User
+    collection := a.Db.Collection("users")
+    err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+    if err != nil {
+        return 404, errors.New("User identified by this email does not exist or provided credentials are wrong!")
+    }
+
+    // check if password is correct
+    err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+    if err != nil {
+        return 401, errors.New("User identified by this email does not exist or provided credentials are wrong!")
+    }
+
+    // Declare the expiration time of the token
+    // here, we have kept it as 5 hours
+    expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
+    // Create the JWT claims, which includes the username and expiry time
+    claims := &Claims{
+        Email: user.Email,
+        StandardClaims: jwt.StandardClaims{
+            // In JWT, the expiry time is expressed as unix milliseconds
+            ExpiresAt: expirationTime.Unix(),
+        },
+    }
+
+    // generate new jwt token
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+    tokenString, err := token.SignedString(jwtKey)
+    if err != nil {
+        return 500, errors.New("Error while generating token, try again")
+    }
+
+    var response model.Token
+    response.Token = tokenString
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+
+    return 200, nil
+}
+
+func RefreshHandler(w http.ResponseWriter, r *http.Request) {
+
+    // try to parse JWT from Authorization header
+    tokenString := r.Header.Get("Authorization")
+
+    claims := &Claims{}
+
+    // Parse the JWT string and store the result in `claims`.
+    // Note that we are passing the key in this method as well. This method will return an error
+    // if the token is invalid (if it has expired according to the expiry time we set on sign in),
+    // or if the signature does not match
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        // Don't forget to validate the alg is what you expect:
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, errors.New("Unexpected signing method")
+        }
+        return jwtKey, nil
+    })
+
+    if !token.Valid {
+        w.WriteHeader(http.StatusUnauthorized)
+        return
+    }
+    if err != nil {
+        if err == jwt.ErrSignatureInvalid {
+            w.WriteHeader(http.StatusUnauthorized)
+            return
+        }
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+
+    // We ensure that a new token is not issued until enough time has elapsed
+    // In this case, a new token will only be issued if the old token is within
+    // 1 hour of expiry. Otherwise, return a bad request status
+    if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 1 * time.Hour {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+
+    // Now, create a new token for the current use, with a renewed expiration time
+    expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
+    claims.ExpiresAt = expirationTime.Unix()
+    newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    newTokenString, err := newToken.SignedString(jwtKey)
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+
+    var response model.Token
+    response.Token = newTokenString
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+
+
+func AuthHandler(w http.ResponseWriter, r *http.Request) {
+
+    // try to parse JWT from Authorization header
+    tokenString := r.Header.Get("Authorization")
+
+    claims := &Claims{}
+
+    // Parse the JWT string and store the result in `claims`.
+    // Note that we are passing the key in this method as well. This method will return an error
+    // if the token is invalid (if it has expired according to the expiry time we set on sign in),
+    // or if the signature does not match
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        // Don't forget to validate the alg is what you expect:
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, errors.New("Unexpected signing method")
+        }
+        return jwtKey, nil
+    })
+
+    if err != nil {
+        if err == jwt.ErrSignatureInvalid {
+            w.WriteHeader(http.StatusUnauthorized)
+            return
+        }
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+    if !token.Valid {
+        w.WriteHeader(http.StatusUnauthorized)
+        return
+    }
+
+    /*
+    var result model.User
+
+    var res model.ResponseResult
+
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        result.Email = claims["email"].(string)
+        json.NewEncoder(w).Encode(result)
+        return
+    } else {
+        res.Error = err.Error()
+        json.NewEncoder(w).Encode(res)
+        return
+    }
+    */
 }

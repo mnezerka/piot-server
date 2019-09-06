@@ -10,4 +10,3 @@ import (
 type AppContext struct {
     Db        *mongo.Database
 }
-
