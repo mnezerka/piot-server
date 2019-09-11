@@ -11,7 +11,7 @@ import (
  */
 
 var landingPage = []byte(fmt.Sprintf(`<html>
-<head><title>Mosquitto exporter</title></head>
+<head><title>PIOT Server</title></head>
 <body>
 <h1>PIOT Server</h1>
 <p>Version: %s</p>

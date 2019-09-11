@@ -9,37 +9,57 @@ import (
     "log"
     "net/http"
     "os"
+    "golang.org/x/net/context"
     "github.com/urfave/cli"
-    "github.com/gorilla/mux"
-    "github.com/gorilla/handlers"
+    //"github.com/gorilla/mux"
+    //"github.com/gorilla/handlers"
     "piot-server/handler"
     "piot-server/config"
-    "piot-server/config/db"
+    "piot-server/service"
+    "piot-server/db"
 )
 
+const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
+
 func runServer(c *cli.Context) {
-    log.Printf("Starting PIOT server %s", config.VersionString())
 
     // create global context for all handlers
     db, err := db.GetDB(c.GlobalString("mongodb-uri"))
     fatalfOnError(err, "Failed to open database on %s", c.GlobalString("mongodb-uri"))
 
-    ctx := &config.AppContext{Db: db}
+    ctx := context.Background()
+    log := service.NewLogger(LOG_FORMAT, false)
 
-    r := mux.NewRouter()
+    log.Infof("Starting PIOT server %s", config.VersionString())
 
-    r.HandleFunc("/", handler.RootHandler)
+    //ctx := &config.AppContext{Db: db}
 
-    r.PathPrefix("/register").Handler(handler.AppHandler{ctx, handler.RegisterHandler}).
-        Methods("POST")
+    ctx = context.WithValue(ctx, "db", db)
+    ctx = context.WithValue(ctx, "log", log)
 
-    r.PathPrefix("/signin").Handler(handler.AppHandler{ctx, handler.SigninHandler}).
-        Methods("POST")
+    http.HandleFunc("/", handler.RootHandler)
 
-    r.HandleFunc("/refresh", handler.RefreshHandler)
+    // endpoint for registration of new user
+    http.Handle("/register", handler.AddContext(ctx, handler.Logging(handler.Registration())))
 
-    log.Printf("Listening on %s...", c.GlobalString("bind-address"))
-    err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
+    // endpoint for authentication - token is generaged
+    http.Handle("/login", handler.AddContext(ctx, handler.Logging(handler.LoginHandler())))
+
+    //r := mux.NewRouter()
+
+    //r.HandleFunc("/", handler.RootHandler)
+
+    //r.PathPrefix("/register").Handler(handler.AppHandler{ctx, handler.RegisterHandler}).
+    //    Methods("POST")
+
+    //r.PathPrefix("/signin").Handler(handler.AppHandler{ctx, handler.SigninHandler}).
+    //    Methods("POST")
+
+    //r.HandleFunc("/refresh", handler.RefreshHandler)
+
+    log.Infof("Listening on %s...", c.GlobalString("bind-address"))
+    //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
+    err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
     fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 

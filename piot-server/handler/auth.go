@@ -7,7 +7,7 @@ import (
     "regexp"
     "time"
     //"fmt"
-    "piot-server/config"
+    //"piot-server/config"
     //"piot-server/config/db"
     "piot-server/model"
     //"log"
@@ -15,6 +15,7 @@ import (
     jwt "github.com/dgrijalva/jwt-go"
     "github.com/mongodb/mongo-go-driver/bson"
     "golang.org/x/crypto/bcrypt"
+    "go.mongodb.org/mongo-driver/mongo"
 )
 
 // Create the JWT key used to create the signature
@@ -35,111 +36,152 @@ func validateEmail(email string) bool {
     return Re.MatchString(email)
 }
 
-
-func RegisterHandler(a *config.AppContext, w http.ResponseWriter, r *http.Request) (int, error) {
-
-    // decode json from request body
-    var credentials model.Credentials
-    err := json.NewDecoder(r.Body).Decode(&credentials)
-    if err != nil {
-        return 400, err
-    }
-
-    // check required attributes
-    if len(credentials.Email) == 0 {
-        return 400, errors.New("Email field is empty or not specified!")
-    }
-    if len(credentials.Password) == 0 {
-        return 400, errors.New("Password field is empty or not specified!")
-    }
-    if !validateEmail(credentials.Email) {
-        return 400, errors.New("Email field has wrong format!")
-    }
-
-    // try to find existing user
-    var user model.User
-    collection := a.Db.Collection("users")
-    err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
-    if err == nil {
-        //response.Result = "User identified by this email already exists!"
-        return 409, errors.New("User identified by this email already exists!")
-    }
-
-    // generate hash for given password (we don't store passwords in plain form)
-    hash, err := bcrypt.GenerateFromPassword([]byte(credentials.Password), 5)
-    if err != nil {
-        return 500, errors.New("Error while hashing password, try again")
-    }
-    user.Email = credentials.Email
-    user.Password = string(hash)
-
-    // user does not exist -> create new one
-    _, err = collection.InsertOne(context.TODO(), user)
-    if err != nil {
-        return 500, errors.New("User while creating user, try again")
-    }
-
+func WriteErrorResponse(w http.ResponseWriter, err error, status int) {
     var response model.ResponseResult
-    response.Result = "Registration successful"
-
+    response.Error = err.Error()
+    http.Error(w, http.StatusText(status), status)
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
-
-    return 200, nil
 }
 
-func SigninHandler(a *config.AppContext, w http.ResponseWriter, r *http.Request) (int, error) {
+func Registration() http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-    // decode json from request body
-    var credentials model.Credentials
-    err := json.NewDecoder(r.Body).Decode(&credentials)
-    if err != nil {
-        return 400, err
-    }
+        ctx := r.Context()
+        db := ctx.Value("db").(*mongo.Database)
 
-    // try to find user in database
-    var user model.User
-    collection := a.Db.Collection("users")
-    err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
-    if err != nil {
-        return 404, errors.New("User identified by this email does not exist or provided credentials are wrong!")
-    }
+        // check http method, POST is required
+        if r.Method != http.MethodPost {
+            WriteErrorResponse(w, errors.New("Only POST method is allowed"), http.StatusMethodNotAllowed)
+            return
+        }
 
-    // check if password is correct
-    err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
-    if err != nil {
-        return 401, errors.New("User identified by this email does not exist or provided credentials are wrong!")
-    }
+        // decode json from request body
+        var credentials model.Credentials
+        err := json.NewDecoder(r.Body).Decode(&credentials)
+        if err != nil {
+            WriteErrorResponse(w, err, 400)
+            return
+        }
 
-    // Declare the expiration time of the token
-    // here, we have kept it as 5 hours
-    expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
-    // Create the JWT claims, which includes the username and expiry time
-    claims := &Claims{
-        Email: user.Email,
-        StandardClaims: jwt.StandardClaims{
-            // In JWT, the expiry time is expressed as unix milliseconds
-            ExpiresAt: expirationTime.Unix(),
-        },
-    }
+        // check required attributes
+        if len(credentials.Email) == 0 {
+            WriteErrorResponse(w, errors.New("Email field is empty or not specified!"), 400)
+            return
+        }
+        if len(credentials.Password) == 0 {
+            WriteErrorResponse(w, errors.New("Password field is empty or not specified!"), 400)
+            return
+        }
+        if !validateEmail(credentials.Email) {
+            WriteErrorResponse(w, errors.New("Email field has wrong format!"), 400)
+            return
+        }
 
-    // generate new jwt token
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        // try to find existing user
+        var user model.User
+        collection := db.Collection("users")
+        err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+        if err == nil {
+            //response.Result = "User identified by this email already exists!"
+            WriteErrorResponse(w, errors.New("User identified by this email already exists!"), 409)
+            return
+        }
 
-    tokenString, err := token.SignedString(jwtKey)
-    if err != nil {
-        return 500, errors.New("Error while generating token, try again")
-    }
+        // generate hash for given password (we don't store passwords in plain form)
+        hash, err := bcrypt.GenerateFromPassword([]byte(credentials.Password), 5)
+        if err != nil {
+            WriteErrorResponse(w, errors.New("Error while hashing password, try again"), 500)
+            return
+        }
+        user.Email = credentials.Email
+        user.Password = string(hash)
 
-    var response model.Token
-    response.Token = tokenString
+        // user does not exist -> create new one
+        _, err = collection.InsertOne(context.TODO(), user)
+        if err != nil {
+            WriteErrorResponse(w, errors.New("User while creating user, try again"), 500)
+            return
+        }
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
+        var response model.ResponseResult
+        response.Result = "Registration successful"
 
-    return 200, nil
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+
+        return
+    })
 }
 
+func LoginHandler() http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+        ctx := r.Context()
+        db := ctx.Value("db").(*mongo.Database)
+
+        // check http method, POST is required
+        if r.Method != http.MethodPost {
+            WriteErrorResponse(w, errors.New("Only POST method is allowed"), http.StatusMethodNotAllowed)
+            return
+        }
+
+        // decode json from request body
+        var credentials model.Credentials
+        err := json.NewDecoder(r.Body).Decode(&credentials)
+        if err != nil {
+            WriteErrorResponse(w, err, 400)
+            return
+        }
+
+        // try to find user in database
+        var user model.User
+        collection := db.Collection("users")
+        err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+        if err != nil {
+            WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 404)
+            return
+        }
+
+        // check if password is correct
+        err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+        if err != nil {
+            WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 401)
+            return
+        }
+
+        // Declare the expiration time of the token
+        // here, we have kept it as 5 hours
+        expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
+        // Create the JWT claims, which includes the username and expiry time
+        claims := &Claims{
+            Email: user.Email,
+            StandardClaims: jwt.StandardClaims{
+                // In JWT, the expiry time is expressed as unix milliseconds
+                ExpiresAt: expirationTime.Unix(),
+            },
+        }
+
+        // generate new jwt token
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+        tokenString, err := token.SignedString(jwtKey)
+        if err != nil {
+            WriteErrorResponse(w, errors.New("Error while generating token, try again"), 500)
+            return
+        }
+
+        var response model.Token
+        response.Token = tokenString
+
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+
+        return
+    })
+}
+
+/*
 func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 
     // try to parse JWT from Authorization header
@@ -245,4 +287,4 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
     */
-}
+//}
