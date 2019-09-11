@@ -8,6 +8,8 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
+	github.com/graph-gophers/graphql-go v0.0.0-20190902214650-641ae197eec7
+	github.com/jmoiron/sqlx v1.2.0
 	github.com/mongodb/mongo-go-driver v1.1.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/urfave/cli v1.21.0

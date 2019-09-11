@@ -17,6 +17,8 @@ import (
     "piot-server/config"
     "piot-server/service"
     "piot-server/db"
+    "piot-server/resolver"
+    graphql "github.com/graph-gophers/graphql-go"
 )
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
@@ -34,8 +36,16 @@ func runServer(c *cli.Context) {
 
     //ctx := &config.AppContext{Db: db}
 
+    //authService := service.NewAuthService(config, )
+    userService := service.NewUserService(db, log)
+
     ctx = context.WithValue(ctx, "db", db)
     ctx = context.WithValue(ctx, "log", log)
+    ctx = context.WithValue(ctx, "userService", userService)
+    //ctx = context.WithValue(ctx, "authService", authService)
+
+g   // create GraphQL schema
+    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
 
     http.HandleFunc("/", handler.RootHandler)
 
@@ -44,6 +54,9 @@ func runServer(c *cli.Context) {
 
     // endpoint for authentication - token is generaged
     http.Handle("/login", handler.AddContext(ctx, handler.Logging(handler.LoginHandler())))
+
+    //http.Handle("/query", handler.AddContext(ctx, handler.Logging(handler.Authenticate(&handler.GraphQL{Schema: graphqlSchema}))))
+    http.Handle("/query", handler.AddContext(ctx, handler.Logging(&handler.GraphQL{Schema: graphqlSchema})))
 
     //r := mux.NewRouter()
 

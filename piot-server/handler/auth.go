@@ -23,14 +23,6 @@ var jwtKey = []byte("my_secret_key")
 
 const TOKEN_EXPIRATION = 5
 
-// Create a struct that will be encoded to a JWT.
-// We add jwt.StandardClaims as an embedded type, to provide fields
-// like expiry time
-type Claims struct {
-    Email string `json:"email"`
-    jwt.StandardClaims
-}
-
 func validateEmail(email string) bool {
     Re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
     return Re.MatchString(email)
@@ -154,7 +146,7 @@ func LoginHandler() http.Handler {
         // here, we have kept it as 5 hours
         expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
         // Create the JWT claims, which includes the username and expiry time
-        claims := &Claims{
+        claims := &model.Claims{
             Email: user.Email,
             StandardClaims: jwt.StandardClaims{
                 // In JWT, the expiry time is expressed as unix milliseconds

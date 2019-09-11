@@ -6,13 +6,13 @@ Authentication part inspired by https://medium.com/@theShiva5/creating-simple-lo
 User registration
 -----------------
 ```
-curl -v -X POST localhost:9096/signin -d '{"email": "hello@example.com", "password": "hello"}'
+curl -v -X POST localhost:9096/register -d '{"email": "hello@example.com", "password": "hello"}'
 ```
 
 User authentication - get token
 -------------------------------
 ```
-curl -v -X POST localhost:9096/auth -d '{"email": "hello@example.com", "password": "hello"}'
+curl -v -X POST localhost:9096/login -d '{"email": "hello@example.com", "password": "hello"}'
 ```
 
 

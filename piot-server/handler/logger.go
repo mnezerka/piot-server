@@ -7,12 +7,6 @@ import (
     "net/http"
 )
 
-/*
-type LoggerHandler struct {
-        DebugMode bool
-}
-*/
-
 func Logging(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         ctx := r.Context()
