@@ -32,8 +32,8 @@ func validateEmail(email string) bool {
 func WriteErrorResponse(w http.ResponseWriter, err error, status int) {
     var response model.ResponseResult
     response.Error = err.Error()
-    http.Error(w, http.StatusText(status), status)
     w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(status)
     json.NewEncoder(w).Encode(response)
 }
 
