@@ -8,6 +8,7 @@ func GetRootSchema() string {
         }
 
         type Query {
+            userProfile(): UserProfile
             user(email: String!): User
             users(): [User]!
         }
@@ -16,6 +17,10 @@ func GetRootSchema() string {
             email: String!
             password: String!
             created: Int!
+        }
+
+        type UserProfile {
+            email: String!
         }
     `
 }

@@ -12,6 +12,10 @@ type User struct {
     Created   int32  `json:"created"`
 }
 
+type UserProfile struct {
+    Email     string `json:"email"`
+}
+
 // Used to read the username and password from the request body
 // for signin and authentication requests
 type Credentials struct {

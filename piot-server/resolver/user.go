@@ -25,6 +25,14 @@ func (r *UserResolver) Created() int32 {
     return r.u.Created
 }
 
+type UserProfileResolver struct {
+    u *model.User
+}
+
+func (r *UserProfileResolver) Email() string {
+    return r.u.Email
+}
+
 // get user by email query
 func (r *Resolver) User(ctx context.Context, args struct {Email string}) (*UserResolver, error) {
 
@@ -93,4 +101,25 @@ func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
     */
 
     return result, nil
+}
+
+// get active user profile
+func (r *Resolver) UserProfile(ctx context.Context) (*UserProfileResolver, error) {
+
+    currentUserEmail := ctx.Value("user_email").(*string)
+
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Getting user profile for %s", *currentUserEmail)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    user := model.User{}
+
+    collection := db.Collection("users")
+    err := collection.FindOne(context.TODO(), bson.D{{"email", currentUserEmail}}).Decode(&user)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        return nil, err
+    }
+
+    return &UserProfileResolver{&user}, nil
 }
