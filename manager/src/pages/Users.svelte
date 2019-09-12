@@ -1,47 +1,51 @@
 <script>
-    //import TestCasesList from '../components/TestCasesList.svelte';
+    import {onMount} from 'svelte';
+    import {token} from '../stores'
+    import Users from '../components/Users.svelte';
 
     let error = null;
     let users = null;
     let fetching = false;
 
-    /*
-    let field_types = [
-        {id: 'twbc_guid', name: 'ID'},
-        {id: 'twbc_title', name: 'Title'}
-    ]
+    onMount(() => {
+        fetchUsers();
+    })
 
-    function onSearch()
+    function fetchUsers()
     {
         fetching = true;
         error = false;
-        test_cases = null;
+        users = null;
 
-        let query_url = 'https://gtp.wdf.sap.corp/sap/bc/pi-tools/qte/query_twbc?format=json&' +
-            selected_field.id + '=' + search;
+        var requestBody = {
+            query: "{users {email, created}}"
+        }
 
-
-        fetch(query_url)
+        fetch('http://localhost:9096/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + $token,
+            },
+            body: JSON.stringify(requestBody)
+        })
             .then(function(response) {
                 if (!response.ok) {
                     error = 'Request failed (' + response.statusText + ')';
+                    fetching = false;
                     throw response
                 }
-                fetching = false;
                 return response.json()
             })
             .then(function(data) {
-                if (data.DATA) {
-                    data = data.DATA;
-                }
-                test_cases = data
+                fetching = false;
+                users = data.data.users
             })
             .catch(function(response) {
                 error = 'Request failed (' + response.statusText + ')';
                 fetching = false;
             });
     }
-    */
 </script>
 
 
@@ -55,6 +59,6 @@
             {error}
         </div>
     {:else}
-        users
+        <Users users={users}/>
     {/if}
 {/if}
