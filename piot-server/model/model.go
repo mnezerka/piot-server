@@ -9,6 +9,7 @@ import (
 type User struct {
     Email     string `json:"email"`
     Password  string `json:"password"`
+    Created   int32  `json:"created"`
 }
 
 // Used to read the username and password from the request body

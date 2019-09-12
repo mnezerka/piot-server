@@ -5,7 +5,6 @@ func GetRootSchema() string {
     return `
         schema {
             query: Query
-            mutation: Mutation
         }
 
         type Query {
@@ -15,7 +14,8 @@ func GetRootSchema() string {
 
         type User {
             email: String!
-            password: String
+            password: String!
+            created: Int!
         }
     `
 }

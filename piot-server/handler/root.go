@@ -6,10 +6,6 @@ import (
     "piot-server/config"
 )
 
-/*
- * Root and Healthcheck
- */
-
 var landingPage = []byte(fmt.Sprintf(`<html>
 <head><title>PIOT Server</title></head>
 <body>

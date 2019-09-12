@@ -1,13 +1,11 @@
 package resolver
 
 import (
-    //graphql "github.com/graph-gophers/graphql-go"
-    //"strconv"
     "piot-server/model"
-    "piot-server/service"
-    "errors"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
+    "go.mongodb.org/mongo-driver/mongo"
+    "github.com/mongodb/mongo-go-driver/bson"
 )
 
 type UserResolver struct {
@@ -18,70 +16,81 @@ func (r *UserResolver) Email() string {
     return r.u.Email
 }
 
-func (r *UserResolver) Password() *string {
+func (r *UserResolver) Password() string {
     maskedPassword := "********"
-    return &maskedPassword
+    return maskedPassword
+}
+
+func (r *UserResolver) Created() int32 {
+    return r.u.Created
 }
 
 // get user by email query
 func (r *Resolver) User(ctx context.Context, args struct {Email string}) (*UserResolver, error) {
 
-    userId := ctx.Value("user_id").(*int64)
+    currentUserEmail := ctx.Value("user_email").(*string)
 
-    user, err := ctx.Value("userService").(*service.UserService).FindByEmail(args.Email)
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Creating User resolver for: %s, triggered by %s", args.Email, *currentUserEmail)
 
+    db := ctx.Value("db").(*mongo.Database)
+
+    user := model.User{}
+
+    collection := db.Collection("users")
+    err := collection.FindOne(context.TODO(), bson.D{{"email", args.Email}}).Decode(&user)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, err
     }
-    ctx.Value("log").(*logging.Logger).Debugf("Retrieved user by user_id[%d] : %v", *userId, *user)
-    return &UserResolver{user}, nil
+
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved user by user [%s] : %v", *currentUserEmail, user)
+    return &UserResolver{&user}, nil
 }
 
 // get users query
 func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("here")
+    currentUserEmail := ctx.Value("user_email").(*string)
 
-    if isAuthorized := ctx.Value("is_authorized").(bool); !isAuthorized {
-        return nil, errors.New(configuration.CredentialsError)
-    }
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved users by %s: ", *currentUserEmail)
 
-    ctx.Value("log").(*logging.Logger).Debugf("here2")
-
-    userId := ctx.Value("user_id").(*int64)
-
-    ctx.Value("log").(*logging.Logger).Debugf("here3")
-
-    users, err := ctx.Value("userService").(*service.UserService).List()
-    //count, err := ctx.Value("userService").(*UserService).Count()
-
-    ctx.Value("log").(*logging.Logger).Debugf("here4")
+    db := ctx.Value("db").(*mongo.Database)
 
 
-    ctx.Value("log").(*logging.Logger).Debugf("Retrieved users by user_id[%d] :", *userId)
+    collection := db.Collection("users")
 
-    config := ctx.Value("config").(*configuration.Config)
+    count, _ := collection.EstimatedDocumentCount(context.TODO())
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Estimated users count %d", count)
 
-    if config.DebugMode {
-        for _, user := range users {
-            ctx.Value("log").(*logging.Logger).Debugf("%v", *user)
-        }
-    }
-
-    ctx.Value("log").(*logging.Logger).Debugf("Retrieved total users count by user_id[%d] : %v", *userId, len(users))
-
+    cur, err := collection.Find(context.TODO(), bson.D{})
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
         return nil, err
     }
+    defer cur.Close(context.TODO())
 
     var result []*UserResolver
-    for _, v := range users {
-        result = append(result, &UserResolver{v})
+
+    for cur.Next(context.TODO()) {
+        // To decode into a struct, use cursor.Decode()
+        user := model.User{}
+        err := cur.Decode(&user)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            return nil, err
+        }
+        result = append(result, &UserResolver{&user})
     }
 
-    //return &UserResolver{users: users, totalCount: count, from: &(users[0].ID), to: &(users[len(users)-1].ID)}, nil
+    if err := cur.Err(); err != nil {
+      return nil, err
+    }
+
+    /*
+    for _, item := range result {
+        ctx.Value("log").(*logging.Logger).Debugf("GQL: User iteration result item:  %s", *item.u)
+    }
+    */
 
     return result, nil
 }

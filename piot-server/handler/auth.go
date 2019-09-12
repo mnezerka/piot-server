@@ -10,6 +10,7 @@ import (
     //"piot-server/config"
     //"piot-server/config/db"
     "piot-server/model"
+    "github.com/op/go-logging"
     //"log"
     "net/http"
     jwt "github.com/dgrijalva/jwt-go"
@@ -19,7 +20,7 @@ import (
 )
 
 // Create the JWT key used to create the signature
-var jwtKey = []byte("my_secret_key")
+var JWT_KEY = []byte("my_secret_key")
 
 const TOKEN_EXPIRATION = 5
 
@@ -88,6 +89,7 @@ func Registration() http.Handler {
         }
         user.Email = credentials.Email
         user.Password = string(hash)
+        user.Created = int32(time.Now().Unix())
 
         // user does not exist -> create new one
         _, err = collection.InsertOne(context.TODO(), user)
@@ -98,6 +100,8 @@ func Registration() http.Handler {
 
         var response model.ResponseResult
         response.Result = "Registration successful"
+
+        ctx.Value("log").(*logging.Logger).Debugf("User is registered: %s", user.Email)
 
         w.Header().Set("Content-Type", "application/json")
         json.NewEncoder(w).Encode(response)
@@ -157,7 +161,7 @@ func LoginHandler() http.Handler {
         // generate new jwt token
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-        tokenString, err := token.SignedString(jwtKey)
+        tokenString, err := token.SignedString(JWT_KEY)
         if err != nil {
             WriteErrorResponse(w, errors.New("Error while generating token, try again"), 500)
             return
@@ -165,6 +169,8 @@ func LoginHandler() http.Handler {
 
         var response model.Token
         response.Token = tokenString
+
+        ctx.Value("log").(*logging.Logger).Debugf("Successfull login: %s", user.Email)
 
         w.Header().Set("Content-Type", "application/json")
         json.NewEncoder(w).Encode(response)
@@ -231,52 +237,5 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(response)
 }
 
-
-func AuthHandler(w http.ResponseWriter, r *http.Request) {
-
-    // try to parse JWT from Authorization header
-    tokenString := r.Header.Get("Authorization")
-
-    claims := &Claims{}
-
-    // Parse the JWT string and store the result in `claims`.
-    // Note that we are passing the key in this method as well. This method will return an error
-    // if the token is invalid (if it has expired according to the expiry time we set on sign in),
-    // or if the signature does not match
-    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-        // Don't forget to validate the alg is what you expect:
-        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, errors.New("Unexpected signing method")
-        }
-        return jwtKey, nil
-    })
-
-    if err != nil {
-        if err == jwt.ErrSignatureInvalid {
-            w.WriteHeader(http.StatusUnauthorized)
-            return
-        }
-        w.WriteHeader(http.StatusBadRequest)
-        return
-    }
-    if !token.Valid {
-        w.WriteHeader(http.StatusUnauthorized)
-        return
-    }
-
-    /*
-    var result model.User
-
-    var res model.ResponseResult
-
-    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-        result.Email = claims["email"].(string)
-        json.NewEncoder(w).Encode(result)
-        return
-    } else {
-        res.Error = err.Error()
-        json.NewEncoder(w).Encode(res)
-        return
-    }
-    */
-//}
+}
+*/

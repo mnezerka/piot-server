@@ -26,25 +26,26 @@ const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}
 func runServer(c *cli.Context) {
 
     // create global context for all handlers
+    ctx := context.Background()
+
+    // try to open database
     db, err := db.GetDB(c.GlobalString("mongodb-uri"))
     fatalfOnError(err, "Failed to open database on %s", c.GlobalString("mongodb-uri"))
 
-    ctx := context.Background()
-    log := service.NewLogger(LOG_FORMAT, false)
+    // create global logger for all handlers
+    log := service.NewLogger(LOG_FORMAT, true)
 
     log.Infof("Starting PIOT server %s", config.VersionString())
 
-    //ctx := &config.AppContext{Db: db}
-
     //authService := service.NewAuthService(config, )
-    userService := service.NewUserService(db, log)
+    //userService := service.NewUserService(db, log)
 
     ctx = context.WithValue(ctx, "db", db)
     ctx = context.WithValue(ctx, "log", log)
-    ctx = context.WithValue(ctx, "userService", userService)
+    //ctx = context.WithValue(ctx, "userService", userService)
     //ctx = context.WithValue(ctx, "authService", authService)
 
-g   // create GraphQL schema
+    // create GraphQL schema
     graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
 
     http.HandleFunc("/", handler.RootHandler)
@@ -55,20 +56,16 @@ g   // create GraphQL schema
     // endpoint for authentication - token is generaged
     http.Handle("/login", handler.AddContext(ctx, handler.Logging(handler.LoginHandler())))
 
-    //http.Handle("/query", handler.AddContext(ctx, handler.Logging(handler.Authenticate(&handler.GraphQL{Schema: graphqlSchema}))))
-    http.Handle("/query", handler.AddContext(ctx, handler.Logging(&handler.GraphQL{Schema: graphqlSchema})))
-
-    //r := mux.NewRouter()
-
-    //r.HandleFunc("/", handler.RootHandler)
-
-    //r.PathPrefix("/register").Handler(handler.AppHandler{ctx, handler.RegisterHandler}).
-    //    Methods("POST")
-
-    //r.PathPrefix("/signin").Handler(handler.AppHandler{ctx, handler.SigninHandler}).
-    //    Methods("POST")
-
+    // endpoint for refreshing nearly expired token
     //r.HandleFunc("/refresh", handler.RefreshHandler)
+
+    http.Handle("/query", handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))))
+    //http.Handle("/query", handler.AddContext(ctx, handler.Logging(&handler.GraphQL{Schema: graphqlSchema})))
+
+    // enpoint for interactive graphql web IDE
+    http.Handle("/gql", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        http.ServeFile(w, r, "graphiql.html")
+    }))
 
     log.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
