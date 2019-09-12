@@ -1,18 +1,12 @@
-PIOT Server
-===========
+# PIOT Server
 
-Authentication part inspired by https://medium.com/@theShiva5/creating-simple-login-api-using-go-and-mongodb-9b3c1c775d2f
+## Development Environment
 
-User registration
------------------
-```
-curl -v -X POST localhost:9096/register -d '{"email": "hello@example.com", "password": "hello"}'
-```
+1. Run only mongodb docker container
 
-User authentication - get token
--------------------------------
-```
-curl -v -X POST localhost:9096/login -d '{"email": "hello@example.com", "password": "hello"}'
-```
+   ```
+    docker-compose up -d mongodb
+   ```
 
-
+2. Run script ``scripts/env.sh`` to get IP address of mongo container
+   and set env variable for piot server
