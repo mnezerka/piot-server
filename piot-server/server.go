@@ -51,15 +51,15 @@ func runServer(c *cli.Context) {
     http.HandleFunc("/", handler.RootHandler)
 
     // endpoint for registration of new user
-    http.Handle("/register", handler.AddContext(ctx, handler.Logging(handler.Registration())))
+    http.Handle("/register", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Registration()))))
 
     // endpoint for authentication - token is generaged
-    http.Handle("/login", handler.AddContext(ctx, handler.Logging(handler.LoginHandler())))
+    http.Handle("/login", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.LoginHandler()))))
 
     // endpoint for refreshing nearly expired token
     //r.HandleFunc("/refresh", handler.RefreshHandler)
 
-    http.Handle("/query", handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))))
+    http.Handle("/query", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.GraphQL{Schema: graphqlSchema})))))
     //http.Handle("/query", handler.AddContext(ctx, handler.Logging(&handler.GraphQL{Schema: graphqlSchema})))
 
     // enpoint for interactive graphql web IDE
