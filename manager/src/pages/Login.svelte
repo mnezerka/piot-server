@@ -1,4 +1,6 @@
 <script>
+    import {token, authenticated} from '../stores.js'
+    import {push} from 'svelte-spa-router'
 
     let username = '';
     let password = '';
@@ -13,7 +15,7 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({username, password})
+            body: JSON.stringify({email: username, password})
         })
             .then(function(response) {
                 if (!response.ok) {
@@ -23,6 +25,12 @@
             })
             .then(function(data) {
                 console.log(data);
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    $token = data.token;
+                    $authenticated = true;
+                    push('/');
+                }
             })
             .catch(function(response) {
                 console.log('Failed to fetch page: ', response);
