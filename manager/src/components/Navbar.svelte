@@ -20,7 +20,9 @@
     <div id="navbarMenu" class="navbar-menu">
         <div class="navbar-start">
             {#if $authenticated}
+            <a class="navbar-item" href="/customers" use:link>Customers</a>
             <a class="navbar-item" href="/users" use:link>Users</a>
+            <a class="navbar-item" href="/devices" use:link>Devices</a>
             {/if}
         </div>
 
@@ -30,7 +32,6 @@
                     {#if $authenticated}
                     <a href="/signout" use:link class="button is-light">Sign out {#if $profile}{$profile.email}{/if}</a>
                     {:else}
-                    <a href="/signup" use:link class="button is-primary"><strong>Sign up</strong></a>
                     <a href="/login" use:link class="button is-light">Log in</a>
                     {/if}
                 </div>
