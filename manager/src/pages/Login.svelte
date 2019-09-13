@@ -4,39 +4,47 @@
 
     let username = '';
     let password = '';
+    let error = null;
 
-    function handleSubmit()
+    async function handleSubmit()
     {
-        console.log('handle submit', username, password);
+        let response;
 
-        fetch('http://localhost:9096/login', {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({email: username, password})
-        })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw response
-                }
-                return response.json()
+        // fetch data from server
+        try {
+            response = await fetch('http://localhost:9096/login', {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({email: username, password})
             })
-            .then(function(data) {
-                console.log(data);
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
-                    $token = data.token;
-                    $authenticated = true;
-                    push('/');
+        } catch(error) {
+            error = 'Login Request Failed (' + error + ')';
+        }
+
+        // proces data
+        try {
+            let data = await response.json();
+
+            // if the response status code != 200 OK
+            if (!response.ok) {
+                error = 'Login Request Failed'
+
+                // try to add more information to the error message
+                if (data.error) {
+                    error = `${error} (${data.error})`;
                 }
-            })
-            .catch(function(response) {
-                console.log('Failed to fetch page: ', response);
-            });
-
-
+            } else if (data.token) {
+                localStorage.setItem('token', data.token);
+                $token = data.token;
+                $authenticated = true;
+                push('/');
+            }
+        } catch(error) {
+            error = 'Login Request Failed (' + error + ')';
+        }
     }
 </script>
 
@@ -45,6 +53,12 @@ form {
     margin-top: 100px;
 }
 </style>
+
+{#if error}
+    <div class="notification is-danger has-text-centered">
+        {error}
+    </div>
+{/if}
 
 <div class="columns is-mobile is-centered">
   <div class="column is-one-quarter is-vcentered">
