@@ -4,33 +4,22 @@
     import routes from './routes.js';
     import Navbar from './components/Navbar.svelte';
     import {profile, token, authenticated} from './stores.js'
+    import {onMount} from 'svelte';
+    import {gql} from './utils';
 
-    // verify that user token is valid - download user profile
-    if ($token) {
-        var requestBody = {
-            query: "{userProfile {email}}"}
-        }
-        fetch('http://localhost:9096/query', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + $token,
-            },
-            body: JSON.stringify(requestBody)
-        })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw response
-                }
-                return response.json()
-            })
-            .then(function(data) {
+    onMount(async () => {
+
+        // verify that user token is valid - download user profile
+        if ($token) {
+            try {
+                let data = await gql({query: "{userProfile {email}}"});
                 $authenticated = true;
-                $profile = data.data.userProfile;
-            })
-            .catch(function(response) {
-                console.log('Failed to fetch page: ', response);
-            });
+                $profile = data.userProfile;
+            } catch(error) {
+                error = 'Request failed (' + error + ')';
+            }
+        }
+    })
 
 </script>
 
