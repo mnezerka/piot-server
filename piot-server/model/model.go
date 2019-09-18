@@ -16,6 +16,13 @@ type UserProfile struct {
     Email     string `json:"email"`
 }
 
+// Represents customer as stored in database
+type Customer struct {
+    Name        string `json:"name"`
+    Description string `json:"description"`
+    Created     int32  `json:"created"`
+}
+
 // Used to read the username and password from the request body
 // for signin and authentication requests
 type Credentials struct {
@@ -40,4 +47,5 @@ type Claims struct {
     Email string `json:"email"`
     jwt.StandardClaims
 }
+
 
