@@ -26,5 +26,7 @@
 <Navbar/>
 
 <main class="piot-main">
-    <Router {routes}/>
+    <div class="container">
+        <Router {routes}/>
+    </div>
 </main>
