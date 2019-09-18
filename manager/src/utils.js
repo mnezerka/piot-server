@@ -20,5 +20,16 @@ export async function gql(request) {
 
     let data = await response.json();
 
+    if (data.errors) {
+        throw data.errors;
+    }
+
     return data.data;
 }
+
+export function formatDate(timeStamp) {
+    var d = new Date();
+    d.setTime(timeStamp * 1000)
+    return d.toUTCString();
+}
+
