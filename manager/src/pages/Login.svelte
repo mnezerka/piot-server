@@ -1,4 +1,9 @@
 <script>
+    /*
+    Good resource:
+    https://codepen.io/paulhbarker/pen/mwOREz
+    */
+
     import {token, authenticated} from '../stores.js'
     import {push} from 'svelte-spa-router'
 
@@ -49,9 +54,21 @@
 </script>
 
 <style>
-form {
-    margin-top: 100px;
+
+#login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
 }
+
+.card-header {
+    /*width: 24rem;*/
+    background-color: #eee;
+    padding: 2rem;
+    text-align: center;
+}
+
 </style>
 
 {#if error}
@@ -60,39 +77,49 @@ form {
     </div>
 {/if}
 
-<div class="columns is-mobile is-centered">
-  <div class="column is-one-quarter is-vcentered">
+<div id="login">
 
-<form class="has-text-centered" on:submit|preventDefault={handleSubmit}>
+    <div class="card">
 
-    <div class="field">
-        <p class="control has-icons-left has-icons-right">
-            <input bind:value={username} class="input" type="email" placeholder="Email">
-            <span class="icon is-small is-left">
-                <i class="fas fa-envelope"></i>
-            </span>
-            <span class="icon is-small is-right">
-                <i class="fas fa-check"></i>
-            </span>
-        </p>
+        <header class="card-header is-success">
+            <p class="card-header-title">Please Sign In</p>
+        </header>
+
+        <div class="card-content">
+
+            <form class="has-text-centered" on:submit|preventDefault={handleSubmit}>
+
+                <div class="field">
+                    <p class="control has-icons-left has-icons-right">
+                        <input bind:value={username} class="input" type="email" placeholder="Email">
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <span class="icon is-small is-right">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    </p>
+                </div>
+
+                <div class="field">
+                    <p class="control has-icons-left">
+                        <input bind:value={password} class="input" type="password" placeholder="Password">
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                    </p>
+                </div>
+
+                <div class="field">
+                    <p class="control">
+                        <button type="submit" class="button is-success">Login</button>
+                    </p>
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
 
-    <div class="field">
-        <p class="control has-icons-left">
-            <input bind:value={password} class="input" type="password" placeholder="Password">
-            <span class="icon is-small is-left">
-                <i class="fas fa-lock"></i>
-            </span>
-        </p>
-    </div>
-
-    <div class="field">
-        <p class="control">
-            <button class="button is-success">Login</button>
-        </p>
-    </div>
-
-</form>
-
-  </div>
 </div>
