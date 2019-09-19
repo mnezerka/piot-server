@@ -13,12 +13,14 @@ func GetRootSchema() string {
             user(email: String!): User
             users(): [User]!
             customers(): [Customer]!
+            customer(name: String!): Customer
             devices(): [Device]!
             device(ID: String!): Device
         }
 
         type Mutation {
             createCustomer(name: String!, description: String!): Customer
+            updateCustomer(name: String!, newName: String, newDescription: String): Customer
         }
 
         type User {

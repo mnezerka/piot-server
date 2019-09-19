@@ -58,14 +58,14 @@ func Authorize(h http.Handler) http.Handler {
                 WriteErrorResponse(w, err, http.StatusUnauthorized)
                 return
             }
-            WriteErrorResponse(w, err, http.StatusBadRequest)
+            WriteErrorResponse(w, err, http.StatusUnauthorized)
             return
         }
 
         ctx.Value("log").(*logging.Logger).Debugf("Authentication passed")
 
         if !token.Valid {
-            WriteErrorResponse(w, errors.New("Token is not valid"), http.StatusBadRequest)
+            WriteErrorResponse(w, errors.New("Token is not valid"), 401)
             return
         }
 

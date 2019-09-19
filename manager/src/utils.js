@@ -18,6 +18,10 @@ export async function gql(request) {
             body: JSON.stringify(request)
         })
 
+    if (response.status !== 200) {
+        throw response;
+    }
+
     let data = await response.json();
 
     if (data.errors) {

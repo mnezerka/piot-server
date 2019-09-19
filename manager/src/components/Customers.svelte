@@ -1,5 +1,7 @@
 <script>
     import {formatDate} from '../utils';
+    import {link} from 'svelte-spa-router'
+
     export var customers = null;
 </script>
 
@@ -14,7 +16,7 @@
     <tbody>
         {#each customers as customer}
         <tr>
-            <td>{customer.name}</td>
+            <td><a href="/customer-view/{customer.name}" use:link>{customer.name}</a></td>
             <td>{formatDate(customer.created)}</td>
         </tr>
         {/each}

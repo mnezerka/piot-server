@@ -59,13 +59,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    height: 70vh;
 }
 
 .card-header {
     /*width: 24rem;*/
-    background-color: #eee;
-    padding: 2rem;
+    background-color: #fff;
+    padding: 1rem;
     text-align: center;
 }
 

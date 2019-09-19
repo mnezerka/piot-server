@@ -78,7 +78,6 @@ func (r *Resolver) Customers(ctx context.Context) ([]*CustomerResolver, error) {
     return result, nil
 }
 
-// create new customer mutation
 func (r *Resolver) CreateCustomer(ctx context.Context, args *struct {Name string; Description string}) (*CustomerResolver, error) {
 
     customer := &model.Customer{
@@ -108,5 +107,43 @@ func (r *Resolver) CreateCustomer(ctx context.Context, args *struct {Name string
     ctx.Value("log").(*logging.Logger).Debugf("Created customer: %v", *customer)
 
     return &CustomerResolver{customer}, nil
+}
+
+func (r *Resolver) UpdateCustomer(ctx context.Context, args *struct {Name string; NewName *string; NewDescription *string}) (*CustomerResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Infof("Updating customer %s", args.Name)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // try to find customer to be updated
+    var customer model.Customer
+    collection := db.Collection("customers")
+    err := collection.FindOne(context.TODO(), bson.D{{"name", args.Name}}).Decode(&customer)
+    if err != nil {
+        return nil, errors.New("Customer does not exist")
+    }
+
+    // try to find similar customer matching new name
+    if args.NewName != nil {
+        var similarCustomer model.Customer
+        collection := db.Collection("customers")
+        err := collection.FindOne(context.TODO(), bson.D{{"name", args.NewName}}).Decode(&similarCustomer)
+        ctx.Value("log").(*logging.Logger).Infof("Similar customer search result %v %v", err, similarCustomer)
+    }
+    if err == nil {
+        return nil, errors.New("Customer of such name already exists")
+    }
+
+
+    // customer exists -> update it
+    /*
+    _, err = collection.InsertOne(context.TODO(), customer)
+    if err != nil {
+        return nil, errors.New("Error while creating customer")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Created customer: %v", *customer)
+    */
+    return &CustomerResolver{&customer}, nil
 }
 
