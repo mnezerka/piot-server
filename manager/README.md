@@ -21,3 +21,7 @@ npm run dev
 Navigate to [localhost:5000](http://localhost:5000). You should see your app
 running. Edit a component file in `src`, save it, and reload the page to see
 your changes.
+
+## Resources
+
+- TODO list: https://dev.to/sumitkharche/build-simple-todo-application-using-svelte-and-cosmic-js-3lpm
