@@ -142,7 +142,7 @@ func LoginHandler() http.Handler {
         err = collection.FindOne(ctx, bson.D{{"email", credentials.Email}}).Decode(&user)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-            WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 404)
+            WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 401)
             return
         }
 
