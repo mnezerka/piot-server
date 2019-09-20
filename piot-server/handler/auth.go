@@ -4,6 +4,7 @@ import (
     "context"
     "encoding/json"
     "errors"
+    //"fmt"
     "regexp"
     "time"
     //"fmt"
@@ -23,6 +24,12 @@ import (
 var JWT_KEY = []byte("my_secret_key")
 
 const TOKEN_EXPIRATION = 5
+
+
+func GetPasswordHash(pwd string) (string, error) {
+    hash, err := bcrypt.GenerateFromPassword([]byte(pwd), 5)
+    return string(hash), err
+}
 
 func validateEmail(email string) bool {
     Re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
@@ -76,19 +83,18 @@ func Registration() http.Handler {
         collection := db.Collection("users")
         err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
         if err == nil {
-            //response.Result = "User identified by this email already exists!"
             WriteErrorResponse(w, errors.New("User identified by this email already exists!"), 409)
             return
         }
 
         // generate hash for given password (we don't store passwords in plain form)
-        hash, err := bcrypt.GenerateFromPassword([]byte(credentials.Password), 5)
+        hash, err := GetPasswordHash(credentials.Password)
         if err != nil {
             WriteErrorResponse(w, errors.New("Error while hashing password, try again"), 500)
             return
         }
         user.Email = credentials.Email
-        user.Password = string(hash)
+        user.Password = hash
         user.Created = int32(time.Now().Unix())
 
         // user does not exist -> create new one
@@ -133,8 +139,9 @@ func LoginHandler() http.Handler {
         // try to find user in database
         var user model.User
         collection := db.Collection("users")
-        err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+        err = collection.FindOne(ctx, bson.D{{"email", credentials.Email}}).Decode(&user)
         if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf(err.Error())
             WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 404)
             return
         }
@@ -142,6 +149,7 @@ func LoginHandler() http.Handler {
         // check if password is correct
         err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
         if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf(err.Error())
             WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 401)
             return
         }
@@ -163,6 +171,7 @@ func LoginHandler() http.Handler {
 
         tokenString, err := token.SignedString(JWT_KEY)
         if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf(err.Error())
             WriteErrorResponse(w, errors.New("Error while generating token, try again"), 500)
             return
         }

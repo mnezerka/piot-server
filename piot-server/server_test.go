@@ -1,16 +1,22 @@
 package main
 
 import (
+    "bytes"
     "testing"
     "os"
+    "encoding/json"
+    "io/ioutil"
     "strings"
+    "time"
     "context"
     "net/http"
     "net/http/httptest"
     "piot-server/handler"
     "piot-server/service"
+    "piot-server/model"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/bson"
 )
 
 func TestAPI(t *testing.T) {
@@ -32,9 +38,20 @@ func TestAPI(t *testing.T) {
     // Auto disconnect from mongo
     defer dbClient.Disconnect(ctx)
 
-    db := dbClient.Database("piot")
+    db := dbClient.Database("piot-test")
     ctx = context.WithValue(ctx, "db", db)
 
+    // create admin account
+    hash, err := handler.GetPasswordHash("test")
+    FatalOnError(err, "Cannot generate hash from password")
+
+    db.Collection("users").DeleteMany(ctx, bson.M{})
+    _, err = db.Collection("users").InsertOne(ctx, bson.M{
+        "email": "test@test.com",
+        "password": hash,
+        "created": int32(time.Now().Unix()),
+    })
+    FatalOnError(err, "Cannot insert test user account")
 
     //////////// run tests
 
@@ -50,10 +67,18 @@ func checkStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expected int) 
     }
 }
 
+func body2Bytes(body *bytes.Buffer) ([]byte) {
+
+    var result []byte
+    result, _ = ioutil.ReadAll(body)
+    //result = byte[](res.Body.String())
+    return result
+}
+
 func testLoginFunc(ctx *context.Context) func(*testing.T) {
     return func(t *testing.T) {
-        req, err := http.NewRequest("POST", "/login", strings.NewReader("{}"))
-        if err != nil { t.Fatal(err) }
+        req, err := http.NewRequest("POST", "/login", strings.NewReader(`{"email": "test@test.com", "password": "test"}`))
+        if err != nil {t.Fatal(err)}
 
         rr := httptest.NewRecorder()
 
@@ -62,10 +87,9 @@ func testLoginFunc(ctx *context.Context) func(*testing.T) {
 
         checkStatusCode(t, rr, http.StatusOK)
 
-        // Check the response body is what we expect.
-        if !strings.HasPrefix(rr.Body.String(), "<html>") {
-            t.Error("unexpected body: does start with <html>")
-        }
+        var response model.Token
+        err = json.Unmarshal(body2Bytes(rr.Body), &response)
+        if err != nil {t.Fatal(err)}
     }
 }
 
@@ -75,13 +99,9 @@ func TestRoot(t *testing.T) {
         t.Fatal(err)
     }
     rr := httptest.NewRecorder()
-    //handler := http.HandlerFunc(GetEntries)
     handler := http.HandlerFunc(handler.RootHandler)
     handler.ServeHTTP(rr, req)
-    if status := rr.Code; status != http.StatusOK {
-        t.Errorf("handler returned wrong status code: got %v want %v",
-            status, http.StatusOK)
-    }
+    checkStatusCode(t, rr, http.StatusOK)
 
     // Check the response body is what we expect.
     if !strings.HasPrefix(rr.Body.String(), "<html>") {
