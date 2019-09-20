@@ -2,6 +2,7 @@
     import {onMount} from 'svelte';
     import {token} from '../stores'
     import Customers from '../components/Customers.svelte';
+    import ErrorBar from '../components/ErrorBar.svelte';
     import {gql} from '../utils.js';
     import {push} from 'svelte-spa-router'
 
@@ -19,10 +20,10 @@
         customers = null;
 
         try {
-            let data = await gql({query: "{customers {name, created}}"});
+            let data = await gql({query: "{customers {id, name, created}}"});
             customers = data.customers;
-        } catch(error) {
-            error = 'Request failed (' + error + ')';
+        } catch(e) {
+            error = e;//l'Request failed (' + e + ')';
         }
 
         fetching = false;
@@ -40,11 +41,8 @@
 {#if fetching}
     <progress class="progress is-small is-primary" max="100">15%</progress>
 {:else}
-    {#if error}
-        <div class="notification is-danger">
-            {error}
-        </div>
-    {:else}
+    <ErrorBar error={error}/>
+    {#if !error}
         <Customers customers={customers}/>
         <button class="button" on:click={onAdd}>Add</button>
     {/if}

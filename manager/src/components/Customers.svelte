@@ -16,7 +16,7 @@
     <tbody>
         {#each customers as customer}
         <tr>
-            <td><a href="/customer-view/{customer.name}" use:link>{customer.name}</a></td>
+            <td><a href="/customer-view/{customer.id}" use:link>{customer.name}</a></td>
             <td>{formatDate(customer.created)}</td>
         </tr>
         {/each}

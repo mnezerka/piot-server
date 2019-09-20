@@ -2,6 +2,7 @@ package model
 
 import (
     jwt "github.com/dgrijalva/jwt-go"
+    "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 
@@ -18,6 +19,7 @@ type UserProfile struct {
 
 // Represents customer as stored in database
 type Customer struct {
+    Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
     Name        string `json:"name"`
     Description string `json:"description"`
     Created     int32  `json:"created"`

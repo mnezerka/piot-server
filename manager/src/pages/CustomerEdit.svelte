@@ -3,41 +3,39 @@
     import {push} from 'svelte-spa-router'
     import {gql} from '../utils.js';
     import {onMount} from 'svelte';
+    import ErrorBar from '../components/ErrorBar.svelte';
 
     export var params;
 
     let name = '';
     let description = '';
+    let customer = null;
     let error = null;
     let fetching = false;
     let success = null;
 
-    onMount(async () => {
-        if (params.id) {
-            await fetchCustomer(params.id);
-        } else {
+    async function fetchCustomer() {
+        if (!params.id) {
             error = 'No customer specified';
+            return
         }
-    })
 
-    async function fetchCustomer(id) {
         fetching = true;
-        error = false;
-        name = '';
-        description = '';
+        error = null
 
         try {
-            let data = await gql({query: `{customer (name: "${id}") {name, description, created}}`});
-            name = data.customer.name;
-            description = data.customer.description;
-        } catch(error) {
-            error = 'Request failed (' + error + ')';
+            let data = await gql({query: `{customer (id: "${params.id}") {id, name, description, created}}`});
+            customer = data.customer;
+            name = customer.name;
+            description = customer.description;
+        } catch (e) {
+            console.log('failed');
+            error = e;
         }
-
         fetching = false;
     }
 
-    async function handleSubmit()
+    async function updateCustomer()
     {
         if (name.length === 0) {
             error = 'No name specified'
@@ -45,33 +43,34 @@
         }
 
         fetching = true;
-        error = false;
+        error = null;
         success = false;
 
         try {
-            let data = await gql({query: `mutation {updateCustomer(name: "${params.id}", newName: "${name}") {name}}`});
+            let data = await gql({query: `mutation {updateCustomer(id: "${params.id}", name: "${name}") {id}}`});
             success = 'Customer successfully updated'
         } catch(e) {
-            if (e instanceof Array) {
-                e = e.map((err) => err.message).join(', ');
-            }
-            error = 'Request failed (' + e + ')';
+            error = e;
         }
-
         fetching = false;
     }
+
+    onMount(fetchCustomer)
+
 </script>
 
 <style>
 form { width: 24rem;}
 </style>
 
-<h1 class="title">Edit Customer {params.id}</h1>
+<h1 class="title">Edit Customer</h1>
 
-{#if error}<div class="notification is-danger has-text-centered">{error}</div>{/if}
+<ErrorBar error={error}/>
+
 {#if success}<div class="notification is-success has-text-centered">{success}</div>{/if}
 
-<form on:submit|preventDefault={handleSubmit}>
+{#if customer}
+<form on:submit|preventDefault={updateCustomer}>
 
     <div class="field">
         <p class="control">
@@ -92,4 +91,4 @@ form { width: 24rem;}
     </div>
 
 </form>
-
+{/if}
