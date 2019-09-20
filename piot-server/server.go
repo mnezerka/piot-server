@@ -11,14 +11,13 @@ import (
     "os"
     "golang.org/x/net/context"
     "github.com/urfave/cli"
-    //"github.com/gorilla/mux"
-    //"github.com/gorilla/handlers"
     "piot-server/handler"
     "piot-server/config"
     "piot-server/service"
-    "piot-server/db"
     "piot-server/resolver"
     graphql "github.com/graph-gophers/graphql-go"
+    "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
@@ -28,22 +27,31 @@ func runServer(c *cli.Context) {
     // create global context for all handlers
     ctx := context.Background()
 
+    /////////////// DB
     // try to open database
-    db, err := db.GetDB(c.GlobalString("mongodb-uri"))
-    fatalfOnError(err, "Failed to open database on %s", c.GlobalString("mongodb-uri"))
+    dbUri := c.GlobalString("mongodb-uri")
+    dbClient, err := mongo.Connect(ctx, options.Client().ApplyURI(dbUri))
+    FatalOnError(err, "Failed to open database on %s", dbUri)
+
+    // Check the connection
+    err = dbClient.Ping(ctx, nil)
+    FatalOnError(err, "Cannot ping database on %s", dbUri)
+
+    // Auto disconnect from mongo
+    defer dbClient.Disconnect(ctx)
+
+    db := dbClient.Database("piot")
+    ctx = context.WithValue(ctx, "db", db)
+
+    /////////////// LOGGER
 
     // create global logger for all handlers
     log := service.NewLogger(LOG_FORMAT, true)
+    ctx = context.WithValue(ctx, "log", log)
 
     log.Infof("Starting PIOT server %s", config.VersionString())
 
-    //authService := service.NewAuthService(config, )
-    //userService := service.NewUserService(db, log)
-
-    ctx = context.WithValue(ctx, "db", db)
-    ctx = context.WithValue(ctx, "log", log)
-    //ctx = context.WithValue(ctx, "userService", userService)
-    //ctx = context.WithValue(ctx, "authService", authService)
+    /////////////// HANDLERS
 
     // create GraphQL schema
     graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
@@ -70,10 +78,10 @@ func runServer(c *cli.Context) {
     log.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
     err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
-    fatalfOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
+    FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
-func fatalfOnError(err error, msg string, args ...interface{}) {
+func FatalOnError(err error, msg string, args ...interface{}) {
     if err != nil {
         log.Fatalf(msg, args...)
         os.Exit(1)
