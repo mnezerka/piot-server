@@ -5,6 +5,9 @@
 MongoDB and Golang:
 https://vkt.sh/go-mongodb-driver-cookbook/
 
+Testing Tips:
+- https://medium.com/@benbjohnson/structuring-tests-in-go-46ddee7a25c
+
 ## Development Environment
 
 1. Run only mongodb docker container

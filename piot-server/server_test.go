@@ -1,12 +1,10 @@
 package main
 
 import (
-    "bytes"
     "fmt"
     "testing"
     "os"
     "encoding/json"
-    "io/ioutil"
     "strings"
     "time"
     "context"
@@ -16,6 +14,7 @@ import (
     "piot-server/service"
     "piot-server/model"
     "piot-server/resolver"
+    "piot-server/test"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/bson"
@@ -67,43 +66,48 @@ func TestAPI(t *testing.T) {
     t.Run("login wrong email and password", testLoginFunc(&ctx, "xxx", "yyy", 401))
     t.Run("login empty email and password", testLoginFunc(&ctx, "", "", 401))
 
-    t.Run("gql users are protected", testGqlUsersFunc(&ctx))
+    t.Run("gql users are protected", testGqlUsersNoAuthFunc(&ctx))
+    t.Run("gql users", testGqlUsersFunc(&ctx))
+
+    t.Run("gql customers are protected", testGqlCustomersNoAuthFunc(&ctx))
+    t.Run("gql customers", testGqlCustomersFunc(&ctx))
 }
 
-// helper function for checking and logging respone status
-func checkStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expected int) {
-    if status := rr.Code; status != expected{
 
-        t.Errorf("handler returned wrong status code: got %v want %v, body:\n%s",
-            status, expected, rr.Body.String())
-    }
+func login(t *testing.T, ctx *context.Context, email string, password string, statusCode int) (string) {
+    req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
+    test.Ok(t, err)
+
+    rr := httptest.NewRecorder()
+
+    handler := handler.AddContext(*ctx, handler.LoginHandler())
+    handler.ServeHTTP(rr, req)
+
+    test.CheckStatusCode(t, rr, statusCode)
+
+    var response model.Token
+    test.Ok(t, json.Unmarshal(test.Body2Bytes(rr.Body), &response))
+
+    return response.Token
 }
 
-func body2Bytes(body *bytes.Buffer) ([]byte) {
-    var result []byte
-    result, _ = ioutil.ReadAll(body)
-    return result
+func getAuthGqlRequest(t *testing.T, ctx *context.Context, body string) (*http.Request) {
+    token := login(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD, 200)
+
+    req, err := http.NewRequest("POST", "/any-path", strings.NewReader(body))
+    test.Ok(t, err)
+    req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+    return req
 }
 
 func testLoginFunc(ctx *context.Context, email string, password string, statusCode int) func(*testing.T) {
     return func(t *testing.T) {
-        req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
-        if err != nil {t.Fatal(err)}
-
-        rr := httptest.NewRecorder()
-
-        handler := handler.AddContext(*ctx, handler.LoginHandler())
-        handler.ServeHTTP(rr, req)
-
-        checkStatusCode(t, rr, statusCode)
-
-        var response model.Token
-        err = json.Unmarshal(body2Bytes(rr.Body), &response)
-        if err != nil {t.Fatal(err)}
+        login(t, ctx, email, password, statusCode)
     }
 }
 
-func testGqlUsersFunc(ctx *context.Context) func(*testing.T) {
+func testGqlUsersNoAuthFunc(ctx *context.Context) func(*testing.T) {
     return func(t *testing.T) {
         req, err := http.NewRequest("POST", "/any-path", strings.NewReader(`{"query":"{users {email}}"}`))
         if err != nil {t.Fatal(err)}
@@ -117,10 +121,63 @@ func testGqlUsersFunc(ctx *context.Context) func(*testing.T) {
 
         handler.ServeHTTP(rr, req)
 
-        checkStatusCode(t, rr, 401)
+        test.CheckStatusCode(t, rr, 401)
     }
 }
 
+func testGqlUsersFunc(ctx *context.Context) func(*testing.T) {
+    return func(t *testing.T) {
+
+        req := getAuthGqlRequest(t, ctx, `{"query":"{users {email}}"}`)
+
+        rr := httptest.NewRecorder()
+
+        // create GraphQL schema
+        graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+
+        handler := handler.AddContext(*ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
+
+        handler.ServeHTTP(rr, req)
+
+        test.CheckStatusCode(t, rr, 200)
+    }
+}
+
+func testGqlCustomersNoAuthFunc(ctx *context.Context) func(*testing.T) {
+    return func(t *testing.T) {
+        req, err := http.NewRequest("POST", "/any-path", strings.NewReader(`{"query":"{customers {id}}"}`))
+        if err != nil {t.Fatal(err)}
+
+        rr := httptest.NewRecorder()
+
+        // create GraphQL schema
+        graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+
+        handler := handler.AddContext(*ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
+
+        handler.ServeHTTP(rr, req)
+
+        test.CheckStatusCode(t, rr, 401)
+    }
+}
+
+func testGqlCustomersFunc(ctx *context.Context) func(*testing.T) {
+    return func(t *testing.T) {
+
+        req := getAuthGqlRequest(t, ctx, `{"query":"{customers{id}}"}`)
+
+        rr := httptest.NewRecorder()
+
+        // create GraphQL schema
+        graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+
+        handler := handler.AddContext(*ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
+
+        handler.ServeHTTP(rr, req)
+
+        test.CheckStatusCode(t, rr, 200)
+    }
+}
 
 func TestRoot(t *testing.T) {
     req, err := http.NewRequest("GET", "/", nil)
@@ -130,7 +187,7 @@ func TestRoot(t *testing.T) {
     rr := httptest.NewRecorder()
     handler := http.HandlerFunc(handler.RootHandler)
     handler.ServeHTTP(rr, req)
-    checkStatusCode(t, rr, http.StatusOK)
+    test.CheckStatusCode(t, rr, http.StatusOK)
 
     // Check the response body is what we expect.
     if !strings.HasPrefix(rr.Body.String(), "<html>") {
