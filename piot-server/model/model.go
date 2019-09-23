@@ -8,6 +8,7 @@ import (
 
 // Represents user as stored in database
 type User struct {
+    Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
     Email     string `json:"email"`
     Password  string `json:"password"`
     Created   int32  `json:"created"`

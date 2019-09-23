@@ -1,6 +1,7 @@
 package test
 
 import (
+    "encoding/json"
     "fmt"
     "path/filepath"
     "bytes"
@@ -10,6 +11,13 @@ import (
     "reflect"
     "testing"
 )
+
+type GqlResponseMessage struct {
+    Message string `json:message`
+}
+type GqlResponse struct {
+    Errors  []GqlResponseMessage `json:errors`
+}
 
 // assert fails the test if the condition is false.
 func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
@@ -45,6 +53,23 @@ func CheckStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expected int) 
             status, expected, rr.Body.String())
     }
 }
+
+// helper function for checking and logging respone status
+func CheckGqlResult(t *testing.T, rr *httptest.ResponseRecorder) {
+    CheckStatusCode(t, rr, 200);
+    //fmt.Print(rr.Body.String())
+
+    var response GqlResponse
+    if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+        t.Error(err)
+    }
+
+    if len(response.Errors) > 0 {
+        fmt.Printf("%v", response)
+        t.Errorf("\033[31mNot empty list of errors: %v\033[39m", response.Errors)
+    }
+}
+
 
 func Body2Bytes(body *bytes.Buffer) ([]byte) {
     var result []byte
