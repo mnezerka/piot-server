@@ -13,11 +13,11 @@ import (
     "runtime"
     "reflect"
     "testing"
-    "piot-server/resolver"
+    //"piot-server/resolver"
     "piot-server/handler"
     "piot-server/model"
-    "piot-server/schema"
-    graphql "github.com/graph-gophers/graphql-go"
+    //"piot-server/schema"
+    //graphql "github.com/graph-gophers/graphql-go"
 )
 
 type GqlResponseMessage struct {
@@ -113,6 +113,7 @@ func GetAuthGqlRequest(t *testing.T, ctx *context.Context, email, password, body
     return req
 }
 
+/*
 func GetGqlResponseRecorder(t *testing.T, ctx *context.Context, email, password, request string) (*httptest.ResponseRecorder) {
 
     req := GetAuthGqlRequest(t, ctx, email, password, request)
@@ -127,3 +128,4 @@ func GetGqlResponseRecorder(t *testing.T, ctx *context.Context, email, password,
 
     return rr
 }
+*/

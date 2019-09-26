@@ -47,7 +47,7 @@ func (r *Resolver) Customer(ctx context.Context, args struct {Id string}) (*Cust
     id, err := primitive.ObjectIDFromHex(args.Id)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
-        return nil, err
+        return nil, errors.New("Cannot decode ID")
     }
 
     collection := db.Collection("customers")

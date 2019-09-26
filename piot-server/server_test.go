@@ -1,10 +1,8 @@
 package main
 
 import (
-    "fmt"
     "testing"
     "os"
-//    "encoding/json"
     "strings"
     "time"
     "context"
@@ -144,43 +142,6 @@ func TestGqlUsersNoAuth(t *testing.T) {
     test.CheckStatusCode(t, rr, 401)
 }
 
-func TestGqlUsersGet(t *testing.T) {
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, `{"query":"{users {email, customer{id}}}"}`)
-
-    test.CheckGqlResult(t, rr)
-}
-
-func TestGqlUserCreate(t *testing.T) {
-
-    const email = "test2@test.com"
-
-    request := fmt.Sprintf(`{"query":"mutation {createUser(email: \"%s\") {id} }"}`, email)
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
-
-    test.CheckGqlResult(t, rr)
-}
-
-func TestGqlUserUpdate(t *testing.T) {
-
-    const email = "test_create@test.com"
-    const emailNew = "test_create_new@test.com"
-
-    // create user
-    id := createUser(t, &ctx, email, "pwd")
-    t.Logf("User to be updated %s", id)
-
-    // update user created in prev. step
-    request := fmt.Sprintf(`{"query":"mutation {updateUser(id: \"%s\", email: \"%s\") {id} }"}`, id, emailNew)
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
-
-    test.CheckGqlResult(t, rr)
-
-    // try to get user based on updated email address
-    getUser(t, &ctx, emailNew)
-}
 
 func TestGqlCustomersNoAuth(t *testing.T) {
     req, err := http.NewRequest("POST", "/any-path", strings.NewReader(`{"query":"{customers {id}}"}`))
@@ -195,12 +156,6 @@ func TestGqlCustomersNoAuth(t *testing.T) {
     handler.ServeHTTP(rr, req)
 
     test.CheckStatusCode(t, rr, 401)
-}
-
-func TestGqlCustomersGet(t *testing.T) {
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, `{"query":"{customers{id}}"}`)
-    test.CheckGqlResult(t, rr)
 }
 
 func TestRoot(t *testing.T) {

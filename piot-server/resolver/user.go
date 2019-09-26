@@ -84,7 +84,6 @@ func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
 
     db := ctx.Value("db").(*mongo.Database)
 
-
     collection := db.Collection("users")
 
     count, _ := collection.EstimatedDocumentCount(context.TODO())
@@ -113,12 +112,6 @@ func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
     if err := cur.Err(); err != nil {
       return nil, err
     }
-
-    /*
-    for _, item := range result {
-        ctx.Value("log").(*logging.Logger).Debugf("GQL: User iteration result item:  %s", *item.u)
-    }
-    */
 
     return result, nil
 }
