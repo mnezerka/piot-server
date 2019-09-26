@@ -28,7 +28,7 @@ func (r *ThingResolver) Created() int32 {
     return r.d.Created
 }
 
-func (r *ThingResolver) Customer () *CustomerResolver {
+func (r *ThingResolver) Org () *OrgResolver {
     // TODO fetch customer
     return nil
 }

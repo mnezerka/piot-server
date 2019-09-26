@@ -2,6 +2,7 @@ package resolver
 
 import (
     "context"
+    "fmt"
     "os"
     "testing"
     "time"
@@ -72,51 +73,61 @@ func TestUser(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: `
             {
-                user(email: "user1@test.com") { email, customer { id } }
+                user(email: "user1@test.com") { email, org { id } }
             }
         `,
         ExpectedResult: `
             {
                 "user": {
                     "email": "user1@test.com",
-                    "customer": null
+                    "org": null
                 }
             }
         `,
     })
 }
 
+func TestUserCreate(t *testing.T) {
+    cleanDb(t, ctx)
 
-/*
-func TestGqlUserCreate(t *testing.T) {
-
-    const email = "test2@test.com"
-
-    request := fmt.Sprintf(`{"query":"mutation {createUser(email: \"%s\") {id} }"}`, email)
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
-
-    test.CheckGqlResult(t, rr)
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: `
+            mutation {
+                createUser(user: {email: "user_new@test.com"}) { email }
+            }
+        `,
+        ExpectedResult: `
+            {
+                "createUser": {
+                    "email": "user_new@test.com"
+                }
+            }
+        `,
+    })
 }
 
-func TestGqlUserUpdate(t *testing.T) {
+func TestUserUpdate(t *testing.T) {
+    cleanDb(t, ctx)
+    id := createUser(t, &ctx, "user1@test.com")
 
-    const email = "test_create@test.com"
-    const emailNew = "test_create_new@test.com"
-
-    // create user
-    id := createUser(t, &ctx, email, "pwd")
     t.Logf("User to be updated %s", id)
 
-    // update user created in prev. step
-    request := fmt.Sprintf(`{"query":"mutation {updateUser(id: \"%s\", email: \"%s\") {id} }"}`, id, emailNew)
-
-    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
-
-    test.CheckGqlResult(t, rr)
-
-    // try to get user based on updated email address
-    getUser(t, &ctx, emailNew)
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                updateUser(user: {id: "%s", email: "user1_new@test.com"}) { email }
+            }
+        `, id),
+        ExpectedResult: `
+            {
+                "updateUser": {
+                    "email": "user1_new@test.com"
+                }
+            }
+        `,
+    })
 }
-*/
-

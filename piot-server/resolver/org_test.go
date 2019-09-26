@@ -17,13 +17,13 @@ import (
 
 )
 
-var customerId string
+var orgId string
 
-func createCustomer(t *testing.T, ctx *context.Context, name string) (string) {
+func createOrg(t *testing.T, ctx *context.Context, name string) (string) {
 
     db := (*ctx).Value("db").(*mongo.Database)
 
-    res, err := db.Collection("customers").InsertOne(*ctx, bson.M{
+    res, err := db.Collection("orgs").InsertOne(*ctx, bson.M{
         "name": name,
         "created": int32(time.Now().Unix()),
     })
@@ -36,7 +36,7 @@ func createCustomer(t *testing.T, ctx *context.Context, name string) (string) {
 func cleanDb(t *testing.T, ctx context.Context) {
 
     db := ctx.Value("db").(*mongo.Database)
-    db.Collection("customers").DeleteMany(ctx, bson.M{})
+    db.Collection("orgs").DeleteMany(ctx, bson.M{})
     db.Collection("users").DeleteMany(ctx, bson.M{})
 }
 
@@ -50,9 +50,9 @@ func init() {
     //ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
 }
 
-func TestCustomers(t *testing.T) {
+func TestOrgs(t *testing.T) {
     cleanDb(t, ctx)
-    createCustomer(t, &ctx, "customer1")
+    createOrg(t, &ctx, "org1")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
@@ -60,14 +60,14 @@ func TestCustomers(t *testing.T) {
             Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
             Query: `
                 {
-                    customers { name }
+                    orgs { name }
                 }
             `,
             ExpectedResult: `
                 {
-                    "customers": [
+                    "orgs": [
                         {
-                            "name": "customer1"
+                            "name": "org1"
                         }
                     ]
                 }
@@ -76,22 +76,22 @@ func TestCustomers(t *testing.T) {
     })
 }
 
-func TestCustomer(t *testing.T) {
+func TestOrg(t *testing.T) {
     cleanDb(t, ctx)
-    customerId = createCustomer(t, &ctx, "customer1")
+    orgId = createOrg(t, &ctx, "org1")
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                customer(id: "%s") { name }
+                org(id: "%s") { name }
             }
-        `, customerId),
+        `, orgId),
         ExpectedResult: `
             {
-                "customer": {
-                    "name": "customer1"
+                "org": {
+                    "name": "org1"
                 }
             }
         `,

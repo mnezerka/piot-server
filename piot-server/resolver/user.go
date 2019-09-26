@@ -12,6 +12,17 @@ import (
     graphql "github.com/graph-gophers/graphql-go"
 )
 
+type userUpdateInput struct {
+    Id      graphql.ID
+    Email   *string
+    OrgId   *graphql.ID
+}
+
+type userCreateInput struct {
+    Email   string
+    OrgId   *graphql.ID
+}
+
 /////////// User Resolver
 
 type UserResolver struct {
@@ -35,8 +46,8 @@ func (r *UserResolver) Created() int32 {
     return r.u.Created
 }
 
-func (r *UserResolver) Customer() *CustomerResolver {
-    //return &CustomerResolver{&customer}
+func (r *UserResolver) Org() *OrgResolver {
+    //return &OrgResolver{&org}
     return nil
 }
 
@@ -137,21 +148,21 @@ func (r *Resolver) UserProfile(ctx context.Context) (*UserProfileResolver, error
     return &UserProfileResolver{&user}, nil
 }
 
-func (r *Resolver) CreateUser(ctx context.Context, args *struct {Email string}) (*UserResolver, error) {
+func (r *Resolver) CreateUser(ctx context.Context, args struct {User userCreateInput}) (*UserResolver, error) {
 
     user := &model.User{
-        Email: args.Email,
+        Email: args.User.Email,
         Created: int32(time.Now().Unix()),
     }
 
-    ctx.Value("log").(*logging.Logger).Infof("Creating user %s", args.Email)
+    ctx.Value("log").(*logging.Logger).Infof("Creating user %s", args.User.Email)
 
     db := ctx.Value("db").(*mongo.Database)
 
     // try to find existing user of same email
     var userExisting model.User
     collection := db.Collection("users")
-    err := collection.FindOne(ctx, bson.D{{"email", args.Email}}).Decode(&userExisting)
+    err := collection.FindOne(ctx, bson.D{{"email", args.User.Email}}).Decode(&userExisting)
     if err == nil {
         return nil, errors.New("User of such email already exists!")
     }
@@ -162,19 +173,19 @@ func (r *Resolver) CreateUser(ctx context.Context, args *struct {Email string}) 
         return nil, errors.New("Error while creating user")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Created user: %s", args.Email)
+    ctx.Value("log").(*logging.Logger).Debugf("Created user: %s", args.User.Email)
 
     return &UserResolver{user}, nil
 }
 
-func (r *Resolver) UpdateUser(ctx context.Context, args *struct {Id string; Email *string}) (*UserResolver, error) {
+func (r *Resolver) UpdateUser(ctx context.Context, args struct {User userUpdateInput}) (*UserResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating user %s", args.Id)
+    ctx.Value("log").(*logging.Logger).Debugf("Updating user %s", args.User.Id)
 
     db := ctx.Value("db").(*mongo.Database)
 
     // create ObjectID from string
-    id, err := primitive.ObjectIDFromHex(args.Id)
+    id, err := primitive.ObjectIDFromHex(string(args.User.Id))
     if err != nil {
         return nil, err
     }
@@ -188,9 +199,9 @@ func (r *Resolver) UpdateUser(ctx context.Context, args *struct {Id string; Emai
     }
 
     // try to find similar user matching new email
-    if args.Email != nil {
+    if args.User.Email != nil {
         var similarUser model.User
-        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"email": args.Email}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarUser)
+        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"email": args.User.Email}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarUser)
         if err == nil {
             return nil, errors.New("User of such name already exists")
         }
@@ -198,7 +209,7 @@ func (r *Resolver) UpdateUser(ctx context.Context, args *struct {Id string; Emai
 
     // user exists -> update it
     updateFields := bson.M{}
-    if args.Email != nil { updateFields["email"] = args.Email}
+    if args.User.Email != nil { updateFields["email"] = args.User.Email}
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)

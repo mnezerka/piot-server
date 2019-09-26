@@ -12,17 +12,17 @@ func GetRootSchema() string {
             userProfile(): UserProfile
             user(email: String!): User
             users(): [User]!
-            customers(): [Customer]!
-            customer(id: String!): Customer
+            orgs(): [Org]!
+            org(id: String!): Org
             things(): [Thing]!
             thing(ID: String!): Thing
         }
 
         type Mutation {
-            createCustomer(name: String!, description: String!): Customer
-            updateCustomer(id: ID!, name: String, description: String): Customer
-            createUser(email: String!): User
-            updateUser(id: ID!, email: String): User
+            createOrg(name: String!, description: String!): Org
+            updateOrg(id: ID!, name: String, description: String): Org
+            createUser(user: UserCreate!): User
+            updateUser(user: UserUpdate!): User
         }
 
         type User {
@@ -30,14 +30,14 @@ func GetRootSchema() string {
             email: String!
             password: String!
             created: Int!
-            customer: Customer
+            org: Org
         }
 
         type UserProfile {
             email: String!
         }
 
-        type Customer {
+        type Org {
             id: ID!
             name: String!
             description: String!
@@ -49,7 +49,19 @@ func GetRootSchema() string {
             type: String!
             available: Boolean!
             created: Int!
-            customer: Customer
+            org: Org
         }
+
+        input UserUpdate {
+            id: ID!,
+            email: String
+            orgId: ID
+        }
+
+        input UserCreate {
+            email: String!
+            orgId: ID
+        }
+
     `
 }
