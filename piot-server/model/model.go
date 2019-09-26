@@ -8,10 +8,11 @@ import (
 
 // Represents user as stored in database
 type User struct {
-    Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-    Email     string `json:"email"`
-    Password  string `json:"password"`
-    Created   int32  `json:"created"`
+    Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+    Email       string `json:"email"`
+    Password    string `json:"password"`
+    Created     int32  `json:"created"`
+    CustomerId  primitive.ObjectID `json:"customer_id" bson:"customer_id,omitempty"`
 }
 
 type UserProfile struct {

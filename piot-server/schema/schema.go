@@ -1,4 +1,4 @@
-package main
+package schema
 
 func GetRootSchema() string {
 
@@ -20,16 +20,17 @@ func GetRootSchema() string {
 
         type Mutation {
             createCustomer(name: String!, description: String!): Customer
-            updateCustomer(id: String!, name: String, description: String): Customer
+            updateCustomer(id: ID!, name: String, description: String): Customer
             createUser(email: String!): User
-            updateUser(id: String!, email: String): User
+            updateUser(id: ID!, email: String): User
         }
 
         type User {
-            id: String!
+            id: ID!
             email: String!
             password: String!
             created: Int!
+            customer: Customer
         }
 
         type UserProfile {
@@ -37,7 +38,7 @@ func GetRootSchema() string {
         }
 
         type Customer {
-            id: String!
+            id: ID!
             name: String!
             description: String!
             created: Int!

@@ -4,7 +4,7 @@ import (
     "fmt"
     "testing"
     "os"
-    "encoding/json"
+//    "encoding/json"
     "strings"
     "time"
     "context"
@@ -14,6 +14,7 @@ import (
     "piot-server/service"
     "piot-server/model"
     "piot-server/resolver"
+    "piot-server/schema"
     "piot-server/test"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
@@ -81,34 +82,6 @@ func TestMain(m *testing.M) {
     os.Exit(m.Run())
 }
 
-
-/*
-t.Run("gql users are protected", testGqlUsersNoAuthFunc(&ctx))
-t.Run("gql users", testGqlUsersFunc(&ctx))
-t.Run("gql create user", testGqlUserCreateFunc(&ctx, "test2@test.com"))
-t.Run("gql update user", testGqlUserUpdateFunc(&ctx, "test2@test.com"))
-
-t.Run("gql customers are protected", testGqlCustomersNoAuthFunc(&ctx))
-t.Run("gql customers", testGqlCustomersFunc(&ctx))
-*/
-
-func login(t *testing.T, ctx *context.Context, email string, password string, statusCode int) (string) {
-    req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
-    test.Ok(t, err)
-
-    rr := httptest.NewRecorder()
-
-    handler := handler.AddContext(*ctx, handler.LoginHandler())
-    handler.ServeHTTP(rr, req)
-
-    test.CheckStatusCode(t, rr, statusCode)
-
-    var response model.Token
-    test.Ok(t, json.Unmarshal(test.Body2Bytes(rr.Body), &response))
-
-    return response.Token
-}
-
 func createUser(t *testing.T, ctx *context.Context, email string, password string) (string) {
 
     db := (*ctx).Value("db").(*mongo.Database)
@@ -126,7 +99,6 @@ func createUser(t *testing.T, ctx *context.Context, email string, password strin
     return res.InsertedID.(primitive.ObjectID).Hex()
 }
 
-
 func getUser(t *testing.T, ctx *context.Context, email string) (*model.User) {
     db := (*ctx).Value("db").(*mongo.Database)
 
@@ -137,44 +109,33 @@ func getUser(t *testing.T, ctx *context.Context, email string) (*model.User) {
     return &user
 }
 
-func getAuthGqlRequest(t *testing.T, ctx *context.Context, body string) (*http.Request) {
-    token := login(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD, 200)
-
-    req, err := http.NewRequest("POST", "/any-path", strings.NewReader(body))
-    test.Ok(t, err)
-    req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
-
-    return req
-}
-
 func TestLoginSuccessful(t *testing.T) {
-    login(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, http.StatusOK)
+    test.Login(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, http.StatusOK)
 }
 
 func TestLoginWrongPassword(t *testing.T) {
-    login(t, &ctx, ADMIN_EMAIL, "xxx", 401)
+    test.Login(t, &ctx, ADMIN_EMAIL, "xxx", 401)
 }
 
 func TestLoginWrongEmail(t *testing.T) {
-    login(t, &ctx, "xxx", ADMIN_PASSWORD, 401)
+    test.Login(t, &ctx, "xxx", ADMIN_PASSWORD, 401)
 }
 
 func TestLoginWrongEmailAndPassword(t *testing.T) {
-    login(t, &ctx, "xxx", "yyy", 401)
+    test.Login(t, &ctx, "xxx", "yyy", 401)
 }
 
 func TestLoginEmptyEmailAndPassword(t *testing.T) {
-    login(t, &ctx, "", "", 401)
+    test.Login(t, &ctx, "", "", 401)
 }
 
 func TestGqlUsersNoAuth(t *testing.T) {
     req, err := http.NewRequest("POST", "/any-path", strings.NewReader(`{"query":"{users {email}}"}`))
-    if err != nil {t.Fatal(err)}
+    test.Ok(t, err)
 
     rr := httptest.NewRecorder()
 
-    // create GraphQL schema
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
 
     handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
 
@@ -184,33 +145,19 @@ func TestGqlUsersNoAuth(t *testing.T) {
 }
 
 func TestGqlUsersGet(t *testing.T) {
-    req := getAuthGqlRequest(t, &ctx, `{"query":"{users {email}}"}`)
 
-    rr := httptest.NewRecorder()
+    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, `{"query":"{users {email, customer{id}}}"}`)
 
-    // create GraphQL schema
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
-
-    handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
-
-    handler.ServeHTTP(rr, req)
-
-    test.CheckStatusCode(t, rr, 200)
+    test.CheckGqlResult(t, rr)
 }
 
 func TestGqlUserCreate(t *testing.T) {
 
     const email = "test2@test.com"
 
-    req := getAuthGqlRequest(t, &ctx, fmt.Sprintf(`{"query":"mutation {createUser(email: \"%s\") {id} }"}`, email))
+    request := fmt.Sprintf(`{"query":"mutation {createUser(email: \"%s\") {id} }"}`, email)
 
-    rr := httptest.NewRecorder()
-
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
-
-    handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
-
-    handler.ServeHTTP(rr, req)
+    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
 
     test.CheckGqlResult(t, rr)
 }
@@ -225,15 +172,9 @@ func TestGqlUserUpdate(t *testing.T) {
     t.Logf("User to be updated %s", id)
 
     // update user created in prev. step
-    req := getAuthGqlRequest(t, &ctx, fmt.Sprintf(`{"query":"mutation {updateUser(id: \"%s\", email: \"%s\") {id} }"}`, id, emailNew))
+    request := fmt.Sprintf(`{"query":"mutation {updateUser(id: \"%s\", email: \"%s\") {id} }"}`, id, emailNew)
 
-    rr := httptest.NewRecorder()
-
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
-
-    handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
-
-    handler.ServeHTTP(rr, req)
+    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, request)
 
     test.CheckGqlResult(t, rr)
 
@@ -243,11 +184,11 @@ func TestGqlUserUpdate(t *testing.T) {
 
 func TestGqlCustomersNoAuth(t *testing.T) {
     req, err := http.NewRequest("POST", "/any-path", strings.NewReader(`{"query":"{customers {id}}"}`))
-    if err != nil {t.Fatal(err)}
+    test.Ok(t, err)
 
     rr := httptest.NewRecorder()
 
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
 
     handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
 
@@ -258,18 +199,8 @@ func TestGqlCustomersNoAuth(t *testing.T) {
 
 func TestGqlCustomersGet(t *testing.T) {
 
-    req := getAuthGqlRequest(t, &ctx, `{"query":"{customers{id}}"}`)
-
-    rr := httptest.NewRecorder()
-
-    // create GraphQL schema
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
-
-    handler := handler.AddContext(ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
-
-    handler.ServeHTTP(rr, req)
-
-    test.CheckStatusCode(t, rr, 200)
+    rr := test.GetGqlResponseRecorder(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, `{"query":"{customers{id}}"}`)
+    test.CheckGqlResult(t, rr)
 }
 
 func TestRoot(t *testing.T) {

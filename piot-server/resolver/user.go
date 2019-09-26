@@ -9,6 +9,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "github.com/mongodb/mongo-go-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
+    graphql "github.com/graph-gophers/graphql-go"
 )
 
 /////////// User Resolver
@@ -17,8 +18,8 @@ type UserResolver struct {
     u *model.User
 }
 
-func (r *UserResolver) Id() string {
-    return r.u.Id.Hex()
+func (r *UserResolver) Id() graphql.ID {
+    return graphql.ID(r.u.Id.Hex())
 }
 
 func (r *UserResolver) Email() string {
@@ -33,6 +34,12 @@ func (r *UserResolver) Password() string {
 func (r *UserResolver) Created() int32 {
     return r.u.Created
 }
+
+func (r *UserResolver) Customer() *CustomerResolver {
+    //return &CustomerResolver{&customer}
+    return nil
+}
+
 
 /////////// UserProfileResolver
 

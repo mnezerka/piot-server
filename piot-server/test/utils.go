@@ -1,15 +1,23 @@
 package test
 
 import (
+    "context"
     "encoding/json"
     "fmt"
+    "strings"
     "path/filepath"
     "bytes"
     "io/ioutil"
+    "net/http"
     "net/http/httptest"
     "runtime"
     "reflect"
     "testing"
+    "piot-server/resolver"
+    "piot-server/handler"
+    "piot-server/model"
+    "piot-server/schema"
+    graphql "github.com/graph-gophers/graphql-go"
 )
 
 type GqlResponseMessage struct {
@@ -77,3 +85,45 @@ func Body2Bytes(body *bytes.Buffer) ([]byte) {
     return result
 }
 
+func Login(t *testing.T, ctx *context.Context, email string, password string, statusCode int) (string) {
+    req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
+    Ok(t, err)
+
+    rr := httptest.NewRecorder()
+
+    handler := handler.AddContext(*ctx, handler.LoginHandler())
+    handler.ServeHTTP(rr, req)
+
+    CheckStatusCode(t, rr, statusCode)
+
+    var response model.Token
+    Ok(t, json.Unmarshal(Body2Bytes(rr.Body), &response))
+
+    return response.Token
+}
+
+
+func GetAuthGqlRequest(t *testing.T, ctx *context.Context, email, password, body string) (*http.Request) {
+    token := Login(t, ctx, email, password, 200)
+
+    req, err := http.NewRequest("POST", "/any-path", strings.NewReader(body))
+    Ok(t, err)
+    req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+    return req
+}
+
+func GetGqlResponseRecorder(t *testing.T, ctx *context.Context, email, password, request string) (*httptest.ResponseRecorder) {
+
+    req := GetAuthGqlRequest(t, ctx, email, password, request)
+
+    rr := httptest.NewRecorder()
+
+    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
+
+    handler := handler.AddContext(*ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
+
+    handler.ServeHTTP(rr, req)
+
+    return rr
+}

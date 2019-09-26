@@ -9,6 +9,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
+    graphql "github.com/graph-gophers/graphql-go"
 )
 
 /////////// Customer Resolver
@@ -17,8 +18,8 @@ type CustomerResolver struct {
     c *model.Customer
 }
 
-func (r *CustomerResolver) Id() string {
-    return r.c.Id.Hex()
+func (r *CustomerResolver) Id() graphql.ID {
+    return graphql.ID(r.c.Id.Hex())
 }
 
 func (r *CustomerResolver) Name() string {

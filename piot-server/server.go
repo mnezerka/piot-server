@@ -15,6 +15,7 @@ import (
     "piot-server/config"
     "piot-server/service"
     "piot-server/resolver"
+    "piot-server/schema"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
@@ -54,7 +55,7 @@ func runServer(c *cli.Context) {
     /////////////// HANDLERS
 
     // create GraphQL schema
-    graphqlSchema := graphql.MustParseSchema(GetRootSchema(), &resolver.Resolver{})
+    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
 
     http.HandleFunc("/", handler.RootHandler)
 
