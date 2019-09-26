@@ -14,8 +14,8 @@ func GetRootSchema() string {
             users(): [User]!
             customers(): [Customer]!
             customer(id: String!): Customer
-            devices(): [Device]!
-            device(ID: String!): Device
+            things(): [Thing]!
+            thing(ID: String!): Thing
         }
 
         type Mutation {
@@ -44,7 +44,7 @@ func GetRootSchema() string {
             created: Int!
         }
 
-        type Device {
+        type Thing {
             name: String!
             type: String!
             available: Boolean!

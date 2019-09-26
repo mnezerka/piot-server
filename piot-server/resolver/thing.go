@@ -8,56 +8,56 @@ import (
     "github.com/mongodb/mongo-go-driver/bson"
 )
 
-type DeviceResolver struct {
-    d *model.Device
+type ThingResolver struct {
+    d *model.Thing
 }
 
-func (r *DeviceResolver) Name() string {
+func (r *ThingResolver) Name() string {
     return r.d.Name
 }
 
-func (r *DeviceResolver) Type() string {
+func (r *ThingResolver) Type() string {
     return r.d.Type
 }
 
-func (r *DeviceResolver) Available () bool {
+func (r *ThingResolver) Available () bool {
     return r.d.Available
 }
 
-func (r *DeviceResolver) Created() int32 {
+func (r *ThingResolver) Created() int32 {
     return r.d.Created
 }
 
-func (r *DeviceResolver) Customer () *CustomerResolver {
+func (r *ThingResolver) Customer () *CustomerResolver {
     // TODO fetch customer
     return nil
 }
 
 
-func (r *Resolver) Device(ctx context.Context, args struct {Id string}) (*DeviceResolver, error) {
+func (r *Resolver) Thing(ctx context.Context, args struct {Id string}) (*ThingResolver, error) {
 
     db := ctx.Value("db").(*mongo.Database)
 
-    device := model.Device{}
+    thing := model.Thing{}
 
-    collection := db.Collection("devices")
-    err := collection.FindOne(context.TODO(), bson.D{{"id", args.Id}}).Decode(&device)
+    collection := db.Collection("things")
+    err := collection.FindOne(context.TODO(), bson.D{{"id", args.Id}}).Decode(&thing)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, err
     }
 
-    return &DeviceResolver{&device}, nil
+    return &ThingResolver{&thing}, nil
 }
 
-func (r *Resolver) Devices(ctx context.Context) ([]*DeviceResolver, error) {
+func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
 
     db := ctx.Value("db").(*mongo.Database)
 
-    collection := db.Collection("devices")
+    collection := db.Collection("things")
 
     count, _ := collection.EstimatedDocumentCount(context.TODO())
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Estimated devices count %d", count)
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Estimated things count %d", count)
 
     cur, err := collection.Find(context.TODO(), bson.D{})
     if err != nil {
@@ -66,17 +66,17 @@ func (r *Resolver) Devices(ctx context.Context) ([]*DeviceResolver, error) {
     }
     defer cur.Close(context.TODO())
 
-    var result []*DeviceResolver
+    var result []*ThingResolver
 
     for cur.Next(context.TODO()) {
         // To decode into a struct, use cursor.Decode()
-        device := model.Device{}
-        err := cur.Decode(&device)
+        thing := model.Thing{}
+        err := cur.Decode(&thing)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &DeviceResolver{&device})
+        result = append(result, &ThingResolver{&thing})
     }
 
     if err := cur.Err(); err != nil {
