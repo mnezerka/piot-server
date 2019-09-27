@@ -18,7 +18,7 @@ import (
 
 var ctx context.Context
 
-func createUser(t *testing.T, ctx *context.Context, email string) (string) {
+func CreateUser(t *testing.T, ctx *context.Context, email string) (string) {
 
     db := (*ctx).Value("db").(*mongo.Database)
 
@@ -40,7 +40,7 @@ func init() {
 
 func TestUsersGet(t *testing.T) {
     cleanDb(t, ctx)
-    createUser(t, &ctx, "user1@test.com")
+    CreateUser(t, &ctx, "user1@test.com")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
@@ -66,21 +66,21 @@ func TestUsersGet(t *testing.T) {
 
 func TestUserGet(t *testing.T) {
     cleanDb(t, ctx)
-    id := createUser(t, &ctx, "user1@test.com")
+    id := CreateUser(t, &ctx, "user1@test.com")
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                user(id: "%s") { email, org { id } }
+                user(id: "%s") { email, orgs { id } }
             }
         `, id),
         ExpectedResult: `
             {
                 "user": {
                     "email": "user1@test.com",
-                    "org": null
+                    "orgs": []
                 }
             }
         `,
@@ -110,7 +110,7 @@ func TestUserCreate(t *testing.T) {
 
 func TestUserUpdate(t *testing.T) {
     cleanDb(t, ctx)
-    id := createUser(t, &ctx, "user1@test.com")
+    id := CreateUser(t, &ctx, "user1@test.com")
 
     t.Logf("User to be updated %s", id)
 
@@ -131,3 +131,7 @@ func TestUserUpdate(t *testing.T) {
         `,
     })
 }
+
+
+
+

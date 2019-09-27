@@ -19,7 +19,7 @@ import (
 
 var orgId string
 
-func createOrg(t *testing.T, ctx *context.Context, name string) (string) {
+func CreateOrg(t *testing.T, ctx *context.Context, name string) (string) {
 
     db := (*ctx).Value("db").(*mongo.Database)
 
@@ -52,7 +52,7 @@ func init() {
 
 func TestOrgs(t *testing.T) {
     cleanDb(t, ctx)
-    createOrg(t, &ctx, "org1")
+    CreateOrg(t, &ctx, "org1")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
@@ -78,7 +78,7 @@ func TestOrgs(t *testing.T) {
 
 func TestOrg(t *testing.T) {
     cleanDb(t, ctx)
-    orgId = createOrg(t, &ctx, "org1")
+    orgId = CreateOrg(t, &ctx, "org1")
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -97,3 +97,29 @@ func TestOrg(t *testing.T) {
         `,
     })
 }
+
+func TestAssignOrgUser(t *testing.T) {
+    cleanDb(t, ctx)
+    userId := CreateUser(t, &ctx, "user1@test.com")
+    orgId := CreateOrg(t, &ctx, "test-org")
+
+    t.Logf("User to be assigned %s, org to be assigned %s", userId, orgId)
+
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                assignOrgUser(orgId: "%s", userId: "%s") { name }
+            }
+        `, orgId, userId),
+        ExpectedResult: `
+            {
+                "assignOrgUser": {
+                    "name": "test-org"
+                }
+            }
+        `,
+    })
+}
+

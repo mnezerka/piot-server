@@ -46,9 +46,10 @@ func (r *UserResolver) Created() int32 {
     return r.u.Created
 }
 
-func (r *UserResolver) Org() *OrgResolver {
+func (r *UserResolver) Orgs() []*OrgResolver {
     //return &OrgResolver{&org}
-    return nil
+    var result []*OrgResolver
+    return result
 }
 
 /////////// UserProfileResolver

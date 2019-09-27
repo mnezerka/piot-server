@@ -11,7 +11,7 @@ type User struct {
     Email       string `json:"email"`
     Password    string `json:"password"`
     Created     int32  `json:"created"`
-    OrgId  primitive.ObjectID `json:"org_id" bson:"org_id,omitempty"`
+    Orgs        []Org `json:"orgs" bson:"orgs"`
 }
 
 type UserProfile struct {

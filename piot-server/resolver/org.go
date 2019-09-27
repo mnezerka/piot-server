@@ -181,3 +181,32 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name 
     return &OrgResolver{&org}, nil
 }
 
+func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*OrgResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("Assigning user %s to org %s", args.UserId, args.OrgId)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
+    if err != nil {
+        return nil, err
+    }
+    userId, err := primitive.ObjectIDFromHex(string(args.UserId))
+    if err != nil {
+        return nil, err
+    }
+
+    // try to find org to be updated
+    var org model.Org
+    collection := db.Collection("orgs")
+    err = collection.FindOne(ctx, bson.M{"_id": orgId}).Decode(&org)
+    if err != nil {
+        return nil, errors.New("Org does not exist")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("User %s assigned to Org %s", userId, orgId)
+    return &OrgResolver{&org}, nil
+}
+
+
