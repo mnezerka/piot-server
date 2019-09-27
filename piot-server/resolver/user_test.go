@@ -38,7 +38,7 @@ func init() {
     ctx = context.WithValue(ctx, "is_authorized", true)
 }
 
-func TestUsers(t *testing.T) {
+func TestUsersGet(t *testing.T) {
     cleanDb(t, ctx)
     createUser(t, &ctx, "user1@test.com")
 
@@ -64,18 +64,18 @@ func TestUsers(t *testing.T) {
     })
 }
 
-func TestUser(t *testing.T) {
+func TestUserGet(t *testing.T) {
     cleanDb(t, ctx)
-    createUser(t, &ctx, "user1@test.com")
+    id := createUser(t, &ctx, "user1@test.com")
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
-        Query: `
+        Query: fmt.Sprintf(`
             {
-                user(email: "user1@test.com") { email, org { id } }
+                user(id: "%s") { email, org { id } }
             }
-        `,
+        `, id),
         ExpectedResult: `
             {
                 "user": {

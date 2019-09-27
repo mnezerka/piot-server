@@ -2,10 +2,10 @@
     import {formatDate} from '../utils';
     import {link} from 'svelte-spa-router'
 
-    export var customers = null;
+    export var orgs = null;
 </script>
 
-{#if customers}
+{#if orgs}
 <table class="table">
     <thead>
         <tr>
@@ -14,10 +14,10 @@
         </tr>
     </thead>
     <tbody>
-        {#each customers as customer}
+        {#each orgs as org}
         <tr>
-            <td><a href="/customer-view/{customer.id}" use:link>{customer.name}</a></td>
-            <td>{formatDate(customer.created)}</td>
+            <td><a href="/org-view/{org.id}" use:link>{org.name}</a></td>
+            <td>{formatDate(org.created)}</td>
         </tr>
         {/each}
     </tbody>

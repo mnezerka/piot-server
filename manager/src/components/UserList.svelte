@@ -1,4 +1,6 @@
 <script>
+    import {link} from 'svelte-spa-router'
+
     export var users = null;
 
     function formatDate(timeStamp) {
@@ -19,7 +21,7 @@
     <tbody>
         {#each users as user}
         <tr>
-            <td>{user.email}</td>
+            <td><a href="/user/{user.id}" use:link>{user.email}</a></td>
             <td>{formatDate(user.created)}</td>
         </tr>
         {/each}

@@ -10,12 +10,12 @@ func GetRootSchema() string {
 
         type Query {
             userProfile(): UserProfile
-            user(email: String!): User
+            user(id: ID!): User
             users(): [User]!
             orgs(): [Org]!
-            org(id: String!): Org
+            org(id: ID!): Org
             things(): [Thing]!
-            thing(ID: String!): Thing
+            thing(id: ID!): Thing
         }
 
         type Mutation {
@@ -45,6 +45,7 @@ func GetRootSchema() string {
         }
 
         type Thing {
+            id: ID!
             name: String!
             type: String!
             available: Boolean!

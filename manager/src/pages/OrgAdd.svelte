@@ -21,8 +21,8 @@
         success = false;
 
         try {
-            let data = await gql({query: `mutation {createCustomer(name: "${name}", description: "${description}") {name}}`});
-            success = 'User successfully created'
+            let data = await gql({query: `mutation {createOrg(name: "${name}", description: "${description}") {name}}`});
+            success = 'Organization successfully created'
         } catch(e) {
             if (e instanceof Array) {
                 e = e.map((err) => err.message).join(', ');
@@ -38,7 +38,7 @@
 form { width: 24rem;}
 </style>
 
-<h1 class="title">Add Customer</h1>
+<h1 class="title">Add Organization</h1>
 
 {#if error}<div class="notification is-danger has-text-centered">{error}</div>{/if}
 {#if success}<div class="notification is-success has-text-centered">{success}</div>{/if}
@@ -47,13 +47,13 @@ form { width: 24rem;}
 
     <div class="field">
         <p class="control">
-            <input bind:value={name} class="input {name.length === 0 && "is-danger"}" placeholder="Customer name">
+            <input bind:value={name} class="input {name.length === 0 && "is-danger"}" placeholder="Organization name">
         </p>
     </div>
 
     <div class="field">
         <p class="control">
-            <textarea bind:value={description} class="textarea" placeholder="Customer description"/>
+            <textarea bind:value={description} class="textarea" placeholder="Organization description"/>
         </p>
     </div>
 

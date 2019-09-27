@@ -6,10 +6,15 @@ import (
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
     "github.com/mongodb/mongo-go-driver/bson"
+    graphql "github.com/graph-gophers/graphql-go"
 )
 
 type ThingResolver struct {
     d *model.Thing
+}
+
+func (r *ThingResolver) Id() graphql.ID {
+    return graphql.ID(r.d.Id.Hex())
 }
 
 func (r *ThingResolver) Name() string {
@@ -29,10 +34,8 @@ func (r *ThingResolver) Created() int32 {
 }
 
 func (r *ThingResolver) Org () *OrgResolver {
-    // TODO fetch customer
     return nil
 }
-
 
 func (r *Resolver) Thing(ctx context.Context, args struct {Id string}) (*ThingResolver, error) {
 

@@ -1,27 +1,27 @@
 <script>
     import {onMount} from 'svelte';
     import {token} from '../stores'
-    import Customers from '../components/Customers.svelte';
+    import OrgList from '../components/OrgList.svelte';
     import ErrorBar from '../components/ErrorBar.svelte';
     import {gql} from '../utils.js';
     import {push} from 'svelte-spa-router'
 
     let error = null;
-    let customers = null;
+    let orgs = null;
     let fetching = false;
 
     onMount(() => {
-        fetchCustomers();
+        fetchOrgs();
     })
 
-    async function fetchCustomers() {
+    async function fetchOrgs() {
         fetching = true;
         error = false;
-        customers = null;
+        orgs = null;
 
         try {
-            let data = await gql({query: "{customers {id, name, created}}"});
-            customers = data.customers;
+            let data = await gql({query: "{orgs {id, name, created}}"});
+            orgs = data.orgs;
         } catch(e) {
             error = e;//l'Request failed (' + e + ')';
         }
@@ -30,20 +30,20 @@
     }
 
     function onAdd() {
-        push('/customer-add');
+        push('/org-add');
     }
 
 </script>
 
 
-<h1 class="title">Customers</h1>
+<h1 class="title">Organizations</h1>
 
 {#if fetching}
     <progress class="progress is-small is-primary" max="100">15%</progress>
 {:else}
     <ErrorBar error={error}/>
     {#if !error}
-        <Customers customers={customers}/>
+        <OrgList orgs={orgs}/>
         <button class="button" on:click={onAdd}>Add</button>
     {/if}
 {/if}

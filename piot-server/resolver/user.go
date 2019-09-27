@@ -51,7 +51,6 @@ func (r *UserResolver) Org() *OrgResolver {
     return nil
 }
 
-
 /////////// UserProfileResolver
 
 type UserProfileResolver struct {
@@ -65,24 +64,29 @@ func (r *UserProfileResolver) Email() string {
 /////////// Resolver
 
 // get user by email query
-func (r *Resolver) User(ctx context.Context, args struct {Email string}) (*UserResolver, error) {
+func (r *Resolver) User(ctx context.Context, args struct {Id graphql.ID}) (*UserResolver, error) {
 
-    currentUserEmail := ctx.Value("user_email").(*string)
-
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Creating User resolver for: %s, triggered by %s", args.Email, *currentUserEmail)
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch user: %s", string(args.Id))
 
     db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Id))
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        return nil, errors.New("Cannot decode ID")
+    }
 
     user := model.User{}
 
     collection := db.Collection("users")
-    err := collection.FindOne(context.TODO(), bson.D{{"email", args.Email}}).Decode(&user)
+    err = collection.FindOne(ctx, bson.D{{"_id", id}}).Decode(&user)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, err
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved user by user [%s] : %v", *currentUserEmail, user)
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved user %v", user)
     return &UserResolver{&user}, nil
 }
 

@@ -26,9 +26,9 @@
 
             <div class="navbar-start">
                 {#if $authenticated}
-                <a class="navbar-item" href="/customers" use:link>Customers</a>
+                <a class="navbar-item" href="/orgs" use:link>Organizations</a>
                 <a class="navbar-item" href="/users" use:link>Users</a>
-                <a class="navbar-item" href="/devices" use:link>Devices</a>
+                <a class="navbar-item" href="/things" use:link>Things</a>
                 {/if}
             </div>
 

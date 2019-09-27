@@ -1,7 +1,7 @@
 <script>
     import {onMount} from 'svelte';
     import {token} from '../stores'
-    import Users from '../components/Users.svelte';
+    import UserList from '../components/UserList.svelte';
     import {gql} from '../utils.js';
 
     let error = null;
@@ -19,7 +19,7 @@
         users = null;
 
         try {
-            let data = await gql({query: "{users {email, created}}"});
+            let data = await gql({query: "{users {id, email, created}}"});
             users = data.users;
         } catch(error) {
             error = 'Request failed (' + error + ')';
@@ -41,6 +41,6 @@
             {error}
         </div>
     {:else}
-        <Users users={users}/>
+        <UserList users={users}/>
     {/if}
 {/if}

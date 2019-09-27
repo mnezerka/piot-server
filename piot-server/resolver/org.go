@@ -37,14 +37,14 @@ func (r *OrgResolver) Created() int32 {
 
 /////////// Resolver
 
-func (r *Resolver) Org(ctx context.Context, args struct {Id string}) (*OrgResolver, error) {
+func (r *Resolver) Org(ctx context.Context, args struct {Id graphql.ID}) (*OrgResolver, error) {
 
     db := ctx.Value("db").(*mongo.Database)
 
     org := model.Org{}
 
     // create ObjectID from string
-    id, err := primitive.ObjectIDFromHex(args.Id)
+    id, err := primitive.ObjectIDFromHex(string(args.Id))
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, errors.New("Cannot decode ID")
