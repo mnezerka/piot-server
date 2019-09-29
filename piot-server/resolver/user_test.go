@@ -18,7 +18,7 @@ import (
 
 var ctx context.Context
 
-func CreateUser(t *testing.T, ctx *context.Context, email string) (string) {
+func CreateUser(t *testing.T, ctx *context.Context, email string) (primitive.ObjectID) {
 
     db := (*ctx).Value("db").(*mongo.Database)
 
@@ -28,7 +28,7 @@ func CreateUser(t *testing.T, ctx *context.Context, email string) (string) {
     })
     test.Ok(t, err)
 
-    return res.InsertedID.(primitive.ObjectID).Hex()
+    return res.InsertedID.(primitive.ObjectID)
 }
 
 func init() {
@@ -39,7 +39,7 @@ func init() {
 }
 
 func TestUsersGet(t *testing.T) {
-    cleanDb(t, ctx)
+    CleanDb(t, ctx)
     CreateUser(t, &ctx, "user1@test.com")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
@@ -65,22 +65,24 @@ func TestUsersGet(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
-    cleanDb(t, ctx)
-    id := CreateUser(t, &ctx, "user1@test.com")
+    CleanDb(t, ctx)
+    orgId := CreateOrg(t, &ctx, "org1")
+    userId := CreateUser(t, &ctx, "user1@test.com")
+    AssignOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                user(id: "%s") { email, orgs { id } }
+                user(id: "%s") {email, orgs {name}}
             }
-        `, id),
+        `, userId.Hex()),
         ExpectedResult: `
             {
                 "user": {
                     "email": "user1@test.com",
-                    "orgs": []
+                    "orgs": [{"name": "org1"}]
                 }
             }
         `,
@@ -88,7 +90,7 @@ func TestUserGet(t *testing.T) {
 }
 
 func TestUserCreate(t *testing.T) {
-    cleanDb(t, ctx)
+    CleanDb(t, ctx)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -109,7 +111,7 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserUpdate(t *testing.T) {
-    cleanDb(t, ctx)
+    CleanDb(t, ctx)
     id := CreateUser(t, &ctx, "user1@test.com")
 
     t.Logf("User to be updated %s", id)
@@ -131,7 +133,3 @@ func TestUserUpdate(t *testing.T) {
         `,
     })
 }
-
-
-
-

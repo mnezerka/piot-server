@@ -15,25 +15,78 @@ import (
 /////////// Org Resolver
 
 type OrgResolver struct {
-    c *model.Org
+    ctx context.Context
+    org *model.Org
 }
 
 func (r *OrgResolver) Id() graphql.ID {
-    return graphql.ID(r.c.Id.Hex())
+    return graphql.ID(r.org.Id.Hex())
 }
 
 func (r *OrgResolver) Name() string {
-    return r.c.Name
+    return r.org.Name
 }
 
 func (r *OrgResolver) Description() string {
-    return r.c.Description
+    return r.org.Description
 }
 
 func (r *OrgResolver) Created() int32 {
-    return r.c.Created
+    return r.org.Created
 }
 
+    // select all users that are assigned to current org
+func (r *OrgResolver) Users() []*UserResolver {
+
+    var result []*UserResolver
+
+    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching users for org: %s", r.org.Id.Hex())
+
+    db := r.ctx.Value("db").(*mongo.Database)
+
+    collection := db.Collection("orgusers")
+
+    // filter orusers to current (single) org
+    stage_match := bson.M{"$match": bson.M{"org_id": r.org.Id}}
+
+    // find assignments to orgs
+    stage_lookup := bson.M{"$lookup": bson.M{"from": "users", "localField": "user_id", "foreignField": "_id", "as": "users"}}
+
+    // unwind users
+    stage_unwind := bson.M{"$unwind": "$users"}
+
+    // replace root
+    stage_new_root := bson.M{"$replaceWith": "$users"}
+
+    pipeline := []bson.M{stage_match, stage_lookup, stage_unwind, stage_new_root}
+
+    //r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Pipeline %v", pipeline)
+
+    cur, err := collection.Aggregate(r.ctx, pipeline)
+    if err != nil {
+        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+        return result
+    }
+    defer cur.Close(r.ctx)
+
+    for cur.Next(r.ctx) {
+        //r.ctx.Value("log").(*logging.Logger).Debugf("Org users iteration %v", cur.Current)
+
+        var user model.User
+        if err := cur.Decode(&user); err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            return result
+        }
+        result = append(result, &UserResolver{ctx, &user})
+    }
+
+    if err := cur.Err(); err != nil {
+        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error during cursor processing: %v", err)
+        return result
+    }
+
+    return result
+}
 
 /////////// Resolver
 
@@ -42,6 +95,8 @@ func (r *Resolver) Org(ctx context.Context, args struct {Id graphql.ID}) (*OrgRe
     db := ctx.Value("db").(*mongo.Database)
 
     org := model.Org{}
+
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org %v", args.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Id))
@@ -57,7 +112,7 @@ func (r *Resolver) Org(ctx context.Context, args struct {Id graphql.ID}) (*OrgRe
         return nil, err
     }
 
-    return &OrgResolver{&org}, nil
+    return &OrgResolver{ctx, &org}, nil
 }
 
 func (r *Resolver) Orgs(ctx context.Context) ([]*OrgResolver, error) {
@@ -86,7 +141,7 @@ func (r *Resolver) Orgs(ctx context.Context) ([]*OrgResolver, error) {
             ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &OrgResolver{&org})
+        result = append(result, &OrgResolver{ctx, &org})
     }
 
     ctx.Value("log").(*logging.Logger).Debug("Have orgs")
@@ -113,20 +168,20 @@ func (r *Resolver) CreateOrg(ctx context.Context, args *struct {Name string; Des
     // try to find existing user
     var orgExisting model.Org
     collection := db.Collection("orgs")
-    err := collection.FindOne(context.TODO(), bson.D{{"name", args.Name}}).Decode(&orgExisting)
+    err := collection.FindOne(ctx, bson.D{{"name", args.Name}}).Decode(&orgExisting)
     if err == nil {
-        return nil, errors.New("User of such name already exists!")
+        return nil, errors.New("Organization of such name already exists!")
     }
 
-    // user does not exist -> create new one
-    _, err = collection.InsertOne(context.TODO(), org)
+    // org does not exist -> create new one
+    _, err = collection.InsertOne(ctx, org)
     if err != nil {
-        return nil, errors.New("Error while creating org")
+        return nil, errors.New("Error while creating organizaton")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Created org: %v", *org)
+    ctx.Value("log").(*logging.Logger).Debugf("Created organization: %v", *org)
 
-    return &OrgResolver{org}, nil
+    return &OrgResolver{ctx, org}, nil
 }
 
 func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name *string; Description *string}) (*OrgResolver, error) {
@@ -178,16 +233,16 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name 
     }
 
     ctx.Value("log").(*logging.Logger).Debugf("Org updated %v", org)
-    return &OrgResolver{&org}, nil
+    return &OrgResolver{ctx, &org}, nil
 }
 
-func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*OrgResolver, error) {
+func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
 
     ctx.Value("log").(*logging.Logger).Debugf("Assigning user %s to org %s", args.UserId, args.OrgId)
 
     db := ctx.Value("db").(*mongo.Database)
 
-    // create ObjectID from string
+    // create ObjectIDs from string
     orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
     if err != nil {
         return nil, err
@@ -197,16 +252,25 @@ func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphq
         return nil, err
     }
 
-    // try to find org to be updated
-    var org model.Org
-    collection := db.Collection("orgs")
-    err = collection.FindOne(ctx, bson.M{"_id": orgId}).Decode(&org)
+    // try to find existing assignment
+    var similarOrgUser model.OrgUser
+    collection := db.Collection("orgusers")
+    err = collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": bson.M{"$ne": orgId}}}}).Decode(&similarOrgUser)
+    if err == nil {
+        return nil, errors.New("User is allready assigned to given organization")
+    }
+
+    // assignment does not exist -> create new one
+    orgUser := &model.OrgUser{
+        UserId: userId,
+        OrgId: orgId,
+        Created: int32(time.Now().Unix()),
+    }
+    _, err = collection.InsertOne(ctx, orgUser)
     if err != nil {
-        return nil, errors.New("Org does not exist")
+        return nil, errors.New("Error while assigning user to organization")
     }
 
     ctx.Value("log").(*logging.Logger).Debugf("User %s assigned to Org %s", userId, orgId)
-    return &OrgResolver{&org}, nil
+    return nil, nil
 }
-
-

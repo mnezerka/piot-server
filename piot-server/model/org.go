@@ -11,3 +11,10 @@ type Org struct {
     Description string `json:"description"`
     Created     int32  `json:"created"`
 }
+
+// Represents assignment of user to org
+type OrgUser struct {
+    OrgId       primitive.ObjectID `json:"org_id" bson:"org_id,omitempty"`
+    UserId      primitive.ObjectID `json:"user_id" bson:"user_id,omitempty"`
+    Created     int32  `json:"created"`
+}

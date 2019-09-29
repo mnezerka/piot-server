@@ -17,10 +17,7 @@ import (
 
 )
 
-var orgId string
-
-func CreateOrg(t *testing.T, ctx *context.Context, name string) (string) {
-
+func CreateOrg(t *testing.T, ctx *context.Context, name string) (primitive.ObjectID) {
     db := (*ctx).Value("db").(*mongo.Database)
 
     res, err := db.Collection("orgs").InsertOne(*ctx, bson.M{
@@ -29,19 +26,37 @@ func CreateOrg(t *testing.T, ctx *context.Context, name string) (string) {
     })
     test.Ok(t, err)
 
-    return res.InsertedID.(primitive.ObjectID).Hex()
+    return res.InsertedID.(primitive.ObjectID)
 }
 
+func AssignOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.ObjectID) {
+    db := (*ctx).Value("db").(*mongo.Database)
 
-func cleanDb(t *testing.T, ctx context.Context) {
+    /*
+    orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
+    test.Ok(t.err)
 
+    userId, err := primitive.ObjectIDFromHex(string(args.OrgId))
+    */
+
+    _, err := db.Collection("orgusers").InsertOne(*ctx, bson.M{
+        "org_id": orgId,
+        "user_id": userId,
+        "created": int32(time.Now().Unix()),
+    })
+    test.Ok(t, err)
+
+    t.Logf("Assigned user %v to org %v", userId.Hex(), orgId.Hex())
+}
+
+func CleanDb(t *testing.T, ctx context.Context) {
     db := ctx.Value("db").(*mongo.Database)
     db.Collection("orgs").DeleteMany(ctx, bson.M{})
     db.Collection("users").DeleteMany(ctx, bson.M{})
+    db.Collection("orgusers").DeleteMany(ctx, bson.M{})
 }
 
 func init() {
-
     ctx = piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
     ctx = context.WithValue(ctx, "user_email", "admin@test.com")
     ctx = context.WithValue(ctx, "is_authorized", true)
@@ -50,8 +65,8 @@ func init() {
     //ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
 }
 
-func TestOrgs(t *testing.T) {
-    cleanDb(t, ctx)
+func TestOrgsGet(t *testing.T) {
+    CleanDb(t, ctx)
     CreateOrg(t, &ctx, "org1")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
@@ -76,22 +91,25 @@ func TestOrgs(t *testing.T) {
     })
 }
 
-func TestOrg(t *testing.T) {
-    cleanDb(t, ctx)
-    orgId = CreateOrg(t, &ctx, "org1")
+func TestOrgGet(t *testing.T) {
+    CleanDb(t, ctx)
+    orgId := CreateOrg(t, &ctx, "org1")
+    userId := CreateUser(t, &ctx, "org1user@test.com")
+    AssignOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                org(id: "%s") { name }
+                org(id: "%s") {name, users {email}}
             }
-        `, orgId),
+        `, orgId.Hex()),
         ExpectedResult: `
             {
                 "org": {
-                    "name": "org1"
+                    "name": "org1",
+                    "users": [{"email": "org1user@test.com"}]
                 }
             }
         `,
@@ -99,7 +117,7 @@ func TestOrg(t *testing.T) {
 }
 
 func TestAssignOrgUser(t *testing.T) {
-    cleanDb(t, ctx)
+    CleanDb(t, ctx)
     userId := CreateUser(t, &ctx, "user1@test.com")
     orgId := CreateOrg(t, &ctx, "test-org")
 
@@ -110,14 +128,12 @@ func TestAssignOrgUser(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                assignOrgUser(orgId: "%s", userId: "%s") { name }
+                assignOrgUser(orgId: "%s", userId: "%s")
             }
         `, orgId, userId),
         ExpectedResult: `
             {
-                "assignOrgUser": {
-                    "name": "test-org"
-                }
+                "assignOrgUser": null
             }
         `,
     })

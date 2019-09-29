@@ -23,7 +23,7 @@ func GetRootSchema() string {
             updateOrg(id: ID!, name: String, description: String): Org
             createUser(user: UserCreate!): User
             updateUser(user: UserUpdate!): User
-            assignOrgUser(orgId: ID!, userId: ID!): Org
+            assignOrgUser(orgId: ID!, userId: ID!): Boolean
         }
 
         type User {
@@ -43,6 +43,7 @@ func GetRootSchema() string {
             name: String!
             description: String!
             created: Int!
+            users: [User!]!
         }
 
         type Thing {

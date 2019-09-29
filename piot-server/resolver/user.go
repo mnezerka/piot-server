@@ -26,6 +26,7 @@ type userCreateInput struct {
 /////////// User Resolver
 
 type UserResolver struct {
+    ctx context.Context
     u *model.User
 }
 
@@ -49,6 +50,52 @@ func (r *UserResolver) Created() int32 {
 func (r *UserResolver) Orgs() []*OrgResolver {
     //return &OrgResolver{&org}
     var result []*OrgResolver
+
+    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching orgs for user: %s", r.u.Id.Hex())
+
+    db := r.ctx.Value("db").(*mongo.Database)
+
+    collection := db.Collection("orgusers")
+
+    // filter orusers to current (single) user
+    stage_match := bson.M{"$match": bson.M{"user_id": r.u.Id}}
+
+    // find orgs details
+    stage_lookup := bson.M{"$lookup": bson.M{"from": "orgs", "localField": "org_id", "foreignField": "_id", "as": "orgs"}}
+
+    // expand orgs
+    stage_unwind := bson.M{"$unwind": "$orgs"}
+
+    // replace root
+    stage_new_root := bson.M{"$replaceWith": "$orgs"}
+
+    pipeline := []bson.M{stage_match, stage_lookup, stage_unwind, stage_new_root}
+
+    //r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Pipeline %v", pipeline)
+
+    cur, err := collection.Aggregate(r.ctx, pipeline)
+    if err != nil {
+        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+        return result
+    }
+    defer cur.Close(r.ctx)
+
+    for cur.Next(r.ctx) {
+        //r.ctx.Value("log").(*logging.Logger).Debugf("Org users iteration %v", cur.Current)
+
+        var org model.Org
+        if err := cur.Decode(&org); err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            return result
+        }
+        result = append(result, &OrgResolver{ctx, &org})
+    }
+
+    if err := cur.Err(); err != nil {
+        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error during cursor processing: %v", err)
+        return result
+    }
+
     return result
 }
 
@@ -88,7 +135,7 @@ func (r *Resolver) User(ctx context.Context, args struct {Id graphql.ID}) (*User
     }
 
     ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved user %v", user)
-    return &UserResolver{&user}, nil
+    return &UserResolver{ctx, &user}, nil
 }
 
 // get users query
@@ -122,7 +169,7 @@ func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
             ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &UserResolver{&user})
+        result = append(result, &UserResolver{ctx, &user})
     }
 
     if err := cur.Err(); err != nil {
@@ -180,7 +227,7 @@ func (r *Resolver) CreateUser(ctx context.Context, args struct {User userCreateI
 
     ctx.Value("log").(*logging.Logger).Debugf("Created user: %s", args.User.Email)
 
-    return &UserResolver{user}, nil
+    return &UserResolver{ctx, user}, nil
 }
 
 func (r *Resolver) UpdateUser(ctx context.Context, args struct {User userUpdateInput}) (*UserResolver, error) {
@@ -230,5 +277,5 @@ func (r *Resolver) UpdateUser(ctx context.Context, args struct {User userUpdateI
     }
 
     ctx.Value("log").(*logging.Logger).Debugf("User updated %v", user)
-    return &UserResolver{&user}, nil
+    return &UserResolver{ctx, &user}, nil
 }
