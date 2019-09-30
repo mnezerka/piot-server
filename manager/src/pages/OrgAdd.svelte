@@ -2,12 +2,17 @@
     import {token, authenticated} from '../stores.js'
     import {push} from 'svelte-spa-router'
     import {gql} from '../utils.js';
+    import {onMount} from 'svelte';
 
     let name = '';
     let description = '';
     let error = null;
     let fetching = false;
     let success = null;
+
+    onMount(() => {
+        if (!$authenticated) { push("/login"); }
+    })
 
     async function handleSubmit()
     {

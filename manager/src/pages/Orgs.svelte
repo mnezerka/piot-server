@@ -1,6 +1,6 @@
 <script>
     import {onMount} from 'svelte';
-    import {token} from '../stores'
+    import {authenticated, token} from '../stores'
     import OrgList from '../components/OrgList.svelte';
     import ErrorBar from '../components/ErrorBar.svelte';
     import {gql} from '../utils.js';
@@ -11,6 +11,7 @@
     let fetching = false;
 
     onMount(() => {
+        if (!$authenticated) { push("/login"); }
         fetchOrgs();
     })
 

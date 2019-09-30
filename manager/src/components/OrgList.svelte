@@ -16,7 +16,7 @@
     <tbody>
         {#each orgs as org}
         <tr>
-            <td><a href="/org-view/{org.id}" use:link>{org.name}</a></td>
+            <td><a href="/org/{org.id}" use:link>{org.name}</a></td>
             <td>{formatDate(org.created)}</td>
         </tr>
         {/each}

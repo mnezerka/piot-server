@@ -7,10 +7,15 @@
     import {onMount} from 'svelte';
     import {gql} from './utils';
 
+    var authenticating = true;
+
     onMount(async () => {
+
+        console.log('app - on mount');
 
         // verify that user token is valid - download user profile
         if ($token) {
+
             try {
                 let data = await gql({query: "{userProfile {email}}"});
                 $authenticated = true;
@@ -18,7 +23,9 @@
             } catch(error) {
                 error = 'Request failed (' + error + ')';
             }
+
         }
+        authenticating = false;
     })
 
 </script>
@@ -27,6 +34,10 @@
 
 <main class="piot-main">
     <div class="container">
+        {#if authenticating}
+        <span>Authenticating</span>
+        {:else}
         <Router {routes}/>
+        {/if}
     </div>
 </main>

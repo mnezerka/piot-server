@@ -17,6 +17,11 @@
     let orgsAssigned = [];
     let orgAdd = '';
 
+    onMount(() => {
+        if (!$authenticated) { push("/login"); }
+        fetchUser();
+    })
+
     async function fetchUser() {
         if (!params.id) {
             error = 'No user specified';
@@ -57,8 +62,6 @@
         }
         fetching = false;
     }
-
-    onMount(fetchUser)
 
     async function addOrg() {
 

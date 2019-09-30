@@ -1,6 +1,7 @@
 <script>
     import {onMount} from 'svelte';
-    import {token} from '../stores'
+    import {push} from 'svelte-spa-router'
+    import {authenticated, token} from '../stores'
     import UserList from '../components/UserList.svelte';
     import {gql} from '../utils.js';
 
@@ -9,6 +10,7 @@
     let fetching = false;
 
     onMount(() => {
+        if (!$authenticated) { push("/login"); }
         fetchUsers();
     })
 
