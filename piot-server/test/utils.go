@@ -1,31 +1,29 @@
 package test
 
 import (
-    //"context"
-    "encoding/json"
+    "context"
+    //"encoding/json"
     "fmt"
-    //"strings"
     "path/filepath"
-    "bytes"
-    "io/ioutil"
-    //"net/http"
     "net/http/httptest"
     "runtime"
     "reflect"
     "testing"
-    //"piot-server/resolver"
-    //"piot-server/handler"
-    //"piot-server/model"
-    //"piot-server/schema"
-    //graphql "github.com/graph-gophers/graphql-go"
+    "time"
+    "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/bson"
+    "go.mongodb.org/mongo-driver/bson/primitive"
+    "piot-server/utils"
 )
 
+/*
 type GqlResponseMessage struct {
     Message string `json:message`
 }
 type GqlResponse struct {
     Errors  []GqlResponseMessage `json:errors`
 }
+*/
 
 // assert fails the test if the condition is false.
 func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
@@ -63,6 +61,7 @@ func CheckStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expected int) 
 }
 
 // helper function for checking and logging respone status
+/*
 func CheckGqlResult(t *testing.T, rr *httptest.ResponseRecorder) {
     CheckStatusCode(t, rr, 200);
     //fmt.Print(rr.Body.String())
@@ -77,59 +76,48 @@ func CheckGqlResult(t *testing.T, rr *httptest.ResponseRecorder) {
         t.Errorf("\033[31mNot empty list of errors: %v\033[39m", response.Errors)
     }
 }
-
-
-func Body2Bytes(body *bytes.Buffer) ([]byte) {
-    var result []byte
-    result, _ = ioutil.ReadAll(body)
-    return result
+*/
+func CleanDb(t *testing.T, ctx context.Context) {
+    db := ctx.Value("db").(*mongo.Database)
+    db.Collection("orgs").DeleteMany(ctx, bson.M{})
+    db.Collection("users").DeleteMany(ctx, bson.M{})
+    db.Collection("orgusers").DeleteMany(ctx, bson.M{})
+    db.Collection("things").DeleteMany(ctx, bson.M{})
+    t.Log("DB is clean")
 }
 
-/*
-func Login(t *testing.T, ctx *context.Context, email string, password string, statusCode int) (string) {
-    req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
+func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").InsertOne(ctx, bson.M{
+        "name": name,
+        "type": "sensor",
+        "created": int32(time.Now().Unix()),
+    })
     Ok(t, err)
 
-    rr := httptest.NewRecorder()
+    t.Logf("Created thing %v", res.InsertedID)
 
-    handler := handler.AddContext(*ctx, handler.LoginHandler())
-    handler.ServeHTTP(rr, req)
-
-    CheckStatusCode(t, rr, statusCode)
-
-    var response model.Token
-    Ok(t, json.Unmarshal(Body2Bytes(rr.Body), &response))
-
-    return response.Token
+    return res.InsertedID.(primitive.ObjectID)
 }
-*/
 
+func CreateUser(t *testing.T, ctx context.Context, email, password string) (primitive.ObjectID) {
 
-/*
-func GetAuthGqlRequest(t *testing.T, ctx *context.Context, email, password, body string) (*http.Request) {
-    token := Login(t, ctx, email, password, 200)
+    db := ctx.Value("db").(*mongo.Database)
 
-    req, err := http.NewRequest("POST", "/any-path", strings.NewReader(body))
+    hash, err := utils.GetPasswordHash(password)
     Ok(t, err)
-    req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
-    return req
+    res, err := db.Collection("users").InsertOne(ctx, bson.M{
+        "email": email,
+        "password": hash,
+        "created": int32(time.Now().Unix()),
+    })
+    Ok(t, err)
+
+    t.Logf("Created user %v", res.InsertedID)
+
+    return res.InsertedID.(primitive.ObjectID)
 }
-*/
 
-/*
-func GetGqlResponseRecorder(t *testing.T, ctx *context.Context, email, password, request string) (*httptest.ResponseRecorder) {
-
-    req := GetAuthGqlRequest(t, ctx, email, password, request)
-
-    rr := httptest.NewRecorder()
-
-    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
-
-    handler := handler.AddContext(*ctx, handler.Authorize(&handler.GraphQL{Schema: graphqlSchema}))
-
-    handler.ServeHTTP(rr, req)
-
-    return rr
-}
-*/

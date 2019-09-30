@@ -25,8 +25,8 @@ func (r *ThingResolver) Type() string {
     return r.d.Type
 }
 
-func (r *ThingResolver) Available () bool {
-    return r.d.Available
+func (r *ThingResolver) Enabled() bool {
+    return r.d.Enabled
 }
 
 func (r *ThingResolver) Created() int32 {

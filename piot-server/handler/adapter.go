@@ -10,15 +10,13 @@ import (
 )
 
 type Adapter struct {
-    things *service.Things
+    //things *service.Things
 }
 
 func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     ctx := r.Context()
-    ctx.Value("log").(*logging.Logger).Debugf("[AD] Incoming packet")
-
-    //db := ctx.Value("db").(*mongo.Database)
+    ctx.Value("log").(*logging.Logger).Debugf("Incoming packet")
 
     // check http method, POST is required
     if r.Method != http.MethodPost {
@@ -33,11 +31,42 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("[AD] Packet decoded %v", devicePacket)
+    ctx.Value("log").(*logging.Logger).Debugf("Packet decoded %v", devicePacket)
 
-    // look for things (device + sensors)
+    things := ctx.Value("things").(*service.Things)
 
-    // register if necessary
+    // look for (device
+    device, err := things.Find(ctx, devicePacket.Device)
+    if err != nil {
+        // register register device
+        device, err = things.Register(ctx, devicePacket.Device, model.THING_TYPE_DEVICE)
+        if err != nil {
+            http.Error(w, err.Error(), 500)
+            return
+        }
+    }
 
-    // post data to MQTT if device (sensor) is registered and enabled
+    // post data to MQTT if device is enabled
+    if (device.Enabled) {
+        ctx.Value("log").(*logging.Logger).Debugf("TODO - write data to mqtt for enabled device %v", devicePacket.Device)
+    }
+
+    // look for sensors
+    for _, sensor := range devicePacket.Readings {
+        // look for (device
+        device, err = things.Find(ctx, sensor.Address)
+        if err != nil {
+            // register register device
+            device, err = things.Register(ctx, sensor.Address, model.THING_TYPE_SENSOR)
+            if err != nil {
+                http.Error(w, err.Error(), 500)
+                return
+            }
+        }
+
+        // post data to MQTT if device is enabled
+        if (device.Enabled) {
+            ctx.Value("log").(*logging.Logger).Debugf("TODO - write data to mqtt for enabled sensor %v", sensor.Address)
+        }
+    }
 }

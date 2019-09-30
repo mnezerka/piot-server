@@ -43,14 +43,6 @@ func AddOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.Obje
     t.Logf("User %v added to org %v", userId.Hex(), orgId.Hex())
 }
 
-func CleanDb(t *testing.T, ctx context.Context) {
-    db := ctx.Value("db").(*mongo.Database)
-    db.Collection("orgs").DeleteMany(ctx, bson.M{})
-    db.Collection("users").DeleteMany(ctx, bson.M{})
-    db.Collection("orgusers").DeleteMany(ctx, bson.M{})
-
-    t.Log("DB is clean")
-}
 
 func init() {
     ctx = piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
@@ -62,7 +54,7 @@ func init() {
 }
 
 func TestOrgsGet(t *testing.T) {
-    CleanDb(t, ctx)
+    test.CleanDb(t, ctx)
     CreateOrg(t, &ctx, "org1")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
@@ -88,9 +80,9 @@ func TestOrgsGet(t *testing.T) {
 }
 
 func TestOrgGet(t *testing.T) {
-    CleanDb(t, ctx)
+    test.CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
-    userId := CreateUser(t, &ctx, "org1user@test.com")
+    userId := test.CreateUser(t, ctx, "org1user@test.com", "")
     AddOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
@@ -113,8 +105,8 @@ func TestOrgGet(t *testing.T) {
 }
 
 func TestAddOrgUser(t *testing.T) {
-    CleanDb(t, ctx)
-    userId := CreateUser(t, &ctx, "user1@test.com")
+    test.CleanDb(t, ctx)
+    userId := test.CreateUser(t, ctx, "user1@test.com", "")
     orgId := CreateOrg(t, &ctx, "test-org")
     org2Id := CreateOrg(t, &ctx, "test-org2")
     CreateOrg(t, &ctx, "test-org3")
@@ -157,8 +149,8 @@ func TestAddOrgUser(t *testing.T) {
 }
 
 func TestRemoveOrgUser(t *testing.T) {
-    CleanDb(t, ctx)
-    userId := CreateUser(t, &ctx, "user1@test.com")
+    test.CleanDb(t, ctx)
+    userId := test.CreateUser(t, ctx, "user1@test.com", "")
     orgId := CreateOrg(t, &ctx, "test-org")
     org2Id := CreateOrg(t, &ctx, "test-org2")
     AddOrgUser(t, &ctx, orgId, userId)

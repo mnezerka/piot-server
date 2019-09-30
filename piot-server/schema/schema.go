@@ -51,7 +51,7 @@ func GetRootSchema() string {
             id: ID!
             name: String!
             type: String!
-            available: Boolean!
+            enabled: Boolean!
             created: Int!
             org: Org
         }

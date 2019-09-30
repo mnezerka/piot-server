@@ -46,5 +46,11 @@ func NewContext(dbUri string, dbName string) context.Context {
     log := service.NewLogger(LOG_FORMAT, true)
     ctx = context.WithValue(ctx, "log", log)
 
+    /////////////// THINGS
+
+    // create global things service for all handlers
+    things := &service.Things{}
+    ctx = context.WithValue(ctx, "things", things)
+
     return ctx
 }

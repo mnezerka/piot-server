@@ -5,33 +5,15 @@ import (
     "fmt"
     "os"
     "testing"
-    "time"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
     "piot-server/schema"
     "piot-server/test"
     piotcontext "piot-server/context"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var ctx context.Context
 
-func CreateUser(t *testing.T, ctx *context.Context, email string) (primitive.ObjectID) {
-
-    db := (*ctx).Value("db").(*mongo.Database)
-
-    res, err := db.Collection("users").InsertOne(*ctx, bson.M{
-        "email": email,
-        "created": int32(time.Now().Unix()),
-    })
-    test.Ok(t, err)
-
-    t.Logf("Created user %v", res.InsertedID)
-
-    return res.InsertedID.(primitive.ObjectID)
-}
 
 func init() {
     callerEmail := "caller@test.com"
@@ -41,8 +23,8 @@ func init() {
 }
 
 func TestUsersGet(t *testing.T) {
-    CleanDb(t, ctx)
-    CreateUser(t, &ctx, "user1@test.com")
+    test.CleanDb(t, ctx)
+    test.CreateUser(t, ctx, "user1@test.com", "")
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
@@ -67,9 +49,9 @@ func TestUsersGet(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
-    CleanDb(t, ctx)
+    test.CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
-    userId := CreateUser(t, &ctx, "user1@test.com")
+    userId := test.CreateUser(t, ctx, "user1@test.com", "")
     AddOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
@@ -92,7 +74,7 @@ func TestUserGet(t *testing.T) {
 }
 
 func TestUserCreate(t *testing.T) {
-    CleanDb(t, ctx)
+    test.CleanDb(t, ctx)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -113,8 +95,8 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserUpdate(t *testing.T) {
-    CleanDb(t, ctx)
-    id := CreateUser(t, &ctx, "user1@test.com")
+    test.CleanDb(t, ctx)
+    id := test.CreateUser(t, ctx, "user1@test.com", "")
 
     t.Logf("User to be updated %s", id)
 
