@@ -28,6 +28,8 @@ func CreateUser(t *testing.T, ctx *context.Context, email string) (primitive.Obj
     })
     test.Ok(t, err)
 
+    t.Logf("Created user %v", res.InsertedID)
+
     return res.InsertedID.(primitive.ObjectID)
 }
 
@@ -68,7 +70,7 @@ func TestUserGet(t *testing.T) {
     CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
     userId := CreateUser(t, &ctx, "user1@test.com")
-    AssignOrgUser(t, &ctx, orgId, userId)
+    AddOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -123,7 +125,7 @@ func TestUserUpdate(t *testing.T) {
             mutation {
                 updateUser(user: {id: "%s", email: "user1_new@test.com"}) { email }
             }
-        `, id),
+        `, id.Hex()),
         ExpectedResult: `
             {
                 "updateUser": {

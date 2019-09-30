@@ -77,7 +77,7 @@ func (r *OrgResolver) Users() []*UserResolver {
             r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return result
         }
-        result = append(result, &UserResolver{ctx, &user})
+        result = append(result, &UserResolver{r.ctx, &user})
     }
 
     if err := cur.Err(); err != nil {
@@ -236,9 +236,9 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name 
     return &OrgResolver{ctx, &org}, nil
 }
 
-func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
+func (r *Resolver) AddOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Assigning user %s to org %s", args.UserId, args.OrgId)
+    ctx.Value("log").(*logging.Logger).Debugf("Adding user %s to org %s", args.UserId, args.OrgId)
 
     db := ctx.Value("db").(*mongo.Database)
 
@@ -255,7 +255,7 @@ func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphq
     // try to find existing assignment
     var similarOrgUser model.OrgUser
     collection := db.Collection("orgusers")
-    err = collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": bson.M{"$ne": orgId}}}}).Decode(&similarOrgUser)
+    err = collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}}).Decode(&similarOrgUser)
     if err == nil {
         return nil, errors.New("User is allready assigned to given organization")
     }
@@ -268,9 +268,36 @@ func (r *Resolver) AssignOrgUser(ctx context.Context, args *struct {OrgId graphq
     }
     _, err = collection.InsertOne(ctx, orgUser)
     if err != nil {
-        return nil, errors.New("Error while assigning user to organization")
+        return nil, errors.New("Error while adding user to organization")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("User %s assigned to Org %s", userId, orgId)
+    ctx.Value("log").(*logging.Logger).Debugf("User %s added to Org %s", userId, orgId)
+    return nil, nil
+}
+
+func (r *Resolver) RemoveOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("Removing user %s from org %s", args.UserId, args.OrgId)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectIDs from string
+    orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
+    if err != nil {
+        return nil, err
+    }
+    userId, err := primitive.ObjectIDFromHex(string(args.UserId))
+    if err != nil {
+        return nil, err
+    }
+
+    collection := db.Collection("orgusers")
+    _, err = collection.DeleteOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Cannot remove user %s from org %s (%v)", args.UserId, args.OrgId, err)
+        return nil, errors.New("Remove user from organization failed")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("User %s removed from  org %s", args.UserId, args.OrgId)
     return nil, nil
 }

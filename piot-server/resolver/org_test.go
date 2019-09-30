@@ -14,7 +14,6 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
-
 )
 
 func CreateOrg(t *testing.T, ctx *context.Context, name string) (primitive.ObjectID) {
@@ -26,18 +25,13 @@ func CreateOrg(t *testing.T, ctx *context.Context, name string) (primitive.Objec
     })
     test.Ok(t, err)
 
+    t.Logf("Created org %v", res.InsertedID)
+
     return res.InsertedID.(primitive.ObjectID)
 }
 
-func AssignOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.ObjectID) {
+func AddOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.ObjectID) {
     db := (*ctx).Value("db").(*mongo.Database)
-
-    /*
-    orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
-    test.Ok(t.err)
-
-    userId, err := primitive.ObjectIDFromHex(string(args.OrgId))
-    */
 
     _, err := db.Collection("orgusers").InsertOne(*ctx, bson.M{
         "org_id": orgId,
@@ -46,7 +40,7 @@ func AssignOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.O
     })
     test.Ok(t, err)
 
-    t.Logf("Assigned user %v to org %v", userId.Hex(), orgId.Hex())
+    t.Logf("User %v added to org %v", userId.Hex(), orgId.Hex())
 }
 
 func CleanDb(t *testing.T, ctx context.Context) {
@@ -54,6 +48,8 @@ func CleanDb(t *testing.T, ctx context.Context) {
     db.Collection("orgs").DeleteMany(ctx, bson.M{})
     db.Collection("users").DeleteMany(ctx, bson.M{})
     db.Collection("orgusers").DeleteMany(ctx, bson.M{})
+
+    t.Log("DB is clean")
 }
 
 func init() {
@@ -95,7 +91,7 @@ func TestOrgGet(t *testing.T) {
     CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
     userId := CreateUser(t, &ctx, "org1user@test.com")
-    AssignOrgUser(t, &ctx, orgId, userId)
+    AddOrgUser(t, &ctx, orgId, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -116,26 +112,75 @@ func TestOrgGet(t *testing.T) {
     })
 }
 
-func TestAssignOrgUser(t *testing.T) {
+func TestAddOrgUser(t *testing.T) {
     CleanDb(t, ctx)
     userId := CreateUser(t, &ctx, "user1@test.com")
     orgId := CreateOrg(t, &ctx, "test-org")
+    org2Id := CreateOrg(t, &ctx, "test-org2")
+    CreateOrg(t, &ctx, "test-org3")
 
-    t.Logf("User to be assigned %s, org to be assigned %s", userId, orgId)
+    t.Logf("Test adding user %s to org %s", userId, orgId)
 
+    // assign user to the first organization
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                assignOrgUser(orgId: "%s", userId: "%s")
+                addOrgUser(orgId: "%s", userId: "%s")
             }
-        `, orgId, userId),
+        `, orgId.Hex(), userId.Hex()),
         ExpectedResult: `
             {
-                "assignOrgUser": null
+                "addOrgUser": null
+            }
+        `,
+    })
+
+    t.Logf("Test adding user %s to org %s", userId, org2Id)
+
+    // assign user to the second organization
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                addOrgUser(orgId: "%s", userId: "%s")
+            }
+        `, org2Id.Hex(), userId.Hex()),
+        ExpectedResult: `
+            {
+                "addOrgUser": null
             }
         `,
     })
 }
 
+func TestRemoveOrgUser(t *testing.T) {
+    CleanDb(t, ctx)
+    userId := CreateUser(t, &ctx, "user1@test.com")
+    orgId := CreateOrg(t, &ctx, "test-org")
+    org2Id := CreateOrg(t, &ctx, "test-org2")
+    AddOrgUser(t, &ctx, orgId, userId)
+    AddOrgUser(t, &ctx, org2Id, userId)
+
+    t.Logf("Test remove user %s from org %s", userId, orgId)
+
+    // assign user to the first organization
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                removeOrgUser(orgId: "%s", userId: "%s")
+            }
+        `, orgId.Hex(), userId.Hex()),
+        ExpectedResult: `
+            {
+                "removeOrgUser": null
+            }
+        `,
+    })
+
+    // TODO: check if user is still  
+}

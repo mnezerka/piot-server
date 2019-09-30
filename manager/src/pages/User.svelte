@@ -4,6 +4,7 @@
     import {gql} from '../utils.js';
     import {onMount} from 'svelte';
     import ErrorBar from '../components/ErrorBar.svelte';
+    import TableButtonDelete from '../components/TableButtonDelete.svelte';
 
     export var params;
 
@@ -13,6 +14,7 @@
     let fetching = false;
     let success = null;
     let orgs = [];
+    let orgsAssigned = [];
     let orgAdd = '';
 
     async function fetchUser() {
@@ -25,10 +27,11 @@
         error = null
 
         try {
-            let data = await gql({query: `{user(id: "${params.id}") {id, email, created} orgs {id, name}}`});
+            let data = await gql({query: `{user(id: "${params.id}") {id, email, created, orgs {id, name}} orgs {id, name}}`});
             user = data.user;
             email = user.email;
             orgs = data.orgs;
+            orgsAssigned = user.orgs.map(o => o.id);
         } catch (e) {
             error = e;
         }
@@ -58,7 +61,49 @@
     onMount(fetchUser)
 
     async function addOrg() {
-        console.log('adding org', orgAdd)
+
+        if (orgAdd.length === 0) {
+            error = 'No organization specified'
+            return
+        }
+
+        fetching = true;
+        error = null;
+        success = false;
+
+        try {
+            let data = await gql({query: `mutation {addOrgUser(orgId: "${orgAdd}", userId: "${params.id}")}`});
+            success = 'User successfully added to organization'
+        } catch(e) {
+            error = e;
+        }
+        fetching = false;
+
+        orgAdd = '';
+
+        await fetchUser()
+    }
+
+    async function removeOrg(e) {
+
+        if (!e.detail.value || e.detail.value.length === 0) {
+            error = 'No organization specified'
+            return
+        }
+
+        fetching = true;
+        error = null;
+        success = false;
+
+        try {
+            let data = await gql({query: `mutation {removeOrgUser(orgId: "${e.detail.value}", userId: "${params.id}")}`});
+            success = 'User successfully removed from organization'
+        } catch(e) {
+            error = e;
+        }
+        fetching = false;
+
+        await fetchUser()
     }
 
 </script>
@@ -66,6 +111,7 @@
 <style>
 form { width: 24rem;}
 h2 { margin-top: 2rem; }
+.delete-button { text-align: right; }
 </style>
 
 <h1 class="title">User</h1>
@@ -75,6 +121,9 @@ h2 { margin-top: 2rem; }
 {#if success}<div class="notification is-success has-text-centered">{success}</div>{/if}
 
 {#if user}
+
+<h2 class="subtitle">Edit User</h2>
+
 <form on:submit|preventDefault={updateUser}>
 
     <div class="field">
@@ -95,16 +144,45 @@ h2 { margin-top: 2rem; }
 
 <form on:submit|preventDefault={addOrg}>
 
-    <div class="field is-grouped">
-        <p class="control is-expanded">
-            <input bind:value={orgAdd} class="input">
-        </p>
-
-         <p class="control">
-             <button class="button is-success">Add</button>
-         </p>
+    <div class="field has-addons">
+        <div class="control is-expanded">
+            <div class="select is-fullwidth">
+                <select bind:value={orgAdd}>
+                    <option value="">---</option>
+                {#each orgs as org}
+                    {#if orgsAssigned.indexOf(org.id) === -1}
+                    <option value="{org.id}">{org.name}</option>
+                    {/if}
+                {/each}
+                </select>
+            </div>
+        </div>
+        <div class="control">
+            <button class="button is-success">Add</button>
+        </div>
     </div>
 
 </form>
+
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {#each orgs as org}
+            {#if orgsAssigned.indexOf(org.id) !== -1}
+        <tr>
+            <td>{org.name}</td>
+            <td class="delete-button">
+                <TableButtonDelete value={org.id} on:click={removeOrg} />
+            </td>
+        </tr>
+            {/if}
+        {/each}
+    </tbody>
+</table>
 
 {/if}

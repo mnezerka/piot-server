@@ -88,7 +88,7 @@ func (r *UserResolver) Orgs() []*OrgResolver {
             r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return result
         }
-        result = append(result, &OrgResolver{ctx, &org})
+        result = append(result, &OrgResolver{r.ctx, &org})
     }
 
     if err := cur.Err(); err != nil {
