@@ -1,21 +1,21 @@
 package test
 
 import (
-    "context"
+    //"context"
     "encoding/json"
     "fmt"
-    "strings"
+    //"strings"
     "path/filepath"
     "bytes"
     "io/ioutil"
-    "net/http"
+    //"net/http"
     "net/http/httptest"
     "runtime"
     "reflect"
     "testing"
     //"piot-server/resolver"
-    "piot-server/handler"
-    "piot-server/model"
+    //"piot-server/handler"
+    //"piot-server/model"
     //"piot-server/schema"
     //graphql "github.com/graph-gophers/graphql-go"
 )
@@ -85,6 +85,7 @@ func Body2Bytes(body *bytes.Buffer) ([]byte) {
     return result
 }
 
+/*
 func Login(t *testing.T, ctx *context.Context, email string, password string, statusCode int) (string) {
     req, err := http.NewRequest("POST", "/login", strings.NewReader(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, email, password)))
     Ok(t, err)
@@ -101,8 +102,10 @@ func Login(t *testing.T, ctx *context.Context, email string, password string, st
 
     return response.Token
 }
+*/
 
 
+/*
 func GetAuthGqlRequest(t *testing.T, ctx *context.Context, email, password, body string) (*http.Request) {
     token := Login(t, ctx, email, password, 200)
 
@@ -112,6 +115,7 @@ func GetAuthGqlRequest(t *testing.T, ctx *context.Context, email, password, body
 
     return req
 }
+*/
 
 /*
 func GetGqlResponseRecorder(t *testing.T, ctx *context.Context, email, password, request string) (*httptest.ResponseRecorder) {
