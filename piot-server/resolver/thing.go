@@ -1,15 +1,26 @@
 package resolver
 
 import (
+    "errors"
     "piot-server/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
-    "github.com/mongodb/mongo-go-driver/bson"
+    "go.mongodb.org/mongo-driver/bson"
+    "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
 )
 
+type thingUpdateInput struct {
+    Id      graphql.ID
+    Name    *string
+    Alias   *string
+    Enabled *bool
+    OrgId   *graphql.ID
+}
+
 type ThingResolver struct {
+    ctx context.Context
     d *model.Thing
 }
 
@@ -19,6 +30,10 @@ func (r *ThingResolver) Id() graphql.ID {
 
 func (r *ThingResolver) Name() string {
     return r.d.Name
+}
+
+func (r *ThingResolver) Alias() string {
+    return r.d.Alias
 }
 
 func (r *ThingResolver) Type() string {
@@ -33,24 +48,34 @@ func (r *ThingResolver) Created() int32 {
     return r.d.Created
 }
 
-func (r *ThingResolver) Org () *OrgResolver {
+func (r *ThingResolver) Org() *OrgResolver {
     return nil
 }
 
-func (r *Resolver) Thing(ctx context.Context, args struct {Id string}) (*ThingResolver, error) {
+func (r *Resolver) Thing(ctx context.Context, args struct {Id graphql.ID}) (*ThingResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch thing: %v", args.Id)
 
     db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Id))
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        return nil, errors.New("Cannot decode ID")
+    }
 
     thing := model.Thing{}
 
     collection := db.Collection("things")
-    err := collection.FindOne(context.TODO(), bson.D{{"id", args.Id}}).Decode(&thing)
+    err = collection.FindOne(ctx, bson.D{{"_id", id}}).Decode(&thing)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, err
     }
 
-    return &ThingResolver{&thing}, nil
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved thing %v", thing)
+    return &ThingResolver{ctx, &thing}, nil
 }
 
 func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
@@ -79,7 +104,7 @@ func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
             ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &ThingResolver{&thing})
+        result = append(result, &ThingResolver{ctx, &thing})
     }
 
     if err := cur.Err(); err != nil {
@@ -87,4 +112,56 @@ func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
     }
 
     return result, nil
+}
+
+func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpdateInput}) (*ThingResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s", args.Thing.Id)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Thing.Id))
+    if err != nil {
+        return nil, err
+    }
+
+    // try to find thing to be updated
+    var thing model.Thing
+    collection := db.Collection("things")
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Thing does not exist")
+    }
+
+    // try to find similar thing matching new name
+    if args.Thing.Name != nil {
+        var similarThing model.Thing
+        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"name": args.Thing.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarThing)
+        if err == nil {
+            return nil, errors.New("Thing of such name already exists")
+        }
+    }
+
+    // thing exists -> update it
+    updateFields := bson.M{}
+    if args.Thing.Name != nil { updateFields["name"] = args.Thing.Name}
+    if args.Thing.Alias != nil { updateFields["alias"] = args.Thing.Alias}
+    if args.Thing.Enabled != nil { updateFields["enabled"] = args.Thing.Enabled}
+    update := bson.M{"$set": updateFields}
+
+    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        return nil, errors.New("Error while updating thing")
+    }
+
+    // read thing
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Cannot fetch thing data")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Thing updated %v", thing)
+    return &ThingResolver{ctx, &thing}, nil
 }

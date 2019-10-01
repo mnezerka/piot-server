@@ -7,7 +7,7 @@ import (
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
-    "github.com/mongodb/mongo-go-driver/bson"
+    "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
 )
@@ -114,7 +114,7 @@ func (r *UserProfileResolver) Email() string {
 // get user by email query
 func (r *Resolver) User(ctx context.Context, args struct {Id graphql.ID}) (*UserResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch user: %s", string(args.Id))
+    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch user: %v", args.Id)
 
     db := ctx.Value("db").(*mongo.Database)
 

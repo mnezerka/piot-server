@@ -8,9 +8,9 @@ import (
     "github.com/op/go-logging"
     "net/http"
     jwt "github.com/dgrijalva/jwt-go"
-    "github.com/mongodb/mongo-go-driver/bson"
-    "golang.org/x/crypto/bcrypt"
     "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/bson"
+    "golang.org/x/crypto/bcrypt"
 )
 
 func LoginHandler() http.Handler {

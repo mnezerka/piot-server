@@ -9,9 +9,7 @@ import (
     "piot-server/service"
 )
 
-type Adapter struct {
-    //things *service.Things
-}
+type Adapter struct { }
 
 func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 

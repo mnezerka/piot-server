@@ -8,10 +8,10 @@ type PiotSensorReading struct {
 }
 
 type PiotDevicePacket struct {
-    Device          string `json:"device"`
-    Ip              string `json:"ip"`
-    WifiSSID        string `json:"wifi-ssid"`
-    WifiStrength    string `json:"wifi-strength"`
-    Time            int32  `json:"time"`
+    Device          string  `json:"device"`
+    Ip              string  `json:"ip"`
+    WifiSSID        string  `json:"wifi-ssid"`
+    WifiStrength    float32 `json:"wifi-strength"`
+    Time            int32   `json:"time"`
     Readings        []PiotSensorReading `json:"readings"`
 }

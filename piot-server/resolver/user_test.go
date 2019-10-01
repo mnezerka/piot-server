@@ -49,6 +49,7 @@ func TestUsersGet(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
+    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
     test.CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
     userId := test.CreateUser(t, ctx, "user1@test.com", "")

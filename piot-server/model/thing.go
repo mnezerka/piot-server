@@ -11,6 +11,7 @@ const THING_TYPE_SENSOR = "sensor"
 type Thing struct {
     Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
     Name        string `json:"name"`
+    Alias       string `json:"alias"`
     Type        string `json:"type"`
     Enabled     bool   `json:"enabled"`
     Created     int32  `json:"created"`

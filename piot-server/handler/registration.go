@@ -9,8 +9,8 @@ import (
     "piot-server/utils"
     "github.com/op/go-logging"
     "net/http"
-    "github.com/mongodb/mongo-go-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/bson"
 )
 
 func Registration() http.Handler {

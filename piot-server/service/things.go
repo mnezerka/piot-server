@@ -12,18 +12,6 @@ import (
     "piot-server/model"
 )
 
-type ThingsReader interface {
-    Find(name *string) (*model.Thing, error)
-}
-
-type ThingsWriter interface {
-}
-
-type ThingsService interface {
-    ThingsReader
-    ThingsWriter
-}
-
 type Things struct { }
 
 func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {

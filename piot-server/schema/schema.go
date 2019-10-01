@@ -1,5 +1,6 @@
 package schema
 
+
 func GetRootSchema() string {
 
     return `
@@ -21,10 +22,13 @@ func GetRootSchema() string {
         type Mutation {
             createOrg(name: String!, description: String!): Org
             updateOrg(id: ID!, name: String, description: String): Org
+            removeOrgUser(orgId: ID!, userId: ID!): Boolean
+
             createUser(user: UserCreate!): User
             updateUser(user: UserUpdate!): User
             addOrgUser(orgId: ID!, userId: ID!): Boolean
-            removeOrgUser(orgId: ID!, userId: ID!): Boolean
+
+            updateThing(thing: ThingUpdate!): Thing
         }
 
         type User {
@@ -50,6 +54,7 @@ func GetRootSchema() string {
         type Thing {
             id: ID!
             name: String!
+            alias: String!
             type: String!
             enabled: Boolean!
             created: Int!
@@ -64,6 +69,13 @@ func GetRootSchema() string {
 
         input UserCreate {
             email: String!
+            orgId: ID
+        }
+
+        input ThingUpdate {
+            id: ID!,
+            name: String
+            alias: String,
             orgId: ID
         }
     `

@@ -120,4 +120,3 @@ func CreateUser(t *testing.T, ctx context.Context, email, password string) (prim
 
     return res.InsertedID.(primitive.ObjectID)
 }
-
