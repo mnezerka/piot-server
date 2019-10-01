@@ -3,18 +3,16 @@ package handler_test
 import (
     "net/http"
     "net/http/httptest"
-    "os"
     "strings"
     "testing"
     "piot-server/test"
     "piot-server/handler"
-    piotcontext "piot-server/context"
 )
 
 func TestForbiddenGet(t *testing.T) {
     req, err := http.NewRequest("GET", "/", nil)
     test.Ok(t, err)
-    req = req.WithContext(piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test"))
+    req = req.WithContext(test.CreateTestContext())
 
     rr := httptest.NewRecorder()
     handler := handler.Adapter{}
@@ -24,8 +22,8 @@ func TestForbiddenGet(t *testing.T) {
 }
 
 func TestPacketForUnknownThing(t *testing.T) {
+    ctx := test.CreateTestContext()
 
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
     test.CleanDb(t, ctx)
 
     deviceData := `

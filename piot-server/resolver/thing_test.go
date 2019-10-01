@@ -3,17 +3,15 @@ package resolver
 import (
     //"context"
     "fmt"
-    "os"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
     "piot-server/schema"
     "piot-server/test"
-    piotcontext "piot-server/context"
 )
 
 func TestThingsGet(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     thingId := test.CreateThing(t, ctx, "thing1")
 
@@ -41,7 +39,7 @@ func TestThingsGet(t *testing.T) {
 }
 
 func TestThingGet(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     thingId := test.CreateThing(t, ctx, "thing1")
 
@@ -64,7 +62,7 @@ func TestThingGet(t *testing.T) {
 }
 
 func TestThingUpdate(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     id := test.CreateThing(t, ctx, "thing1")
 

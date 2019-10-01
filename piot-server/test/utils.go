@@ -2,10 +2,10 @@ package test
 
 import (
     "context"
-    //"encoding/json"
     "fmt"
     "path/filepath"
     "net/http/httptest"
+    "os"
     "runtime"
     "reflect"
     "testing"
@@ -14,16 +14,16 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "piot-server/utils"
+    piotcontext "piot-server/context"
 )
 
-/*
-type GqlResponseMessage struct {
-    Message string `json:message`
+func CreateTestContext() context.Context {
+    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test", "DEBUG")
+    callerEmail := "caller@test.com"
+    ctx = context.WithValue(ctx, "user_email", &callerEmail)
+    ctx = context.WithValue(ctx, "is_authorized", true)
+    return ctx
 }
-type GqlResponse struct {
-    Errors  []GqlResponseMessage `json:errors`
-}
-*/
 
 // assert fails the test if the condition is false.
 func Assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
@@ -60,23 +60,6 @@ func CheckStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expected int) 
     }
 }
 
-// helper function for checking and logging respone status
-/*
-func CheckGqlResult(t *testing.T, rr *httptest.ResponseRecorder) {
-    CheckStatusCode(t, rr, 200);
-    //fmt.Print(rr.Body.String())
-
-    var response GqlResponse
-    if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-        t.Error(err)
-    }
-
-    if len(response.Errors) > 0 {
-        fmt.Printf("%v", response)
-        t.Errorf("\033[31mNot empty list of errors: %v\033[39m", response.Errors)
-    }
-}
-*/
 func CleanDb(t *testing.T, ctx context.Context) {
     db := ctx.Value("db").(*mongo.Database)
     db.Collection("orgs").DeleteMany(ctx, bson.M{})

@@ -11,7 +11,7 @@ import (
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
 
-func NewContext(dbUri string, dbName string) context.Context {
+func NewContext(dbUri string, dbName string, logLevel string) context.Context {
 
     // create global context for all handlers
     ctx := context.Background()
@@ -32,9 +32,6 @@ func NewContext(dbUri string, dbName string) context.Context {
         os.Exit(1)
     }
 
-    // Auto disconnect from mongo
-    //defer dbClient.Disconnect(ctx)
-
     ctx = context.WithValue(ctx, "dbClient", dbClient)
 
     db := dbClient.Database(dbName)
@@ -43,7 +40,11 @@ func NewContext(dbUri string, dbName string) context.Context {
     /////////////// LOGGER
 
     // create global logger for all handlers
-    log := service.NewLogger(LOG_FORMAT, true)
+    log, err := service.NewLogger(LOG_FORMAT, logLevel)
+    if err != nil {
+        log.Fatalf("Cannot create logger for level %s (%v)", logLevel, err)
+        os.Exit(1)
+    }
     ctx = context.WithValue(ctx, "log", log)
 
     /////////////// THINGS
@@ -54,3 +55,5 @@ func NewContext(dbUri string, dbName string) context.Context {
 
     return ctx
 }
+
+

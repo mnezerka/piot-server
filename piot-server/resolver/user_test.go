@@ -1,28 +1,16 @@
 package resolver
 
 import (
-    "context"
     "fmt"
-    "os"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
     "piot-server/schema"
     "piot-server/test"
-    piotcontext "piot-server/context"
 )
 
-var ctx context.Context
-
-
-func init() {
-    callerEmail := "caller@test.com"
-    ctx = piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
-    ctx = context.WithValue(ctx, "user_email", &callerEmail)
-    ctx = context.WithValue(ctx, "is_authorized", true)
-}
-
 func TestUsersGet(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     test.CreateUser(t, ctx, "user1@test.com", "")
 
@@ -49,7 +37,7 @@ func TestUsersGet(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
     userId := test.CreateUser(t, ctx, "user1@test.com", "")
@@ -75,6 +63,7 @@ func TestUserGet(t *testing.T) {
 }
 
 func TestUserCreate(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
 
     gqltesting.RunTest(t, &gqltesting.Test{
@@ -96,6 +85,7 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserUpdate(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     id := test.CreateUser(t, ctx, "user1@test.com", "")
 

@@ -5,18 +5,19 @@ import (
     "os"
 )
 
-func NewLogger(log_format string, debug bool) *logging.Logger {
+func NewLogger(log_format string, level string) (*logging.Logger, error) {
     backend := logging.NewLogBackend(os.Stderr, "", 0)
     format := logging.MustStringFormatter(log_format)
     backendFormatter := logging.NewBackendFormatter(backend, format)
 
     backendLeveled := logging.AddModuleLevel(backendFormatter)
-    backendLeveled.SetLevel(logging.INFO, "")
-    if debug {
-        backendLeveled.SetLevel(logging.DEBUG, "")
+    logLevel, err := logging.LogLevel(level)
+    if err != nil {
+        return nil, err
     }
+    backendLeveled.SetLevel(logLevel, "")
 
     logging.SetBackend(backendLeveled)
     logger := logging.MustGetLogger("server")
-    return logger
+    return logger, nil
 }

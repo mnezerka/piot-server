@@ -1,22 +1,20 @@
 package service_test
 
 import (
-    "os"
     "testing"
     "piot-server/service"
     "piot-server/test"
-    piotcontext "piot-server/context"
 )
 
 func TestFindUnknownThing(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     things := service.Things{}
     _, err := things.Find(ctx, "xx")
     test.Assert(t, err != nil, "Thing shall not be found")
 }
 
 func TestFindExistingThing(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     test.CreateThing(t, ctx, "thing1")
     things := service.Things{}
@@ -25,7 +23,7 @@ func TestFindExistingThing(t *testing.T) {
 }
 
 func TestRegisterThing(t *testing.T) {
-    ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     things := service.Things{}
     thing, err := things.Register(ctx, "thing1", "sensor")

@@ -5,12 +5,10 @@ import (
     "fmt"
     "testing"
     "time"
-    "os"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
     "piot-server/schema"
     "piot-server/test"
-    piotcontext "piot-server/context"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
@@ -43,17 +41,8 @@ func AddOrgUser(t *testing.T, ctx *context.Context, orgId, userId primitive.Obje
     t.Logf("User %v added to org %v", userId.Hex(), orgId.Hex())
 }
 
-
-func init() {
-    ctx = piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test")
-    ctx = context.WithValue(ctx, "user_email", "admin@test.com")
-    ctx = context.WithValue(ctx, "is_authorized", true)
-
-    // close database
-    //ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
-}
-
 func TestOrgsGet(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     CreateOrg(t, &ctx, "org1")
 
@@ -80,6 +69,7 @@ func TestOrgsGet(t *testing.T) {
 }
 
 func TestOrgGet(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     orgId := CreateOrg(t, &ctx, "org1")
     userId := test.CreateUser(t, ctx, "org1user@test.com", "")
@@ -105,6 +95,7 @@ func TestOrgGet(t *testing.T) {
 }
 
 func TestAddOrgUser(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     userId := test.CreateUser(t, ctx, "user1@test.com", "")
     orgId := CreateOrg(t, &ctx, "test-org")
@@ -149,6 +140,7 @@ func TestAddOrgUser(t *testing.T) {
 }
 
 func TestRemoveOrgUser(t *testing.T) {
+    ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     userId := test.CreateUser(t, ctx, "user1@test.com", "")
     orgId := CreateOrg(t, &ctx, "test-org")
