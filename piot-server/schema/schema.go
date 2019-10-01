@@ -64,7 +64,6 @@ func GetRootSchema() string {
         input UserUpdate {
             id: ID!,
             email: String
-            orgId: ID
         }
 
         input UserCreate {

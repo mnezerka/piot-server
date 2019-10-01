@@ -45,8 +45,8 @@
 
     async function updateUser()
     {
-        if (name.length === 0) {
-            error = 'No name specified'
+        if (email.length === 0) {
+            error = 'No email specified'
             return
         }
 

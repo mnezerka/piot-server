@@ -11,8 +11,6 @@
 
     onMount(async () => {
 
-        console.log('app - on mount');
-
         // verify that user token is valid - download user profile
         if ($token) {
 

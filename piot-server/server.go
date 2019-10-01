@@ -57,7 +57,8 @@ func runServer(c *cli.Context) {
         http.ServeFile(w, r, "graphiql.html")
     }))
 
-    http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.Adapter{})))))
+    //http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.Adapter{})))))
+    http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.Adapter{}))))
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))

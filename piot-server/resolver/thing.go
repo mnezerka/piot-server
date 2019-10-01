@@ -9,6 +9,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
+    "piot-server/service"
 )
 
 type thingUpdateInput struct {
@@ -21,34 +22,49 @@ type thingUpdateInput struct {
 
 type ThingResolver struct {
     ctx context.Context
-    d *model.Thing
+    t *model.Thing
 }
 
 func (r *ThingResolver) Id() graphql.ID {
-    return graphql.ID(r.d.Id.Hex())
+    return graphql.ID(r.t.Id.Hex())
 }
 
 func (r *ThingResolver) Name() string {
-    return r.d.Name
+    return r.t.Name
 }
 
 func (r *ThingResolver) Alias() string {
-    return r.d.Alias
+    return r.t.Alias
 }
 
 func (r *ThingResolver) Type() string {
-    return r.d.Type
+    return r.t.Type
 }
 
 func (r *ThingResolver) Enabled() bool {
-    return r.d.Enabled
+    return r.t.Enabled
 }
 
 func (r *ThingResolver) Created() int32 {
-    return r.d.Created
+    return r.t.Created
 }
 
 func (r *ThingResolver) Org() *OrgResolver {
+
+    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org for thing: %s", r.t.Id.Hex())
+
+    if r.t.OrgId != primitive.NilObjectID {
+
+        orgs := r.ctx.Value("orgs").(*service.Orgs)
+
+        org, err := orgs.Get(r.ctx, r.t.OrgId)
+        if err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
+        } else {
+            return &OrgResolver{r.ctx, org}
+        }
+    }
+
     return nil
 }
 
@@ -145,9 +161,17 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
 
     // thing exists -> update it
     updateFields := bson.M{}
-    if args.Thing.Name != nil { updateFields["name"] = args.Thing.Name}
-    if args.Thing.Alias != nil { updateFields["alias"] = args.Thing.Alias}
-    if args.Thing.Enabled != nil { updateFields["enabled"] = args.Thing.Enabled}
+    if args.Thing.Name != nil { updateFields["name"] = *args.Thing.Name}
+    if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
+    if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
+    if args.Thing.OrgId != nil {
+        // create ObjectID from string
+        orgId, err := primitive.ObjectIDFromHex(string(*args.Thing.OrgId))
+        if err != nil {
+            return nil, err
+        }
+        updateFields["org_id"] = orgId
+    }
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
