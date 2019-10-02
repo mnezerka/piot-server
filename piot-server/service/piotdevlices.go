@@ -4,6 +4,7 @@ import (
     "context"
     "errors"
     "fmt"
+    "strconv"
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
@@ -11,7 +12,8 @@ import (
 
 // the minimal allowed time interval between two packets from
 // the same device
-const DOS_TRESHOLD = 30
+//const DOS_TRESHOLD = 30
+const DOS_TRESHOLD = 1
 
 type PiotDevices struct {
     cache map[string]time.Time
@@ -42,8 +44,16 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
     // store device name to cache together with date it was seen
     p.cache[packet.Device] = time.Now()
 
+    // name of the device cannot be empty
+    if packet.Device == "" {
+        return errors.New("Device name cannot be empty")
+    }
+
     // look for device (chip) and register it if it doesn't exist
     things := ctx.Value("things").(*Things)
+
+
+
     thing, err := things.Find(ctx, packet.Device)
     if err != nil {
         // register device
@@ -53,8 +63,9 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         }
     }
 
-    p.processDevice(ctx, thing, packet)
-
+    if err = p.processDevice(ctx, thing, packet); err != nil {
+        return err
+    }
 
     // look for sensors and register those that doesn't exist
     for _, reading := range packet.Readings {
@@ -68,12 +79,13 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
             }
         }
 
-        p.processReading(ctx, thing, reading)
+        if err = p.processReading(ctx, thing, reading); err != nil {
+            return err
+        }
     }
 
     return nil
 }
-
 
 func (p *PiotDevices) processDevice(ctx context.Context, thing *model.Thing, packet model.PiotDevicePacket) error {
 
@@ -109,10 +121,9 @@ func (p *PiotDevices) processDevice(ctx context.Context, thing *model.Thing, pac
     return nil
 }
 
-func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, packet model.PiotSensorReading) error {
-    ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device reading data: %v", packet)
+func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, reading model.PiotSensorReading) error {
+    ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device reading data: %v", reading)
     mqtt := ctx.Value("mqtt").(IMqtt)
-
 
     // update avalibility channel
     err := mqtt.PushThingData(ctx, thing, TOPIC_AVAILABLE, VALUE_YES)
@@ -120,23 +131,32 @@ func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, pa
         return err
     }
 
-    /*
-    const TOPIC_TEMP_NAME = "temperature"
-    const TOPIC_TEMP_UNIT_NAME = "temperature/unit"
+    if reading.Temperature != nil {
+        if err := mqtt.PushThingData(ctx, thing, TOPIC_TEMP, strconv.FormatFloat(float64(*reading.Temperature), 'f', -1, 32)); err != nil {
+            return err
+        }
+        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_TEMP, TOPIC_UNIT), "C"); err != nil {
+            return err
+        }
+    }
 
-    const TOPIC_PRESSURE_NAME = "pressure"
-    const TOPIC_PRESSURE_UNIT_NAME = "pressure/unit"
+    if reading.Pressure!= nil {
+        if err := mqtt.PushThingData(ctx, thing, TOPIC_PRESSURE, strconv.FormatFloat(float64(*reading.Pressure), 'f', -1, 32)); err != nil {
+            return err
+        }
+        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_PRESSURE, TOPIC_UNIT), "Pa"); err != nil {
+            return err
+        }
+    }
 
-    const TOPIC_HUMIDITY_NAME = "humidity"
-    const TOPIC_HUMIDITY_NAME = "humidity/unit"
-
-
-    Address     string   `json:"address"`
-    Temperature *float32 `json:"t,omitempty"`
-    Humidity    *float32 `json:"h,omitempty"`
-    Pressure    *float32 `json:"p,omitempty"`
-
-    */
+    if reading.Humidity!= nil {
+        if err := mqtt.PushThingData(ctx, thing, TOPIC_HUMIDITY, strconv.FormatFloat(float64(*reading.Humidity), 'f', -1, 32)); err != nil {
+            return err
+        }
+        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_HUMIDITY, TOPIC_UNIT), "%"); err != nil {
+            return err
+        }
+    }
 
     return nil
 }

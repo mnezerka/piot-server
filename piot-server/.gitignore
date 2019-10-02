@@ -1,4 +1,5 @@
 piot-server
 token
 headers.curl
+*tmp
 

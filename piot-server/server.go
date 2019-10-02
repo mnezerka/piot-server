@@ -14,7 +14,8 @@ import (
     "piot-server/config"
     "piot-server/resolver"
     "piot-server/schema"
-    "piot-server/test"
+    "piot-server/service"
+    //"piot-server/test"
     piotcontext "piot-server/context"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
@@ -23,8 +24,17 @@ import (
 
 func runServer(c *cli.Context) {
 
+    // mqtt instance
+    mqttService := service.NewMqtt(c.GlobalString("mqtt-uri"))
+    mqttService.SetUsername(c.GlobalString("mqtt-user"))
+    mqttService.SetPassword(c.GlobalString("mqtt-password"))
+    err := mqttService.Connect()
+    FatalOnError(err, "Connect to mqtt server failed %v", err)
+    //FatalOnError(err, "Connect to mqtt server failed %s: ", err.Error())
+
+    // mqtt := &test.MqttMock{
     // create global context for all handlers
-    ctx := piotcontext.NewContext(c.GlobalString("mongodb-uri"), "piot", &test.MqttMock{}, c.GlobalString("log-level"))
+    ctx := piotcontext.NewContext(c.GlobalString("mongodb-uri"), "piot", mqttService, c.GlobalString("log-level"))
 
     // Auto disconnect from mongo
     defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
@@ -61,7 +71,7 @@ func runServer(c *cli.Context) {
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
-    err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
+    err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
     FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
@@ -110,6 +120,17 @@ func main() {
             Value:  "INFO",
             EnvVar: "LOG_LEVEL",
         },
+        cli.StringFlag{
+            Name:   "mqtt-user",
+            Usage:  "Username for mqtt authentication",
+            EnvVar: "MQTT_USER",
+        },
+        cli.StringFlag{
+            Name:   "mqtt-password",
+            Usage:  "Password for mqtt authentication",
+            EnvVar: "MQTT_PASSWORD",
+        },
+
     }
 
     app.Run(os.Args)

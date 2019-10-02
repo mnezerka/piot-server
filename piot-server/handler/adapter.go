@@ -31,45 +31,9 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     ctx.Value("log").(*logging.Logger).Debugf("Packet decoded %v", devicePacket)
 
-    // DOS Protection
-    // TODO
-    // store device to cache together with date
-    // allow to process incoming data only if new packet comes later than time windown
-
-
-    // look for device (chip) and register it if it doesn't exist
-    things := ctx.Value("things").(*service.Things)
-    device, err := things.Find(ctx, devicePacket.Device)
-    if err != nil {
-        // register register device
-        device, err = things.Register(ctx, devicePacket.Device, model.THING_TYPE_DEVICE)
-        if err != nil {
-            http.Error(w, err.Error(), 500)
-            return
-        }
-    }
-
-    // post data to MQTT if device is enabled
-    if (device.Enabled) {
-        ctx.Value("log").(*logging.Logger).Debugf("TODO - write data to mqtt for enabled device %v", devicePacket.Device)
-    }
-
-    // look for sensors and register those that doesn't exist
-    for _, sensor := range devicePacket.Readings {
-        // look for (device
-        device, err = things.Find(ctx, sensor.Address)
-        if err != nil {
-            // register register device
-            device, err = things.Register(ctx, sensor.Address, model.THING_TYPE_SENSOR)
-            if err != nil {
-                http.Error(w, err.Error(), 500)
-                return
-            }
-        }
-
-        // post data to MQTT if device is enabled
-        if (device.Enabled) {
-            ctx.Value("log").(*logging.Logger).Debugf("TODO - write data to mqtt for enabled sensor %v", sensor.Address)
-        }
+    pd := ctx.Value("piotdevices").(*service.PiotDevices)
+    if err := pd.ProcessPacket(ctx, devicePacket); err != nil {
+        http.Error(w, err.Error(), 500)
+        return
     }
 }

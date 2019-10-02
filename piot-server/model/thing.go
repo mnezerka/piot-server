@@ -16,4 +16,5 @@ type Thing struct {
     Enabled     bool   `json:"enabled"`
     Created     int32  `json:"created"`
     OrgId       primitive.ObjectID `json:"org_id" bson:"org_id,omitempty"`
+    Org         *Org `json:"org"`
 }
