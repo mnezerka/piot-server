@@ -48,4 +48,6 @@ func TestPacketForUnknownThing(t *testing.T) {
     handler.ServeHTTP(rr, req)
 
     test.CheckStatusCode(t, rr, 200)
+
+    // TODO: Check if defice is registered
 }

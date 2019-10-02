@@ -11,7 +11,9 @@ import (
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
 
-func NewContext(dbUri string, dbName string, logLevel string) context.Context {
+func NewContext(dbUri, dbName string, mqtt service.IMqtt, logLevel string) context.Context {
+
+    //fmt.Printf("Context is %t %v)", mqtt, mqtt)
 
     // create global context for all handlers
     ctx := context.Background()
@@ -58,6 +60,25 @@ func NewContext(dbUri string, dbName string, logLevel string) context.Context {
     // create global orgs service for all handlers
     orgs := &service.Orgs{}
     ctx = context.WithValue(ctx, "orgs", orgs)
+
+    /////////////// PIOT DEVICES SERVICE
+
+    // create global piot devices service for all handlers
+    piotdevices := service.NewPiotDevices()
+    ctx = context.WithValue(ctx, "piotdevices", piotdevices)
+
+    /////////////// PIOT MQTT SERVICE
+
+    // create global mqtt service for all handlers
+    /*
+    var mqtt service.IMqtt
+    if mqttUri == "mock" {
+        mqtt = test.MqttMock{}
+    } else {
+        mqtt = service.Mqtt{mqttUri}
+    }
+    */
+    ctx = context.WithValue(ctx, "mqtt", mqtt)
 
     return ctx
 }

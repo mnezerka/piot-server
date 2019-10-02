@@ -1,17 +1,17 @@
 package model
 
 type PiotSensorReading struct {
-    Address     string  `json:"address"`
-    Temperature float32 `json:"t"`
-    Humidity    float32 `json:"h"`
-    Pressure    float32 `json:"p"`
+    Address     string   `json:"address"`
+    Temperature *float32 `json:"t,omitempty"`
+    Humidity    *float32 `json:"h,omitempty"`
+    Pressure    *float32 `json:"p,omitempty"`
 }
 
 type PiotDevicePacket struct {
-    Device          string  `json:"device"`
-    Ip              string  `json:"ip"`
-    WifiSSID        string  `json:"wifi-ssid"`
-    WifiStrength    float32 `json:"wifi-strength"`
-    Time            int32   `json:"time"`
+    Device          string   `json:"device"`
+    Ip              *string  `json:"ip,omitempty"`
+    WifiSSID        *string  `json:"wifi-ssid,omitempty"`
+    WifiStrength    *float32 `json:"wifi-strength,omitempty"`
+    Time            *int32   `json:"time,omitempty"`
     Readings        []PiotSensorReading `json:"readings"`
 }

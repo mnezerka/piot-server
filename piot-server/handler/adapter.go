@@ -22,8 +22,8 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    // try to decode packet
     var devicePacket model.PiotDevicePacket
-
     if err := json.NewDecoder(r.Body).Decode(&devicePacket); err != nil {
         http.Error(w, err.Error(), http.StatusBadRequest)
         return
@@ -31,9 +31,14 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     ctx.Value("log").(*logging.Logger).Debugf("Packet decoded %v", devicePacket)
 
-    things := ctx.Value("things").(*service.Things)
+    // DOS Protection
+    // TODO
+    // store device to cache together with date
+    // allow to process incoming data only if new packet comes later than time windown
 
-    // look for (device
+
+    // look for device (chip) and register it if it doesn't exist
+    things := ctx.Value("things").(*service.Things)
     device, err := things.Find(ctx, devicePacket.Device)
     if err != nil {
         // register register device
@@ -49,7 +54,7 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         ctx.Value("log").(*logging.Logger).Debugf("TODO - write data to mqtt for enabled device %v", devicePacket.Device)
     }
 
-    // look for sensors
+    // look for sensors and register those that doesn't exist
     for _, sensor := range devicePacket.Readings {
         // look for (device
         device, err = things.Find(ctx, sensor.Address)

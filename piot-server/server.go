@@ -14,18 +14,17 @@ import (
     "piot-server/config"
     "piot-server/resolver"
     "piot-server/schema"
+    "piot-server/test"
     piotcontext "piot-server/context"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
     "github.com/op/go-logging"
 )
 
-const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
-
 func runServer(c *cli.Context) {
 
     // create global context for all handlers
-    ctx := piotcontext.NewContext(c.GlobalString("mongodb-uri"), "piot", c.GlobalString("log-level"))
+    ctx := piotcontext.NewContext(c.GlobalString("mongodb-uri"), "piot", &test.MqttMock{}, c.GlobalString("log-level"))
 
     // Auto disconnect from mongo
     defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
