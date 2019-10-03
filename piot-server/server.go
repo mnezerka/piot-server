@@ -14,7 +14,7 @@ import (
     "piot-server/config"
     "piot-server/resolver"
     "piot-server/schema"
-    "piot-server/service"
+    //"piot-server/service"
     //"piot-server/test"
     piotcontext "piot-server/context"
     graphql "github.com/graph-gophers/graphql-go"
@@ -24,17 +24,15 @@ import (
 
 func runServer(c *cli.Context) {
 
-    // mqtt instance
-    mqttService := service.NewMqtt(c.GlobalString("mqtt-uri"))
-    mqttService.SetUsername(c.GlobalString("mqtt-user"))
-    mqttService.SetPassword(c.GlobalString("mqtt-password"))
-    err := mqttService.Connect()
-    FatalOnError(err, "Connect to mqtt server failed %v", err)
-    //FatalOnError(err, "Connect to mqtt server failed %s: ", err.Error())
-
-    // mqtt := &test.MqttMock{
     // create global context for all handlers
-    ctx := piotcontext.NewContext(c.GlobalString("mongodb-uri"), "piot", mqttService, c.GlobalString("log-level"))
+    contextOptions := piotcontext.NewContextOptions()
+    contextOptions.DbUri = c.GlobalString("mongodb-uri")
+    contextOptions.DbName = "piot"
+    contextOptions.MqttUri = c.GlobalString("mqtt-uri")
+    contextOptions.MqttUsername = c.GlobalString("mqtt-user")
+    contextOptions.MqttPassword = c.GlobalString("mqtt-password")
+    contextOptions.LogLevel = c.GlobalString("log-level")
+    ctx := piotcontext.NewContext(contextOptions)
 
     // Auto disconnect from mongo
     defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
@@ -71,7 +69,7 @@ func runServer(c *cli.Context) {
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
-    err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
+    err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
     FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 

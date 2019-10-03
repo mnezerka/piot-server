@@ -1,4 +1,4 @@
-package test
+package service
 
 import (
     "context"
@@ -17,7 +17,7 @@ type MqttMock struct {
     Calls []call
 }
 
-func (t *MqttMock) Connect() error {
+func (t *MqttMock) Connect(ctx context.Context) error {
     return nil
 }
 

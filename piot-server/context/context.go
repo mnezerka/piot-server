@@ -1,9 +1,9 @@
 package context
 
 import (
+    "context"
     "log"
     "os"
-    "golang.org/x/net/context"
     "piot-server/service"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
@@ -11,9 +11,9 @@ import (
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
 
-func NewContext(dbUri, dbName string, mqtt service.IMqtt, logLevel string) context.Context {
+//func NewContext(dbUri, dbName string, mqtt service.IMqtt, logLevel string) context.Context {
 
-    //fmt.Printf("Context is %t %v)", mqtt, mqtt)
+func NewContext(o *ContextOptions) context.Context {
 
     // create global context for all handlers
     ctx := context.Background()
@@ -21,30 +21,30 @@ func NewContext(dbUri, dbName string, mqtt service.IMqtt, logLevel string) conte
     /////////////// DB
 
     // try to open database
-    dbClient, err := mongo.Connect(ctx, options.Client().ApplyURI(dbUri))
+    dbClient, err := mongo.Connect(ctx, options.Client().ApplyURI(o.DbUri))
     if err != nil {
-        log.Fatalf("Failed to open database on %s (%v)", dbUri, err)
+        log.Fatalf("Failed to open database on %s (%v)", o.DbUri, err)
         os.Exit(1)
     }
 
     // Check the connection
     err = dbClient.Ping(ctx, nil)
     if err != nil {
-        log.Fatalf("Cannot ping database on %s (%v)", dbUri, err)
+        log.Fatalf("Cannot ping database on %s (%v)", o.DbUri, err)
         os.Exit(1)
     }
 
     ctx = context.WithValue(ctx, "dbClient", dbClient)
 
-    db := dbClient.Database(dbName)
+    db := dbClient.Database(o.DbName)
     ctx = context.WithValue(ctx, "db", db)
 
     /////////////// LOGGER
 
     // create global logger for all handlers
-    log, err := service.NewLogger(LOG_FORMAT, logLevel)
+    log, err := service.NewLogger(LOG_FORMAT, o.LogLevel)
     if err != nil {
-        log.Fatalf("Cannot create logger for level %s (%v)", logLevel, err)
+        log.Fatalf("Cannot create logger for level %s (%v)", o.LogLevel, err)
         os.Exit(1)
     }
     ctx = context.WithValue(ctx, "log", log)
@@ -70,14 +70,20 @@ func NewContext(dbUri, dbName string, mqtt service.IMqtt, logLevel string) conte
     /////////////// PIOT MQTT SERVICE
 
     // create global mqtt service for all handlers
-    /*
     var mqtt service.IMqtt
-    if mqttUri == "mock" {
-        mqtt = test.MqttMock{}
+    if o.MqttUri == "mock" {
+        mqtt = &service.MqttMock{}
     } else {
-        mqtt = service.Mqtt{mqttUri}
+        // mqtt instance
+        mqtt = service.NewMqtt(o.MqttUri)
+        mqtt.SetUsername(o.MqttUsername)
+        mqtt.SetPassword(o.MqttPassword)
+        err := mqtt.Connect(ctx)
+        if err != nil {
+            log.Fatalf("Connect to mqtt server failed %v", err)
+            os.Exit(1)
+        }
     }
-    */
     ctx = context.WithValue(ctx, "mqtt", mqtt)
 
     return ctx

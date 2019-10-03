@@ -52,7 +52,7 @@ func TestPacketDeviceData(t *testing.T) {
     test.Ok(t, err)
 
     // check if mqtt was called
-    mqtt := ctx.Value("mqtt").(*test.MqttMock)
+    mqtt := ctx.Value("mqtt").(*service.MqttMock)
     test.Equals(t, 2, len(mqtt.Calls))
     test.Equals(t, "available", mqtt.Calls[0].Topic)
     test.Equals(t, "yes", mqtt.Calls[0].Value)
@@ -89,7 +89,7 @@ func TestPacketDeviceReadings(t *testing.T) {
     test.Ok(t, err)
 
     // check if mqtt was called
-    mqtt := ctx.Value("mqtt").(*test.MqttMock)
+    mqtt := ctx.Value("mqtt").(*service.MqttMock)
     test.Equals(t, 8, len(mqtt.Calls))
 
     test.Equals(t, "available", mqtt.Calls[0].Topic)

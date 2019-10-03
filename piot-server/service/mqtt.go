@@ -28,7 +28,7 @@ const TOPIC_HUMIDITY = "humidity"
 
 type IMqtt interface {
     PushThingData(ctx context.Context, thing *model.Thing, topic, value string) error
-    Connect() error
+    Connect(ctx context.Context) error
     SetUsername(username string)
     SetPassword(password string)
 }
@@ -56,7 +56,9 @@ func (t *Mqtt) SetPassword(password string) {
     t.Password = &password
 }
 
-func (t *Mqtt) Connect() error {
+func (t *Mqtt) Connect(ctx context.Context) error {
+    ctx.Value("log").(*logging.Logger).Infof("Connecting to MQTT broker %s", t.Uri)
+
     // create a ClientOptions struct setting the broker address, clientid, turn
     // off trace output and set the default message handler
     opts := mqtt.NewClientOptions().AddBroker(t.Uri)
@@ -71,10 +73,11 @@ func (t *Mqtt) Connect() error {
     // create and start a client using the above ClientOptions
     t.client = mqtt.NewClient(opts)
     if token := t.client.Connect(); token.Wait() && token.Error() != nil {
-        fmt.Printf("token %s", token.Error())
+        ctx.Value("log").(*logging.Logger).Infof("Connection failed (%s)", token.Error())
         return token.Error()
     }
 
+    ctx.Value("log").(*logging.Logger).Infof("Connected to MQTT broker")
     //c.Disconnect(250)
     return nil
 }
