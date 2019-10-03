@@ -17,4 +17,14 @@ Resources
   - JWT Authentication:
     https://www.sohamkamani.com/blog/golang/2019-01-01-jwt-authentication/
 
+  - Mosquitto Exporter:
+    https://github.com/sapcc/mosquitto-exporter
 
+  - Go MQTT Client:
+    http://www.eclipse.org/paho/clients/golang/,
+    https://github.com/eclipse/paho.mqtt.golang
+
+- MQTT
+
+  - Topic Structure Conventions:
+    https://tinkerman.cat/post/mqtt-topic-naming-convention
