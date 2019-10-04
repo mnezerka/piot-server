@@ -77,6 +77,9 @@ services:
     #ports:
     #  - 27017:27017
     #    command: mongod --smallfiles --logpath=/dev/null # --quiet
+  piot-server:
+    build: ./piot-server
+    container_name: piot-server
 
 volumes:
     prometheus-base:
