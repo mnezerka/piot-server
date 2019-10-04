@@ -21,6 +21,10 @@ func (t *MqttMock) Connect(ctx context.Context) error {
     return nil
 }
 
+func (t *MqttMock) Disconnect(ctx context.Context) error {
+    return nil
+}
+
 func (t *MqttMock) SetUsername(username string) {
 }
 

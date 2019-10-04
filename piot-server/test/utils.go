@@ -111,3 +111,31 @@ func CreateUser(t *testing.T, ctx context.Context, email, password string) (prim
 
     return res.InsertedID.(primitive.ObjectID)
 }
+
+func CreateOrg(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("orgs").InsertOne(ctx, bson.M{
+        "name": name,
+        "created": int32(time.Now().Unix()),
+    })
+    Ok(t, err)
+
+    t.Logf("Created org %v", res.InsertedID)
+
+    return res.InsertedID.(primitive.ObjectID)
+}
+
+func AddOrgUser(t *testing.T, ctx context.Context, orgId, userId primitive.ObjectID) {
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := db.Collection("orgusers").InsertOne(ctx, bson.M{
+        "org_id": orgId,
+        "user_id": userId,
+        "created": int32(time.Now().Unix()),
+    })
+    Ok(t, err)
+
+    t.Logf("User %v added to org %v", userId.Hex(), orgId.Hex())
+}
+

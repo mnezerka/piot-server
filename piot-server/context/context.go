@@ -55,11 +55,23 @@ func NewContext(o *ContextOptions) context.Context {
     things := &service.Things{}
     ctx = context.WithValue(ctx, "things", things)
 
+    /////////////// USERS SERVICE
+
+    // create global users service for all handlers
+    users := &service.Users{}
+    ctx = context.WithValue(ctx, "users", users)
+
     /////////////// ORGS
 
     // create global orgs service for all handlers
     orgs := &service.Orgs{}
     ctx = context.WithValue(ctx, "orgs", orgs)
+
+    /////////////// AUTH
+
+    // create global orgs service for all handlers
+    auth:= &service.Auth{}
+    ctx = context.WithValue(ctx, "auth", auth)
 
     /////////////// PIOT DEVICES SERVICE
 

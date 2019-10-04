@@ -10,6 +10,7 @@ type User struct {
     Email       string `json:"email"`
     Password    string `json:"password"`
     Created     int32  `json:"created"`
+    Orgs        []Org  `json:"orgs"`
 }
 
 type UserProfile struct {

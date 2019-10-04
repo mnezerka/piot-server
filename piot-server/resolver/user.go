@@ -4,6 +4,7 @@ import (
     "errors"
     "time"
     "piot-server/model"
+    "piot-server/service"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
@@ -48,52 +49,21 @@ func (r *UserResolver) Created() int32 {
 }
 
 func (r *UserResolver) Orgs() []*OrgResolver {
-    //return &OrgResolver{&org}
     var result []*OrgResolver
 
-    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching orgs for user: %s", r.u.Id.Hex())
+    // get instance of the Users service
+    users := r.ctx.Value("users").(*service.Users)
 
-    db := r.ctx.Value("db").(*mongo.Database)
-
-    collection := db.Collection("orgusers")
-
-    // filter orusers to current (single) user
-    stage_match := bson.M{"$match": bson.M{"user_id": r.u.Id}}
-
-    // find orgs details
-    stage_lookup := bson.M{"$lookup": bson.M{"from": "orgs", "localField": "org_id", "foreignField": "_id", "as": "orgs"}}
-
-    // expand orgs
-    stage_unwind := bson.M{"$unwind": "$orgs"}
-
-    // replace root
-    stage_new_root := bson.M{"$replaceWith": "$orgs"}
-
-    pipeline := []bson.M{stage_match, stage_lookup, stage_unwind, stage_new_root}
-
-    //r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Pipeline %v", pipeline)
-
-    cur, err := collection.Aggregate(r.ctx, pipeline)
+    // get all orgs assigned to user
+    orgs, err := users.FindUserOrgs(r.ctx, r.u.Id)
     if err != nil {
         r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
         return result
     }
-    defer cur.Close(r.ctx)
 
-    for cur.Next(r.ctx) {
-        //r.ctx.Value("log").(*logging.Logger).Debugf("Org users iteration %v", cur.Current)
-
-        var org model.Org
-        if err := cur.Decode(&org); err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
-            return result
-        }
-        result = append(result, &OrgResolver{r.ctx, &org})
-    }
-
-    if err := cur.Err(); err != nil {
-        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error during cursor processing: %v", err)
-        return result
+    // convert orgs to org resolvers
+    for _, userOrg := range orgs {
+        result = append(result, &OrgResolver{r.ctx, &userOrg})
     }
 
     return result
