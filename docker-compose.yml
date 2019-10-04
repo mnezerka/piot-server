@@ -52,12 +52,15 @@ services:
       - ./data/certbot/www:/var/www/certbot
 
   mqtt:
-    build: ./mosquitto
-    image: mosquitto
+    #build: ./mosquitto
+    #image: mosquitto
+    image: wollud1969/mosquitto-with-auth
+    network_mode: host
     ports:
       - 1883:1883
     volumes:
-      - ./mosquitto/conf:/etc/mosquitto
+        #- ./mosquitto/conf:/etc/mosquitto
+      - ./mosquitto/conf:/opt/etc/mosquitto
 
   mqtt-exporter:
     image: sapcc/mosquitto-exporter:0.6.0
