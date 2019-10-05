@@ -9,5 +9,5 @@ CMD ["./piot-server"]
 FROM alpine:latest AS alpine
 COPY --from=builder /app/piot-server /app/piot-server
 WORKDIR /app/
-EXPOSE 8000
+EXPOSE 9096
 CMD ["./piot-server"]
