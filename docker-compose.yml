@@ -11,7 +11,6 @@ services:
 
   prometheus-base:
     image: prom/prometheus
-    container_name: prometheus-base
     restart: always
     volumes:
         - ./prometheus-base/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -19,7 +18,6 @@ services:
 
   grafana:
     image: grafana/grafana
-    container_name: grafana
     restart: always
     user: "104"
     ports:
@@ -27,18 +25,17 @@ services:
     volumes:
       - grafana:/var/lib/grafana
     environment:
-      GF_SERVER_DOMAIN: 'iot2.pavoucek.net'
+      GF_SERVER_DOMAIN: ${GF_SERVER_DOMAIN}
       GF_SERVER_ROOT_URL: '%(protocol)s://%(domain)s/grafana/'
       GF_SMTP_ENABLED: 'true'
-      GF_SMTP_HOST: 'mail.pavoucek.net:25'
-      GF_SMTP_FROM_ADDRESS: 'nezerka@betulapendula.com'
-      GF_SMTP_FROM_NAME: 'Monitoring'
-      GF_SMTP_USER: 'nezerka@betulapendula.com'
-      GF_SMTP_PASSWORD: 'xxx'
+      GF_SMTP_HOST: ${GF_SMTP_HOST}
+      GF_SMTP_FROM_ADDRESS: ${GF_SMTP_FROM_ADDRESS}
+      GF_SMTP_FROM_NAME: ${GF_SMTP_FROM_NAME}
+      GF_SMTP_USER: ${GF_SMTP_USER}
+      GF_SMTP_PASSWORD: ${GF_SMTP_PASSWORD}
 
   nginx:
     image: nginx:alpine
-    container_name: nginx
     restart: always
     ports:
       - "8080:8080"
@@ -55,7 +52,7 @@ services:
     #build: ./mosquitto
     #image: mosquitto
     image: wollud1969/mosquitto-with-auth
-    network_mode: host
+    #network_mode: host
     ports:
       - 1883:1883
     volumes:
@@ -66,23 +63,22 @@ services:
     image: sapcc/mosquitto-exporter:0.6.0
     environment:
       BROKER_ENDPOINT: tcp://mqtt:1883
-      MQTT_USER: mon
-      MQTT_PASS: mon
+      MQTT_USER: ${MQTT_MON_USER}
+      MQTT_PASS: ${MQTT_MON_PASSWORD}
 
   mongodb:
     image: mongo:latest
-    container_name: mongodb
-    #environment:
-    #  - MONGO_DATA_DIR=/data/db
-    #  - MONGO_LOG_DIR=/dev/null
     volumes:
       - mongodb:/data/db
-    #ports:
-    #  - 27017:27017
-    #    command: mongod --smallfiles --logpath=/dev/null # --quiet
+
   piot-server:
     build: ./piot-server
-    container_name: piot-server
+    environment:
+        MONGODB_URI: ${MONGODB_URI}
+        LOG_LEVEL: ${PSRV_LOG_LEVEL}
+        MQTT_URI: tcp://mqtt:1883
+        MQTT_USER: ${MQTT_USER}
+        MQTT_PASSWORD: ${MQTT_PASSWORD}
 
 volumes:
     prometheus-base:
