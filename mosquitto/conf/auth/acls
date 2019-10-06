@@ -4,3 +4,7 @@ topic write test/#
 
 user mon
 topic read $SYS/#
+
+user piot
+topic read org/#
+topic write org/#
