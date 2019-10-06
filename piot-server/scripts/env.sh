@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-MONGO_ADDR=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongodb)
+MONGO_ADDR=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' piot_mongodb_1)
 
 echo Setting mongodb address to $MONGO_ADDR
 
