@@ -68,6 +68,20 @@ func (r *ThingResolver) Org() *OrgResolver {
     return nil
 }
 
+func (r *ThingResolver) AvailabilityTopic() string {
+    return r.t.AvailabilityTopic
+}
+
+func (r *ThingResolver) AvailabilityYes() string {
+    return r.t.AvailabilityYes
+}
+
+func (r *ThingResolver) AvailabilityNo() string {
+    return r.t.AvailabilityNo
+}
+
+/////////////// Resolver
+
 func (r *Resolver) Thing(ctx context.Context, args struct {Id graphql.ID}) (*ThingResolver, error) {
 
     ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch thing: %v", args.Id)

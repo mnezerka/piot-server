@@ -15,7 +15,7 @@ import (
 type Things struct { }
 
 func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {
-    ctx.Value("log").(*logging.Logger).Debugf("[TH] Find thing: %s", name)
+    ctx.Value("log").(*logging.Logger).Debugf("Finding thing by name <%s>", name)
 
     db := ctx.Value("db").(*mongo.Database)
 
@@ -24,7 +24,7 @@ func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {
     // try to find thing in DB by its name
     err := db.Collection("things").FindOne(ctx, bson.M{"name": name}).Decode(&thing)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("[TH] Thing %s not found (%v)", name, err)
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s not found (%v)", name, err)
         return nil, errors.New("Thing not found")
     }
 
@@ -32,7 +32,7 @@ func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {
 }
 
 func (t *Things) Register(ctx context.Context, name string, deviceType string) (*model.Thing, error) {
-    ctx.Value("log").(*logging.Logger).Debugf("[TH] Registering new thing: %s of type %s", name, deviceType)
+    ctx.Value("log").(*logging.Logger).Debugf("Registering new thing: %s of type %s", name, deviceType)
 
     // check if string of same name already exists
     _, err := t.Find(ctx, name)
@@ -50,7 +50,7 @@ func (t *Things) Register(ctx context.Context, name string, deviceType string) (
 
     res, err := db.Collection("things").InsertOne(ctx, thing)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("[TH] Thing %s cannot be stored (%v)", name, err)
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be stored (%v)", name, err)
         return nil, errors.New("Error while storing new thing")
     }
 
@@ -58,4 +58,77 @@ func (t *Things) Register(ctx context.Context, name string, deviceType string) (
 
     return &thing, nil
 }
+
+func (t *Things) SetAvailabilityTopic(ctx context.Context, name string, topic string) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s>, setting avalibility topic to <%s>", name, topic)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_topic": topic}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("No thing with name <%s> found", name)
+    }
+
+    return nil
+}
+
+func (t *Things) SetAvailabilityYesNo(ctx context.Context, name , yes, no string) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s>, setting avalibility topic values to <%s> and <%s>", name, yes, no)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_yes": yes, "availability_no": no}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("No thing with name <%s> found", name)
+    }
+
+    return nil
+}
+
+func (t *Things) SetSensorMeasurementTopic(ctx context.Context, name string, topic string) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> sensor measurement topic to <%s>", name, topic)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("No thing with name <%s> found", name)
+    }
+
+    return nil
+}
+
+func (t *Things) SetSensorClass(ctx context.Context, name string, class string) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> sensor class to <%s>", name, class)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.class": class}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("No thing with name <%s> found", name)
+    }
+
+    return nil
+}
+
 

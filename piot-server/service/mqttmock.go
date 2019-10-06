@@ -37,3 +37,7 @@ func (t *MqttMock) PushThingData(ctx context.Context, thing *model.Thing, topic,
 
     return nil
 }
+
+func (t *MqttMock) ProcessMessage(ctx context.Context, topic, payload string) {
+}
+

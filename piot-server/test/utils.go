@@ -139,3 +139,12 @@ func AddOrgUser(t *testing.T, ctx context.Context, orgId, userId primitive.Objec
     t.Logf("User %v added to org %v", userId.Hex(), orgId.Hex())
 }
 
+func AddOrgThing(t *testing.T, ctx context.Context, orgId primitive.ObjectID, thingName string) {
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": thingName}, bson.M{"$set": bson.M{"org_id": orgId}})
+    Ok(t, err)
+
+    t.Logf("Thing %s assigned to org %s", thingName, orgId.Hex())
+}
+

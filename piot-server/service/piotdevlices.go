@@ -8,12 +8,17 @@ import (
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
+    "go.mongodb.org/mongo-driver/bson/primitive"
+
 )
 
 // the minimal allowed time interval between two packets from
 // the same device
 //const DOS_TRESHOLD = 30
 const DOS_TRESHOLD = 1
+
+// topic name used for publishing sensor readings
+const PIOT_MEASUREMENT_TOPIC = "value"
 
 type PiotDevices struct {
     cache map[string]time.Time
@@ -52,8 +57,6 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
     // look for device (chip) and register it if it doesn't exist
     things := ctx.Value("things").(*Things)
 
-
-
     thing, err := things.Find(ctx, packet.Device)
     if err != nil {
         // register device
@@ -61,10 +64,24 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         if err != nil {
             return err
         }
+
+        // configure availability topic
+        if err := things.SetAvailabilityTopic(ctx, packet.Device, "available"); err != nil {
+            return err
+        }
+        if err := things.SetAvailabilityYesNo(ctx, packet.Device, "yes", "no"); err != nil {
+            return err
+        }
     }
 
-    if err = p.processDevice(ctx, thing, packet); err != nil {
-        return err
+    // if thing is assigned to org
+    if thing.OrgId != primitive.NilObjectID {
+        // try to push data to mqtt 
+        if err = p.processDevice(ctx, thing, packet); err != nil {
+            return err
+        }
+    } else {
+        ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", thing.Name)
     }
 
     // look for sensors and register those that doesn't exist
@@ -77,10 +94,38 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
             if err != nil {
                 return err
             }
+
+            // register topics for measurements (if presetn)
+            if things.SetSensorMeasurementTopic(ctx, reading.Address, PIOT_MEASUREMENT_TOPIC); err != nil {
+                return err
+            }
+
+            // set proper device class according to received measurement type
+            var class string
+            if reading.Temperature != nil {
+                class = model.THING_CLASS_TEMPERATURE
+            } else if reading.Humidity != nil {
+                class = model.THING_CLASS_HUMIDITY
+            } else if reading.Pressure != nil {
+                class = model.THING_CLASS_HUMIDITY
+            } else {
+                ctx.Value("log").(*logging.Logger).Warningf("Registering sensor for reading of unknown type <%v>", reading)
+            }
+
+            if class != "" {
+                if err := things.SetSensorClass(ctx, reading.Address, class); err != nil {
+                    return err
+                }
+            }
         }
 
-        if err = p.processReading(ctx, thing, reading); err != nil {
-            return err
+        // if thing is assigned to org
+        if thing.OrgId != primitive.NilObjectID {
+            if err = p.processReading(ctx, thing, reading); err != nil {
+                return err
+            }
+        } else {
+            ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", thing.Name)
         }
     }
 
@@ -131,31 +176,35 @@ func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, re
         return err
     }
 
+    var value string
+    var unit string
+
     if reading.Temperature != nil {
-        if err := mqtt.PushThingData(ctx, thing, TOPIC_TEMP, strconv.FormatFloat(float64(*reading.Temperature), 'f', -1, 32)); err != nil {
-            return err
-        }
-        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_TEMP, TOPIC_UNIT), "C"); err != nil {
-            return err
-        }
+
+        value = strconv.FormatFloat(float64(*reading.Temperature), 'f', -1, 32)
+        unit = "C"
     }
 
     if reading.Pressure!= nil {
-        if err := mqtt.PushThingData(ctx, thing, TOPIC_PRESSURE, strconv.FormatFloat(float64(*reading.Pressure), 'f', -1, 32)); err != nil {
-            return err
-        }
-        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_PRESSURE, TOPIC_UNIT), "Pa"); err != nil {
-            return err
-        }
+        value = strconv.FormatFloat(float64(*reading.Pressure), 'f', -1, 32)
+        unit = "mPa"
     }
 
     if reading.Humidity!= nil {
-        if err := mqtt.PushThingData(ctx, thing, TOPIC_HUMIDITY, strconv.FormatFloat(float64(*reading.Humidity), 'f', -1, 32)); err != nil {
+        value = strconv.FormatFloat(float64(*reading.Humidity), 'f', -1, 32)
+        unit = "%"
+    }
+
+    if value != "" {
+
+        if err := mqtt.PushThingData(ctx, thing, PIOT_MEASUREMENT_TOPIC, value); err != nil {
             return err
         }
-        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", TOPIC_HUMIDITY, TOPIC_UNIT), "%"); err != nil {
+        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", PIOT_MEASUREMENT_TOPIC, TOPIC_UNIT), unit); err != nil {
             return err
         }
+    } else {
+        ctx.Value("log").(*logging.Logger).Warningf("Processing unkonw sensor reading data <%v>", reading)
     }
 
     return nil

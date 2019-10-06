@@ -3,6 +3,7 @@ package service
 import (
     "context"
     "fmt"
+    "time"
     "github.com/op/go-logging"
     "piot-server/model"
     "go.mongodb.org/mongo-driver/bson/primitive"
@@ -28,6 +29,7 @@ const TOPIC_HUMIDITY = "humidity"
 
 type IMqtt interface {
     PushThingData(ctx context.Context, thing *model.Thing, topic, value string) error
+    ProcessMessage(ctx context.Context, topic, payload string)
     Connect(ctx context.Context) error
     Disconnect(ctx context.Context) error
     SetUsername(username string)
@@ -72,7 +74,24 @@ func (t *Mqtt) Connect(ctx context.Context) error {
     }
 
     opts.OnConnect = func(client mqtt.Client) {
+        const topic string = "org/#"
+
         ctx.Value("log").(*logging.Logger).Infof("Connectedt to MQTT broker %s", t.Uri)
+
+        // subscribe for all topcis
+        ctx.Value("log").(*logging.Logger).Infof("Subscribing to topic #")
+        token := client.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
+            //processUpdate(msg.Topic(), string(msg.Payload()))
+            t.ProcessMessage(ctx, msg.Topic(), string(msg.Payload()))
+        })
+        if !token.WaitTimeout(10 * time.Second) {
+            ctx.Value("log").(*logging.Logger).Errorf("Timeout subscribing to topic %s (%s)", topic, token.Error())
+        }
+        if err := token.Error(); err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("Failed to subscribe to topic %s (%s)", topic, err)
+        }
+
+        ctx.Value("log").(*logging.Logger).Infof("Subscribed to topic %s", topic)
     }
 
     opts.OnConnectionLost = func(client mqtt.Client, err error) {
@@ -113,11 +132,15 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
         return err
     }
 
-    mqttTopic := fmt.Sprintf("%s/%s/%s", org.Name, thing.Name, topic)
+    mqttTopic := fmt.Sprintf("org/%s/%s/%s", org.Name, thing.Name, topic)
 
     ctx.Value("log").(*logging.Logger).Debugf("MQTT Publish, topic: \"%s\", value: \"%s\"", mqttTopic, value)
 
     token := t.client.Publish(mqttTopic, 0, false, value)
     token.Wait()
     return nil
+}
+
+func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
+    ctx.Value("log").(*logging.Logger).Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
 }
