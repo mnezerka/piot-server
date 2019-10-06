@@ -5,18 +5,20 @@ shortcut which stands for Pavoucek Internet Of Things, where Pavoucek (Spider)
 is name of the company that has strong interest in driving this project.
 
 The main motivation for starting this project was a need for platform that
-will support our (business) use cases:
+supports our (business) use cases:
 
-- Management of IOT devices, users and organizations (customers)
+- Selling things as a service to customers (represented as organizations)
+- Provide nice UIs and possibility to call APIs without affecting other
+  organizations (multitenancy)
+- Management of IOT devices, users and organizations
 - Possibility to connect cheap and simple sensors with limited capabilities
   (e.g. low memory), assembled and deployed by us
-- Receive data from sensors ommunicating via various protocols (e.g. HTTP
-  packets with minimal footprint)
+- Receive data from sensors communicating in proprietary protocols (e.g. HTTP
+  packets of minimal size)
 - Easy integration of 3rd party applications (e.g. NodeRed)
 - Openness to world of IOT devices that are already on the market
-- Integration with Prometheus and Grafana as this is our main use
-  case for our customers.
-- Persistency of specific IOT data to be able to look back into
-  hisotry
+- Integration with Prometheus and Grafana as this is one of the main
+  use cases sold to customers
+- Persistency of selected IOT data to provide information from history
 
 Refer to [documentation](doc) folder for more information

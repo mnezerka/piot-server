@@ -28,3 +28,11 @@ Resources
 
   - Topic Structure Conventions:
     https://tinkerman.cat/post/mqtt-topic-naming-convention
+
+  - Home Assistant MQTTT Sensor:
+    https://www.home-assistant.io/integrations/sensor.mqtt
+
+- Sensors
+
+  - Open Sens Map
+    https://opensensemap.org

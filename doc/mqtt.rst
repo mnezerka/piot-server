@@ -96,8 +96,8 @@ Translation to MQTT
 ...................
 
 Each device have to be assigned to organization. Let's assume we have
-device identified as *CHIP23* assigned to organization *TestOrg*. The 
-following packet::
+device identified as *CHIP23* assigned to organization *TestOrg*. The
+received packet::
 
     {
         "device": "CHIP23",
@@ -108,8 +108,6 @@ following packet::
             {
                 "address": "67543465",
                 "t": 25,
-                "h": 45,
-                "p": 567;
             }
         ]
     }
@@ -121,9 +119,8 @@ will be translated into following sequence of MQTT publish calls::
     PUBLISH /TestOrg/CHIP23/net/wifi/ssid -> ""TestOrgWifi"
     PUBLISH /TestOrg/CHIP23/net/wifi/strength": "57"
     PUBLISH /TestOrg/67543465/available -> "yes"
-    PUBLISH /TestOrg/67543465/temperature -> "25"
-    PUBLISH /TestOrg/67543465/temperature/unit -> "C"
-    PUBLISH /TestOrg/67543465/numidity -> "45"
-    PUBLISH /TestOrg/67543465/numidity/unit -> "%"
-    PUBLISH /TestOrg/67543465/pressure -> "567"
-    PUBLISH /TestOrg/67543465/pressure/unit -> "Pa"
+    PUBLISH /TestOrg/67543465/value-> "25"
+    PUBLISH /TestOrg/67543465/value/unit -> "C"
+
+if this is the first packet received from device ``CHIP23``, it
+will be registered first.
