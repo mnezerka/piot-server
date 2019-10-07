@@ -62,11 +62,6 @@ func runServer(c *cli.Context) {
     //http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.Adapter{})))))
     http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.Adapter{}))))
 
-    // endpoints for mosquitto authentication requests
-    http.Handle("/mosquitto-auth-user", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.MosquittoAuth{}))))
-    http.Handle("/mosquitto-auth-superuser", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.MosquittoAuth{}))))
-    http.Handle("/mosquitto-auth-acl", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.MosquittoAuth{}))))
-
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
     err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
