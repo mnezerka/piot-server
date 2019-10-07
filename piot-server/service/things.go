@@ -32,8 +32,7 @@ func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {
 }
 
 func (t *Things) Register(ctx context.Context, name string, deviceType string) (*model.Thing, error) {
-    ctx.Value("log").(*logging.Logger).Debugf("Registering new thing: %s of type %s", name, deviceType)
-
+    ctx.Value("log").(*logging.Logger).Debugf("Registering new thing: %s of type %s", name, deviceType) 
     // check if string of same name already exists
     _, err := t.Find(ctx, name)
     if err == nil {
@@ -47,6 +46,7 @@ func (t *Things) Register(ctx context.Context, name string, deviceType string) (
     thing.Name = name
     thing.Type = deviceType
     thing.Created = int32(time.Now().Unix())
+    thing.LastSeen = int32(time.Now().Unix())
 
     res, err := db.Collection("things").InsertOne(ctx, thing)
     if err != nil {
@@ -131,4 +131,22 @@ func (t *Things) SetSensorClass(ctx context.Context, name string, class string) 
     return nil
 }
 
+func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Touch thing <%s>", id.Hex())
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"last_seen": int32(time.Now().Unix())}})
+    if err != nil {
+        e := fmt.Errorf("Thing <%s> cannot be touched (%v)", id.Hex(), err)
+        ctx.Value("log").(*logging.Logger).Errorf(e.Error())
+        return e
+    }
+
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("Thing <%s> not found", id.Hex())
+    }
+
+    return nil
+}
 

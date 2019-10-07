@@ -3,6 +3,7 @@ package service
 import (
     "context"
     "fmt"
+    "strings"
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
@@ -26,6 +27,7 @@ const TOPIC_TEMP = "temperature"
 const TOPIC_PRESSURE = "pressure"
 const TOPIC_HUMIDITY = "humidity"
 
+const TOPIC_ROOT = "org"
 
 type IMqtt interface {
     PushThingData(ctx context.Context, thing *model.Thing, topic, value string) error
@@ -42,7 +44,6 @@ type Mqtt struct {
     Password *string
     client mqtt.Client
 }
-
 
 func NewMqtt(uri string) IMqtt {
     m := &Mqtt{}
@@ -74,7 +75,7 @@ func (t *Mqtt) Connect(ctx context.Context) error {
     }
 
     opts.OnConnect = func(client mqtt.Client) {
-        const topic string = "org/#"
+        topic := fmt.Sprintf("%s/#", TOPIC_ROOT)
 
         ctx.Value("log").(*logging.Logger).Infof("Connectedt to MQTT broker %s", t.Uri)
 
@@ -132,7 +133,7 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
         return err
     }
 
-    mqttTopic := fmt.Sprintf("org/%s/%s/%s", org.Name, thing.Name, topic)
+    mqttTopic := fmt.Sprintf("%s/%s/%s/%s", TOPIC_ROOT, org.Name, thing.Name, topic)
 
     ctx.Value("log").(*logging.Logger).Debugf("MQTT Publish, topic: \"%s\", value: \"%s\"", mqttTopic, value)
 
@@ -143,4 +144,42 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
 
 func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
+
+    topicParts := strings.Split(topic, "/")
+
+    // skip topics that cannot be sensor thing due too low
+    // number of hierarchy levels
+    if len(topicParts) < 3 {
+        return
+    }
+
+    // skip topics that doesn't belong to organization root
+    if topicParts[0] != TOPIC_ROOT {
+        return
+    }
+
+    // look for thing
+    thingName := topicParts[2]
+    things := ctx.Value("things").(*Things)
+
+    thing, err := things.Find(ctx, thingName)
+    if err != nil {
+        // thing not found, ignore topic
+        return
+    }
+
+    // update thing last seen status
+    err = things.TouchThing(ctx, thing.Id)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+    }
+
+    // skip things that are not sensors
+    switch thing.Type {
+    // if the device is sensor and the message is sensor reading, store it to db
+    case model.THING_TYPE_SENSOR:
+        if topic == thing.Sensor.MeasurementTopic {
+            // TODO: store value to measurements
+        }
+    }
 }
