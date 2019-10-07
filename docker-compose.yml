@@ -69,9 +69,11 @@ services:
   mqtt-auth:
     build: ./mosquitto-auth
     environment:
-      TEST_PASSWORD: ${MQTT_TEST_PASSWROD}
+      MONGODB_URI: ${MONGODB_URI}
+      TEST_PASSWORD: ${MQTT_TEST_PASSWORD}
       MON_PASSWORD: ${MQTT_MON_PASSWORD}
       PIOT_PASSWORD: ${MQTT_PIOT_PASSWORD}
+      LOG_LEVEL: DEBUG
 
   mongodb:
     image: mongo:latest
