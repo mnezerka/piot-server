@@ -25,6 +25,12 @@ func NewContext(o *ContextOptions) context.Context {
     }
     ctx = context.WithValue(ctx, "log", log)
 
+    /////////////// STATIC USERS
+
+    ctx = context.WithValue(ctx, "test-pwd", o.TestPassword)
+    ctx = context.WithValue(ctx, "mon-pwd", o.MonPassword)
+    ctx = context.WithValue(ctx, "piot-pwd", o.PiotPassword)
+
     /////////////// DB
 
     // try to open database

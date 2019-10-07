@@ -9,13 +9,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
-    "golang.org/x/crypto/bcrypt"
 )
-
-type MosquittoAuthUser struct {
-    Username    string `json:"username"`
-    Password    string `json:"password"`
-}
 
 type MosquittoAuthAcl struct {
     Acc         int `json:"acc"`
@@ -29,69 +23,6 @@ type Org struct {
     Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
     Name        string `json:"name"`
 }
-
-// Represents user as stored in database
-type User struct {
-    Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-    Email       string `json:"email"`
-    Password    string `json:"password"`
-    Orgs        []Org  `json:"orgs"`
-}
-
-type AuthenticateUser struct { }
-
-func (h *AuthenticateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-    ctx := r.Context()
-
-    // check http method, POST is required
-    if r.Method != http.MethodPost {
-        http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-    // try to decode packet
-    var packet MosquittoAuthUser
-    if err := json.NewDecoder(r.Body).Decode(&packet); err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
-
-    ctx.Value("log").(*logging.Logger).Debugf("Authenticating user %s", packet.Username)
-
-    // try to find user in database
-    db := ctx.Value("db").(*mongo.Database)
-
-    var user User
-    collection := db.Collection("users")
-    err := collection.FindOne(ctx, bson.D{{"email", packet.Username}}).Decode(&user)
-    if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-        http.Error(w, fmt.Sprintf("User identified by email %s does not exist or provided credentials are wrong.", packet.Username), 401)
-        return
-    }
-
-    ctx.Value("log").(*logging.Logger).Debugf("User %s exists", packet.Username)
-
-    // check if password is correct
-    err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(packet.Password))
-    if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-        http.Error(w, fmt.Sprintf("User identified by email %s does not exist or provided credentials are wrong.", packet.Username), 401)
-        return
-    }
-
-    ctx.Value("log").(*logging.Logger).Debugf("Authentication for user %s passed", packet.Username)
-}
-
-type AuthenticateSuperUser struct { }
-
-func (h *AuthenticateSuperUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    ctx := r.Context()
-    ctx.Value("log").(*logging.Logger).Debugf("Request for superuser authentication, denying (not supported)")
-    http.Error(w, "Superuser role Not supported in PIOT", 401)
-}
-
 
 type Authorize struct { }
 
@@ -113,7 +44,38 @@ func (h *Authorize) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     ctx := r.Context()
     ctx.Value("log").(*logging.Logger).Debugf("Acl request for user %s, topic: %s, client: %s, access type: %d", packet.Username, packet.Topic, packet.ClientId, packet.Acc)
 
-    ctx.Value("log").(*logging.Logger).Debugf("Get user by email: %s", packet.Username)
+    // first, try to check static users
+    switch packet.Username {
+    case "test":
+
+
+        if utils.GetMqttRootTopic(packet.Topic) == "test" {
+            ctx.Value("log").(*logging.Logger).Debugf("Authorization passed for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+            return
+        }
+        ctx.Value("log").(*logging.Logger).Errorf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+        http.Error(w, fmt.Sprintf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic), 401)
+        return
+    case "mon":
+        // TODO check also Acc attribute to allow only read
+        if utils.GetMqttRootTopic(packet.Topic) == "$SYS" {
+            ctx.Value("log").(*logging.Logger).Debugf("Authorization passed for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+            return
+        }
+        ctx.Value("log").(*logging.Logger).Errorf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+        http.Error(w, fmt.Sprintf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic), 401)
+        return
+    case "piot":
+        if utils.GetMqttRootTopic(packet.Topic) == "org" {
+            ctx.Value("log").(*logging.Logger).Debugf("Authorization passed for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+            return
+        }
+        ctx.Value("log").(*logging.Logger).Errorf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic)
+        http.Error(w, fmt.Sprintf("Authorization rejected for static user <%s> and topic <%s>", packet.Username, packet.Topic), 401)
+        return
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Find user by id <%s>", packet.Username)
 
     // try to find user in database
     db := ctx.Value("db").(*mongo.Database)
@@ -123,11 +85,11 @@ func (h *Authorize) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     err := db.Collection("users").FindOne(ctx, bson.M{"email": packet.Username}).Decode(&user)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Users service error: %v", err)
-        http.Error(w, fmt.Sprintf("User identified by email %s does not exist or provided credentials are wrong.", packet.Username), 401)
+        http.Error(w, fmt.Sprintf("User identified as <%s> does not exist or provided credentials are wrong.", packet.Username), 401)
         return
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("User identified by email <%s> was found.", packet.Username)
+    ctx.Value("log").(*logging.Logger).Debugf("User identified as <%s> was found.", packet.Username)
 
     // fetch user orgs
 

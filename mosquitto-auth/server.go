@@ -19,6 +19,10 @@ func runServer(c *cli.Context) {
     contextOptions.DbUri = c.GlobalString("mongodb-uri")
     contextOptions.DbName = "piot"
     contextOptions.LogLevel = c.GlobalString("log-level")
+    contextOptions.TestPassword = c.GlobalString("test-password")
+    contextOptions.MonPassword = c.GlobalString("mon-password")
+    contextOptions.PiotPassword = c.GlobalString("piot-password")
+
     ctx := piotcontext.NewContext(contextOptions)
 
     // Auto disconnect from mongo
@@ -78,6 +82,24 @@ func main() {
             Usage:  "Logging level",
             Value:  "INFO",
             EnvVar: "LOG_LEVEL",
+        },
+        cli.StringFlag{
+            Name:   "test-password",
+            Usage:  "Test user password",
+            Value:  "test",
+            EnvVar: "TEST_PASSWORD",
+        },
+        cli.StringFlag{
+            Name:   "mon-password",
+            Usage:  "Monitoring user password",
+            Value:  "mon",
+            EnvVar: "MON_PASSWORD",
+        },
+        cli.StringFlag{
+            Name:   "piot-password",
+            Usage:  "Piot user password",
+            Value:  "piot",
+            EnvVar: "PIOT_PASSWORD",
         },
     }
 
