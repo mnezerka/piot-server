@@ -66,6 +66,13 @@ services:
       MQTT_USER: ${MQTT_MON_USER}
       MQTT_PASS: ${MQTT_MON_PASSWORD}
 
+  mqtt-auth:
+    build: ./mosquitto-auth
+    environment:
+      TEST_PASSWORD: ${MQTT_TEST_PASSWROD}
+      MON_PASSWORD: ${MQTT_MON_PASSWORD}
+      PIOT_PASSWORD: ${MQTT_PIOT_PASSWORD}
+
   mongodb:
     image: mongo:latest
     volumes:
@@ -77,8 +84,8 @@ services:
         MONGODB_URI: ${MONGODB_URI}
         LOG_LEVEL: ${PSRV_LOG_LEVEL}
         MQTT_URI: tcp://mqtt:1883
-        MQTT_USER: ${MQTT_USER}
-        MQTT_PASSWORD: ${MQTT_PASSWORD}
+        MQTT_USER: ${MQTT_PIOT_USER}
+        MQTT_PASSWORD: ${MQTT_PIOT_PASSWORD}
 
 volumes:
     prometheus-base:
