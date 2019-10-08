@@ -4,6 +4,7 @@ import (
     "log"
     "net/http"
     "os"
+    "time"
     "github.com/urfave/cli"
     "piot-server/handler"
     "piot-server/config"
@@ -123,7 +124,24 @@ func main() {
             Usage:  "Password for mqtt authentication",
             EnvVar: "MQTT_PASSWORD",
         },
-
+        cli.StringFlag{
+            Name:   "jwt-password",
+            Usage:  "Password for jwt communication",
+            EnvVar: "JWT_PASSWORD",
+            Value: "secret-key",
+        },
+        cli.DurationFlag{
+            Name: "dos-interval",
+            Usage: "Interval for PIOT adapter DOS protection",
+            Value: time.Second * 1,
+            EnvVar: "DOS_INTERVAL",
+        },
+        cli.DurationFlag{
+            Name: "jwt-token-expiration",
+            Usage: "Expriation of JWT token in seconds",
+            Value: time.Hour * 4,
+            EnvVar: "JWT_TOKEN_EXPIRATION",
+        },
     }
 
     app.Run(os.Args)
