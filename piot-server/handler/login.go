@@ -5,6 +5,7 @@ import (
     "errors"
     "time"
     "piot-server/model"
+    "piot-server/config"
     "github.com/op/go-logging"
     "net/http"
     jwt "github.com/dgrijalva/jwt-go"
@@ -17,6 +18,7 @@ func LoginHandler() http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
         ctx := r.Context()
+        params := ctx.Value("params").(*config.Parameters)
         db := ctx.Value("db").(*mongo.Database)
 
         // check http method, POST is required
@@ -53,7 +55,8 @@ func LoginHandler() http.Handler {
 
         // Declare the expiration time of the token
         // here, we have kept it as 5 hours
-        expirationTime := time.Now().Add(TOKEN_EXPIRATION * time.Hour)
+        expirationTime := time.Now().Add(params.JwtTokenExpiration)
+
         // Create the JWT claims, which includes the username and expiry time
         claims := &model.Claims{
             Email: user.Email,
@@ -66,10 +69,12 @@ func LoginHandler() http.Handler {
         // generate new jwt token
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-        tokenString, err := token.SignedString(JWT_KEY)
+        ctx.Value("log").(*logging.Logger).Debugf("JWT Pass: %s", params.JwtPassword)
+
+        tokenString, err := token.SignedString([]byte(params.JwtPassword))
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-            WriteErrorResponse(w, errors.New("Error while generating token, try again"), 500)
+            WriteErrorResponse(w, errors.New("Error while decrypting token, try again"), 500)
             return
         }
 

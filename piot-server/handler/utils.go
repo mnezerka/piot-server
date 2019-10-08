@@ -7,12 +7,6 @@ import (
     "net/http"
 )
 
-// Create the JWT key used to create the signature
-var JWT_KEY = []byte("my_secret_key")
-
-const TOKEN_EXPIRATION = 5
-
-
 func validateEmail(email string) bool {
     Re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
     return Re.MatchString(email)

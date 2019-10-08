@@ -8,14 +8,9 @@ import (
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
+    "piot-server/config"
     "go.mongodb.org/mongo-driver/bson/primitive"
-
 )
-
-// the minimal allowed time interval between two packets from
-// the same device
-//const DOS_TRESHOLD = 30
-const DOS_TRESHOLD = 1
 
 // topic name used for publishing sensor readings
 const PIOT_MEASUREMENT_TOPIC = "value"
@@ -33,6 +28,7 @@ func NewPiotDevices() (*PiotDevices) {
 
 func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevicePacket) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device packet: %v", packet)
+    params := ctx.Value("params").(*config.Parameters)
 
     // DOS Protection
     // allow to process data from this packet only if it didn't come too close
@@ -41,7 +37,7 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         delta := time.Now().Sub(lastSeen)
         ctx.Value("log").(*logging.Logger).Debugf("Time cache holds entry for device: %s, time diff is %f seconds", packet.Device, delta.Seconds())
 
-        if delta.Seconds() <= DOS_TRESHOLD {
+        if delta <= params.DOSInterval {
             return errors.New("Exceeded dos protection treshold")
         }
     }

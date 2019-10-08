@@ -22,11 +22,9 @@ func CreateTestContext() context.Context {
     contextOptions.DbUri = os.Getenv("MONGODB_URI")
     contextOptions.DbName = "piot-test"
     contextOptions.MqttUri = "mock"
-    contextOptions.LogLevel = "DEBUG"
+    contextOptions.Params.LogLevel = "DEBUG"
     ctx := piotcontext.NewContext(contextOptions)
 
-    //mqtt := &MqttMock{}
-    //ctx := piotcontext.NewContext(os.Getenv("MONGODB_URI"), "piot-test", mqtt, "DEBUG")
     callerEmail := "caller@test.com"
     ctx = context.WithValue(ctx, "user_email", &callerEmail)
     ctx = context.WithValue(ctx, "is_authorized", true)

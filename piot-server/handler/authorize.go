@@ -10,6 +10,7 @@ import (
     "strings"
     jwt "github.com/dgrijalva/jwt-go"
     "piot-server/model"
+    "piot-server/config"
     //"piot-server/service"
 )
 
@@ -19,6 +20,7 @@ func Authorize(h http.Handler) http.Handler {
         isAuthorized := false
 
         ctx := r.Context()
+        params := ctx.Value("params").(*config.Parameters)
 
         var tokenString string
 
@@ -50,7 +52,7 @@ func Authorize(h http.Handler) http.Handler {
             if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
                 return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
             }
-            return JWT_KEY, nil
+            return []byte(params.JwtPassword), nil
         })
 
         if err != nil {

@@ -1,12 +1,16 @@
 package context
 
+import (
+    "piot-server/config"
+)
+
 type ContextOptions struct {
     MqttUri string
     MqttUsername string
     MqttPassword string
     DbUri string
     DbName string
-    LogLevel string
+    Params *config.Parameters
 }
 
 func NewContextOptions() *ContextOptions {
@@ -16,7 +20,8 @@ func NewContextOptions() *ContextOptions {
         MqttPassword:   "",
         DbUri:          "piot",
         DbName:         "piot",
-        LogLevel:       "INFO",
+        Params:         config.NewParameters(),
+
     }
     return o
 }

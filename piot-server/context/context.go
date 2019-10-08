@@ -18,6 +18,9 @@ func NewContext(o *ContextOptions) context.Context {
     // create global context for all handlers
     ctx := context.Background()
 
+    /////////////// Parameters
+    ctx = context.WithValue(ctx, "params", o.Params)
+
     /////////////// DB
 
     // try to open database
@@ -42,9 +45,9 @@ func NewContext(o *ContextOptions) context.Context {
     /////////////// LOGGER
 
     // create global logger for all handlers
-    log, err := service.NewLogger(LOG_FORMAT, o.LogLevel)
+    log, err := service.NewLogger(LOG_FORMAT, o.Params.LogLevel)
     if err != nil {
-        log.Fatalf("Cannot create logger for level %s (%v)", o.LogLevel, err)
+        log.Fatalf("Cannot create logger for level %s (%v)", o.Params.LogLevel, err)
         os.Exit(1)
     }
     ctx = context.WithValue(ctx, "log", log)

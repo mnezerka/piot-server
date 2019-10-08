@@ -27,7 +27,10 @@ func runServer(c *cli.Context) {
     contextOptions.MqttUri = c.GlobalString("mqtt-uri")
     contextOptions.MqttUsername = c.GlobalString("mqtt-user")
     contextOptions.MqttPassword = c.GlobalString("mqtt-password")
-    contextOptions.LogLevel = c.GlobalString("log-level")
+    contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
+    contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
+    contextOptions.Params.JwtTokenExpiration = c.GlobalDuration("jwt-token-epiration")
+
     ctx := piotcontext.NewContext(contextOptions)
 
     // Auto disconnect from mongo
@@ -124,17 +127,17 @@ func main() {
             Usage:  "Password for mqtt authentication",
             EnvVar: "MQTT_PASSWORD",
         },
+        cli.DurationFlag{
+            Name: "dos-interval",
+            Usage: "The minimal allowed time interval between two packets from the same device",
+            Value: time.Second * 1,
+            EnvVar: "DOS_INTERVAL",
+        },
         cli.StringFlag{
             Name:   "jwt-password",
             Usage:  "Password for jwt communication",
             EnvVar: "JWT_PASSWORD",
             Value: "secret-key",
-        },
-        cli.DurationFlag{
-            Name: "dos-interval",
-            Usage: "Interval for PIOT adapter DOS protection",
-            Value: time.Second * 1,
-            EnvVar: "DOS_INTERVAL",
         },
         cli.DurationFlag{
             Name: "jwt-token-expiration",
