@@ -30,6 +30,10 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device packet: %v", packet)
     params := ctx.Value("params").(*config.Parameters)
 
+    // handle short notation of attributes
+    if len(packet.DeviceShort) > 0 { packet.Device = packet.DeviceShort }
+    if len(packet.ReadingsShort) > 0 { packet.Readings = packet.ReadingsShort }
+
     // DOS Protection
     // allow to process data from this packet only if it didn't come too close
     // to previous packet from the same device (treshold in seconds is defined)
@@ -42,13 +46,16 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         }
     }
 
-    // store device name to cache together with date it was seen
-    p.cache[packet.Device] = time.Now()
 
     // name of the device cannot be empty
     if packet.Device == "" {
         return errors.New("Device name cannot be empty")
     }
+
+
+    // store device name to cache together with date it was seen
+    p.cache[packet.Device] = time.Now()
+
 
     // look for device (chip) and register it if it doesn't exist
     things := ctx.Value("things").(*Things)
@@ -82,7 +89,11 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
 
     // look for sensors and register those that doesn't exist
     for _, reading := range packet.Readings {
-        // look for (device
+
+        // handle short notation of address attribute
+        if len(reading.AddressShort) > 0 { reading.Address = reading.AddressShort }
+
+        // look for device
         thing, err = things.Find(ctx, reading.Address)
         if err != nil {
             // register register device
@@ -200,7 +211,7 @@ func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, re
             return err
         }
     } else {
-        ctx.Value("log").(*logging.Logger).Warningf("Processing unkonw sensor reading data <%v>", reading)
+        ctx.Value("log").(*logging.Logger).Warningf("Processing unkonwn sensor reading data <%v>", reading)
     }
 
     return nil

@@ -9,6 +9,7 @@ import (
     "piot-server/handler"
 )
 
+/* GET method is not supported */
 func TestForbiddenGet(t *testing.T) {
     req, err := http.NewRequest("GET", "/", nil)
     test.Ok(t, err)
@@ -21,6 +22,8 @@ func TestForbiddenGet(t *testing.T) {
     test.CheckStatusCode(t, rr, 405)
 }
 
+
+/* Post data for device that is not registered  */
 func TestPacketForUnknownThing(t *testing.T) {
     ctx := test.CreateTestContext()
 
@@ -49,5 +52,37 @@ func TestPacketForUnknownThing(t *testing.T) {
 
     test.CheckStatusCode(t, rr, 200)
 
-    // TODO: Check if defice is registered
+    // TODO: Check if device is registered
+}
+
+/* Post data in short notation for device that is not registered */
+func TestPacketShortNotationForUnknownThing(t *testing.T) {
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+
+    deviceData := `
+    {
+        "d": "Device123",
+        "r": [
+            {
+                "a": "SensorXYZ",
+                "t": 23
+            }
+        ]
+    }`
+
+    req, err := http.NewRequest("POST", "/", strings.NewReader(deviceData))
+    test.Ok(t, err)
+
+    req = req.WithContext(ctx)
+    rr := httptest.NewRecorder()
+
+    handler := handler.Adapter{}
+
+    handler.ServeHTTP(rr, req)
+
+    test.CheckStatusCode(t, rr, 200)
+
+    // TODO: Check if device is registered
 }
