@@ -9,6 +9,7 @@ import (
     "piot-server/service"
 )
 
+// VALID packet + NEW device -> successful registration 
 func TestPacketDeviceReg(t *testing.T) {
     const DEVICE = "device01"
     const SENSOR = "SensorAddr"
@@ -17,6 +18,7 @@ func TestPacketDeviceReg(t *testing.T) {
 
     test.CleanDb(t, ctx)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
     // process packet for unknown device
@@ -32,7 +34,7 @@ func TestPacketDeviceReg(t *testing.T) {
     err := s.ProcessPacket(ctx, packet)
     test.Ok(t, err)
 
-    // Check if defice is registered
+    // Check if device is registered
     db := ctx.Value("db").(*mongo.Database)
     var thing model.Thing
     err = db.Collection("things").FindOne(ctx, bson.M{"name": DEVICE}).Decode(&thing)
@@ -49,6 +51,7 @@ func TestPacketDeviceReg(t *testing.T) {
     test.Equals(t, "value", thing.Sensor.MeasurementTopic)
 }
 
+// VALID packet + UNASSIGNED device -> no mqtt messages are published
 func TestPacketDeviceDataUnassigned(t *testing.T) {
 
     const DEVICE = "device01"
@@ -56,8 +59,11 @@ func TestPacketDeviceDataUnassigned(t *testing.T) {
     ctx := test.CreateTestContext()
 
     test.CleanDb(t, ctx)
+
+    // create unassigned thing
     test.CreateThing(t, ctx, DEVICE)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
     // process packet for know device
@@ -67,11 +73,12 @@ func TestPacketDeviceDataUnassigned(t *testing.T) {
     err := s.ProcessPacket(ctx, packet)
     test.Ok(t, err)
 
-    // check if mqtt was called
+    // check if mqtt was NOT called
     mqtt := ctx.Value("mqtt").(*service.MqttMock)
     test.Equals(t, 0, len(mqtt.Calls))
 }
 
+// VALID packet + ASSIGNED device -> mqtt messages are published
 func TestPacketDeviceDataAssigned(t *testing.T) {
 
     const DEVICE = "device01"
@@ -79,13 +86,16 @@ func TestPacketDeviceDataAssigned(t *testing.T) {
     ctx := test.CreateTestContext()
 
     test.CleanDb(t, ctx)
+
+    // create and assign thing to org
     test.CreateThing(t, ctx, DEVICE)
     orgId := test.CreateOrg(t, ctx, "org1")
     test.AddOrgThing(t, ctx, orgId, DEVICE)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
-    // process packet for know device
+    // process packet for assigned device + provide wifi information
     var packet model.PiotDevicePacket
     packet.Device = DEVICE
     ssid := "SSID"
@@ -105,6 +115,7 @@ func TestPacketDeviceDataAssigned(t *testing.T) {
     test.Equals(t, "SSID", mqtt.Calls[1].Value)
 }
 
+// VALID packet + UNASSIGNED device + TEMPERATURE -> no mqtt messages are published
 func TestPacketDeviceReadingTempUnassigned(t *testing.T) {
 
     const DEVICE = "device01"
@@ -114,6 +125,7 @@ func TestPacketDeviceReadingTempUnassigned(t *testing.T) {
     test.CleanDb(t, ctx)
     test.CreateThing(t, ctx, DEVICE)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
     // process packet for know device
@@ -134,7 +146,7 @@ func TestPacketDeviceReadingTempUnassigned(t *testing.T) {
     test.Equals(t, 0, len(mqtt.Calls))
 }
 
-
+// VALID packet + ASSIGNED device + TEMPERATURE -> mqtt messages are published
 func TestPacketDeviceReadingTempAssigned(t *testing.T) {
 
     const DEVICE = "device01"
@@ -149,6 +161,7 @@ func TestPacketDeviceReadingTempAssigned(t *testing.T) {
     test.AddOrgThing(t, ctx, orgId, DEVICE)
     test.AddOrgThing(t, ctx, orgId, SENSOR)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
     // process packet for know device
@@ -189,14 +202,13 @@ func TestPacketDeviceReadingTempAssigned(t *testing.T) {
     test.Equals(t, "SensorAddr", mqtt.Calls[3].Thing.Name)
 }
 
-
-
-// Test Denial Of Service protection
+// Test DOS (Denial Of Service) protection
 func TestDOS(t *testing.T) {
     ctx := test.CreateTestContext()
 
     test.CleanDb(t, ctx)
 
+    // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
     var packet model.PiotDevicePacket

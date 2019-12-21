@@ -28,6 +28,4 @@ func TestMqttMsgNotSensor(t *testing.T) {
 
     // send message to registered thing
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s", ORG, SENSOR), "23")
-    
-
 }

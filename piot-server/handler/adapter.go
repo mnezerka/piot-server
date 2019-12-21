@@ -31,6 +31,7 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     ctx.Value("log").(*logging.Logger).Debugf("Packet decoded %v", devicePacket)
 
+    // get instance of piot devices service
     pd := ctx.Value("piotdevices").(*service.PiotDevices)
     if err := pd.ProcessPacket(ctx, devicePacket); err != nil {
         http.Error(w, err.Error(), 500)

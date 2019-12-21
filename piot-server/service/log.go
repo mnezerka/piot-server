@@ -5,6 +5,10 @@ import (
     "os"
 )
 
+// NewLogger creates instance of logger that should be used
+// in all server handlers and routines. The idea is to have
+// unified style of logging - logger is configured only once
+// and at one place
 func NewLogger(log_format string, level string) (*logging.Logger, error) {
     backend := logging.NewLogBackend(os.Stderr, "", 0)
     format := logging.MustStringFormatter(log_format)
