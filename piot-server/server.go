@@ -27,6 +27,7 @@ func runServer(c *cli.Context) {
     contextOptions.MqttUri = c.GlobalString("mqtt-uri")
     contextOptions.MqttUsername = c.GlobalString("mqtt-user")
     contextOptions.MqttPassword = c.GlobalString("mqtt-password")
+    contextOptions.Params.LogLevel = c.GlobalString("log-level")
     contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
     contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
     contextOptions.Params.JwtTokenExpiration = c.GlobalDuration("jwt-token-epiration")
