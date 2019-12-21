@@ -39,7 +39,7 @@ Schema::
     Server responsible for management of all things (devices), users and organizations
     as well as for collecting data from MQTT Broker and persisting those data. It
     provides HTTP API (GraphQL) for almost all actions it provides.
-    
+
 :PIOT Manager:
     Web application connected to PIOT Server API that allows users to interactively
     manage IOT data (e.g. create organization, assign discovered things).
@@ -53,11 +53,11 @@ Schema::
 :PIOT Adapter:
     Simple server that listens for messages in proprieatry protocol used by PIOT
     Devices, translates all incoming traffic to MQTT and publishes it on MQTT Broker.
-    
+
 :PIOT Device:
     Device, typically based on ESP8266 or AT-family chip, that sends sensor reading
     messages in proprietary format.
-    
+
 :Prometheus Exporter:
     Standalone server that acts as MQTT client with single purpose - read statistics
     from MQTT server (e.g. number of connections) and publish it in a form of
@@ -66,7 +66,7 @@ Schema::
 :Prometheus:
     Time series database that collects data from various sources and provides it in
     a time bound format. It is easily consumable by e.g. Grafana platform.
-    
+
 :Grafana:
     Analytics and monitoring solution that provides nice dashboards and charts.
     All content could be made multi tenant by spliting it into Organizations.
@@ -76,5 +76,3 @@ Schema::
     don't support TLS or even any kind of protection (e.g. prometheus). It also
     makes it easier to organize servers running in docker containers into single
     structure of endpoint behind single domain name.
-    
-    
