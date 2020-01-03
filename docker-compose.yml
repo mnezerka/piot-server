@@ -2,69 +2,13 @@ version: "3"
 
 services:
 
-  certbot:
-    image: certbot/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    volumes:
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
-
-  prometheus-base:
-    image: prom/prometheus
-    restart: always
-    volumes:
-        - ./prometheus-base/prometheus.yml:/etc/prometheus/prometheus.yml
-        - prometheus-base:/prometheus
-
-  grafana:
-    image: grafana/grafana
-    restart: always
-    user: "104"
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana:/var/lib/grafana
-    environment:
-      GF_SERVER_DOMAIN: ${GF_SERVER_DOMAIN}
-      GF_SERVER_ROOT_URL: '%(protocol)s://%(domain)s/grafana/'
-      GF_SMTP_ENABLED: 'true'
-      GF_SMTP_HOST: ${GF_SMTP_HOST}
-      GF_SMTP_FROM_ADDRESS: ${GF_SMTP_FROM_ADDRESS}
-      GF_SMTP_FROM_NAME: ${GF_SMTP_FROM_NAME}
-      GF_SMTP_USER: ${GF_SMTP_USER}
-      GF_SMTP_PASSWORD: ${GF_SMTP_PASSWORD}
-
-  nginx:
-    image: nginx:alpine
-    restart: always
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/nginx-passwd:/etc/nginx/.htpasswd
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
-
   mqtt:
-    #build: ./mosquitto
-    #image: mosquitto
     image: wollud1969/mosquitto-with-auth
-    #network_mode: host
     ports:
       - 1883:1883
     volumes:
         #- ./mosquitto/conf:/etc/mosquitto
       - ./mosquitto/conf:/opt/etc/mosquitto
-
-  mqtt-exporter:
-    image: sapcc/mosquitto-exporter:0.6.0
-    environment:
-      BROKER_ENDPOINT: tcp://mqtt:1883
-      MQTT_USER: ${MQTT_MON_USER}
-      MQTT_PASS: ${MQTT_MON_PASSWORD}
 
   mqtt-auth:
     build: ./mosquitto-auth
@@ -79,15 +23,6 @@ services:
     image: mongo:latest
     volumes:
       - mongodb:/data/db
-
-  piot-server:
-    build: ./piot-server
-    environment:
-        MONGODB_URI: ${MONGODB_URI}
-        LOG_LEVEL: ${PSRV_LOG_LEVEL}
-        MQTT_URI: tcp://mqtt:1883
-        MQTT_USER: ${MQTT_PIOT_USER}
-        MQTT_PASSWORD: ${MQTT_PIOT_PASSWORD}
 
 volumes:
     prometheus-base:
