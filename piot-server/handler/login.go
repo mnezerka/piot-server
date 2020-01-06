@@ -56,6 +56,7 @@ func LoginHandler() http.Handler {
         // Declare the expiration time of the token
         // here, we have kept it as 5 hours
         expirationTime := time.Now().Add(params.JwtTokenExpiration)
+        ctx.Value("log").(*logging.Logger).Debugf("Setting expiration to %v (%d)", expirationTime, expirationTime.Unix())
 
         // Create the JWT claims, which includes the username and expiry time
         claims := &model.Claims{
@@ -69,14 +70,16 @@ func LoginHandler() http.Handler {
         // generate new jwt token
         token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-        ctx.Value("log").(*logging.Logger).Debugf("JWT Pass: %s", params.JwtPassword)
+        //ctx.Value("log").(*logging.Logger).Debugf("JWT Pass: %s", params.JwtPassword)
 
         tokenString, err := token.SignedString([]byte(params.JwtPassword))
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-            WriteErrorResponse(w, errors.New("Error while decrypting token, try again"), 500)
+            WriteErrorResponse(w, errors.New("Error while encrypting token, try again"), 500)
             return
         }
+
+        //ctx.Value("log").(*logging.Logger).Debugf("JWT Token: %s", tokenString)
 
         var response model.Token
         response.Token = tokenString
