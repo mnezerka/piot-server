@@ -4,7 +4,31 @@ import (
     "testing"
     "piot-server/service"
     "piot-server/test"
+    "go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func TestGetExistingThing(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+    things := service.Things{}
+
+    id := test.CreateThing(t, ctx, "thing1")
+
+    thing, err := things.Get(ctx, id)
+    test.Ok(t, err)
+    test.Assert(t, thing.Name == "thing1", "Wrong thing name")
+}
+
+func TestGetUnknownThing(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+    things := service.Things{}
+
+    id := primitive.NewObjectID()
+
+    _, err := things.Get(ctx, id)
+    test.Assert(t, err != nil, "Thing shall not be found")
+}
 
 func TestFindUnknownThing(t *testing.T) {
     ctx := test.CreateTestContext()
@@ -31,6 +55,33 @@ func TestRegisterThing(t *testing.T) {
     test.Assert(t, thing.Name == "thing1", "Wrong thing name")
     test.Assert(t, thing.Type == "sensor", "Wrong thing type")
 }
+
+func TestSetParent(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+
+    const THING_NAME_PARENT = "parent"
+    id_parent := test.CreateThing(t, ctx, THING_NAME_PARENT)
+
+    const THING_NAME_CHILD = "child"
+    id_child := test.CreateThing(t, ctx, THING_NAME_CHILD)
+
+    things := service.Things{}
+
+    err := things.SetParent(ctx, id_child, id_parent)
+    test.Ok(t, err)
+
+    thing, err := things.Get(ctx, id_child)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME_CHILD, thing.Name)
+    test.Equals(t, id_parent, thing.ParentId)
+    /*test.Equals(t, "available", thing.AvailabilityTopic)
+    test.Equals(t, "yes", thing.AvailabilityYes)
+    test.Equals(t, "no", thing.AvailabilityNo)
+    */
+}
+
+
 
 func TestSetAvailabilityAttributes(t *testing.T) {
     const THING_NAME = "thing2"

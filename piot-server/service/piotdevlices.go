@@ -30,7 +30,7 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device packet: %v", packet)
     params := ctx.Value("params").(*config.Parameters)
 
-    // handle short notation of attributes
+    // handle short notation of attributes (assign short to long attributes)
     if len(packet.DeviceShort) > 0 { packet.Device = packet.DeviceShort }
     if len(packet.ReadingsShort) > 0 { packet.Readings = packet.ReadingsShort }
 
@@ -46,20 +46,17 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         }
     }
 
-
     // name of the device cannot be empty
     if packet.Device == "" {
         return errors.New("Device name cannot be empty")
     }
 
-
     // store device name to cache together with date it was seen
     p.cache[packet.Device] = time.Now()
 
-
-    // look for device (chip) and register it if it doesn't exist
+    // get instance of Things service and look for the device (chip),
+    // register it if it doesn't exist
     things := ctx.Value("things").(*Things)
-
     thing, err := things.Find(ctx, packet.Device)
     if err != nil {
         // register device
@@ -79,7 +76,7 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
 
     // if thing is assigned to org
     if thing.OrgId != primitive.NilObjectID {
-        // try to push data to mqtt 
+        // try to push data to mqtt
         if err = p.processDevice(ctx, thing, packet); err != nil {
             return err
         }
@@ -94,10 +91,16 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         if len(reading.AddressShort) > 0 { reading.Address = reading.AddressShort }
 
         // look for device
-        thing, err = things.Find(ctx, reading.Address)
+        sensor_thing, err := things.Find(ctx, reading.Address)
         if err != nil {
             // register register device
-            thing, err = things.Register(ctx, reading.Address, model.THING_TYPE_SENSOR)
+            sensor_thing, err = things.Register(ctx, reading.Address, model.THING_TYPE_SENSOR)
+            if err != nil {
+                return err
+            }
+
+            // set parent device
+            err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
             if err != nil {
                 return err
             }
@@ -127,12 +130,12 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         }
 
         // if thing is assigned to org
-        if thing.OrgId != primitive.NilObjectID {
-            if err = p.processReading(ctx, thing, reading); err != nil {
+        if sensor_thing.OrgId != primitive.NilObjectID {
+            if err = p.processReading(ctx, sensor_thing, reading); err != nil {
                 return err
             }
         } else {
-            ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", thing.Name)
+            ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", sensor_thing.Name)
         }
     }
 

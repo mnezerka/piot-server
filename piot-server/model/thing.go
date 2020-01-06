@@ -37,6 +37,9 @@ type Thing struct {
     // ?
     Org         *Org `json:"org" bson:"org"`
 
+    // id of the parent thing (e.g. chip - sensor relation)
+    ParentId    primitive.ObjectID `json:"parent_id" bson:"parent_id"`
+
     // is thing available
     Available   bool   `json:"available" bson:"available"`
 

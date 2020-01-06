@@ -14,6 +14,23 @@ import (
 
 type Things struct { }
 
+func (t *Things) Get(ctx context.Context, id primitive.ObjectID) (*model.Thing, error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Get thing: %s", id.Hex())
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    var thing model.Thing
+
+    collection := db.Collection("things")
+    err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Things service error : %v", err)
+        return nil, err
+    }
+
+    return &thing, nil
+}
+
 func (t *Things) Find(ctx context.Context, name string) (*model.Thing, error) {
     ctx.Value("log").(*logging.Logger).Debugf("Finding thing by name <%s>", name)
 
@@ -57,6 +74,37 @@ func (t *Things) Register(ctx context.Context, name string, deviceType string) (
     thing.Id = res.InsertedID.(primitive.ObjectID)
 
     return &thing, nil
+}
+
+func (t *Things) SetParent(ctx context.Context, id primitive.ObjectID, id_parent primitive.ObjectID) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%v>, setting parent to <%v>", id, id_parent)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := t.Get(ctx, id)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s not found", id.Hex())
+        return errors.New("Child thing not found when setting new parent")
+    }
+
+    _, err = t.Get(ctx, id_parent)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s not found", id_parent.Hex())
+        return errors.New("Parent thing not found when setting new parent for thing")
+    }
+
+    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"parent_id": id_parent}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
+        return errors.New("Error while updating thing parent")
+    }
+
+    // double check that appropriate thing was really updated
+    if res.ModifiedCount == 0 {
+        return fmt.Errorf("No thing with id <%s> updated", id.Hex())
+    }
+
+    return nil
 }
 
 func (t *Things) SetAvailabilityTopic(ctx context.Context, name string, topic string) (error) {

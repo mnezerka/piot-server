@@ -9,7 +9,7 @@ import (
     "piot-server/service"
 )
 
-// VALID packet + NEW device -> successful registration 
+// VALID packet + NEW device -> successful registration
 func TestPacketDeviceReg(t *testing.T) {
     const DEVICE = "device01"
     const SENSOR = "SensorAddr"
@@ -43,12 +43,16 @@ func TestPacketDeviceReg(t *testing.T) {
     test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
     test.Equals(t, "available", thing.AvailabilityTopic)
 
-    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing)
+    var thing_sensor model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
     test.Ok(t, err)
-    test.Equals(t, SENSOR, thing.Name)
-    test.Equals(t, model.THING_TYPE_SENSOR, thing.Type)
-    test.Equals(t, "temperature", thing.Sensor.Class)
-    test.Equals(t, "value", thing.Sensor.MeasurementTopic)
+    test.Equals(t, SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+
+    // check correct assignment
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
 }
 
 // VALID packet + UNASSIGNED device -> no mqtt messages are published
@@ -66,7 +70,7 @@ func TestPacketDeviceDataUnassigned(t *testing.T) {
     // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
 
-    // process packet for know device
+    // process packet for known device
     var packet model.PiotDevicePacket
     packet.Device = DEVICE
 
