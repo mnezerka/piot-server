@@ -25,6 +25,4 @@ services:
       - mongodb:/data/db
 
 volumes:
-    prometheus-base:
-    grafana:
     mongodb:
