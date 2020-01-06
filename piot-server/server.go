@@ -31,7 +31,7 @@ func runServer(c *cli.Context) {
     contextOptions.Params.LogLevel = c.GlobalString("log-level")
     contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
     contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
-    contextOptions.Params.JwtTokenExpiration = c.GlobalDuration("jwt-token-epiration")
+    contextOptions.Params.JwtTokenExpiration = c.GlobalDuration("jwt-token-expiration")
 
     ctx := piotcontext.NewContext(contextOptions)
 
