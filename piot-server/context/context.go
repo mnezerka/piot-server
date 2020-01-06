@@ -93,6 +93,7 @@ func NewContext(o *ContextOptions) context.Context {
         mqtt = service.NewMqtt(o.MqttUri)
         mqtt.SetUsername(o.MqttUsername)
         mqtt.SetPassword(o.MqttPassword)
+        mqtt.SetClient(o.MqttClient)
         err := mqtt.Connect(ctx)
         if err != nil {
             log.Fatalf("Connect to mqtt server failed %v", err)

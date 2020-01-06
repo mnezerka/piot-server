@@ -36,12 +36,14 @@ type IMqtt interface {
     Disconnect(ctx context.Context) error
     SetUsername(username string)
     SetPassword(password string)
+    SetClient(id string)
 }
 
 type Mqtt struct {
     Uri string
     Username *string
     Password *string
+    Client *string
     client mqtt.Client
 }
 
@@ -60,13 +62,17 @@ func (t *Mqtt) SetPassword(password string) {
     t.Password = &password
 }
 
+func (t *Mqtt) SetClient(id string) {
+    t.Client = &id
+}
+
 func (t *Mqtt) Connect(ctx context.Context) error {
     ctx.Value("log").(*logging.Logger).Infof("Connecting to MQTT broker %s", t.Uri)
 
     // create a ClientOptions struct setting the broker address, clientid, turn
     // off trace output and set the default message handler
     opts := mqtt.NewClientOptions().AddBroker(t.Uri)
-    opts.SetClientID("piot-server")
+    opts.SetClientID(*t.Client)
     if t.Username != nil {
         opts.SetUsername(*t.Username)
     }

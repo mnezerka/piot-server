@@ -27,6 +27,7 @@ func runServer(c *cli.Context) {
     contextOptions.MqttUri = c.GlobalString("mqtt-uri")
     contextOptions.MqttUsername = c.GlobalString("mqtt-user")
     contextOptions.MqttPassword = c.GlobalString("mqtt-password")
+    contextOptions.MqttClient = c.GlobalString("mqtt-client")
     contextOptions.Params.LogLevel = c.GlobalString("log-level")
     contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
     contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
@@ -127,6 +128,12 @@ func main() {
             Name:   "mqtt-password",
             Usage:  "Password for mqtt authentication",
             EnvVar: "MQTT_PASSWORD",
+        },
+        cli.StringFlag{
+            Name:   "mqtt-client",
+            Usage:  "Id used for identification of this mqtt client",
+            Value:  "piot-server",
+            EnvVar: "MQTT_CLIENT",
         },
         cli.DurationFlag{
             Name: "dos-interval",

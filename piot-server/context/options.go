@@ -8,6 +8,7 @@ type ContextOptions struct {
     MqttUri string
     MqttUsername string
     MqttPassword string
+    MqttClient string
     DbUri string
     DbName string
     Params *config.Parameters
@@ -18,6 +19,7 @@ func NewContextOptions() *ContextOptions {
         MqttUri:        "mock",
         MqttUsername:   "",
         MqttPassword:   "",
+        MqttClient:     "",
         DbUri:          "piot",
         DbName:         "piot",
         Params:         config.NewParameters(),

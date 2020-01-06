@@ -31,6 +31,9 @@ func (t *MqttMock) SetUsername(username string) {
 func (t *MqttMock) SetPassword(password string) {
 }
 
+func (t *MqttMock) SetClient(id string) {
+}
+
 func (t *MqttMock) PushThingData(ctx context.Context, thing *model.Thing, topic, value string) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Push thing data: %s, topic: %s, value: %s", thing.Name, topic, value)
     t.Calls = append(t.Calls, call{topic, value, thing})
