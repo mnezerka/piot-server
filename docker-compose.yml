@@ -2,23 +2,6 @@ version: "3"
 
 services:
 
-  mqtt:
-    image: wollud1969/mosquitto-with-auth
-    ports:
-      - 1883:1883
-    volumes:
-        #- ./mosquitto/conf:/etc/mosquitto
-      - ./mosquitto/conf:/opt/etc/mosquitto
-
-  mqtt-auth:
-    build: ./mosquitto-auth
-    environment:
-      MONGODB_URI: ${MONGODB_URI}
-      TEST_PASSWORD: ${MQTT_TEST_PASSWORD}
-      MON_PASSWORD: ${MQTT_MON_PASSWORD}
-      PIOT_PASSWORD: ${MQTT_PIOT_PASSWORD}
-      LOG_LEVEL: DEBUG
-
   mongodb:
     image: mongo:latest
     volumes:
