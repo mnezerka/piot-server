@@ -184,16 +184,21 @@ func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) 
 
     db := ctx.Value("db").(*mongo.Database)
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"last_seen": int32(time.Now().Unix())}})
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"last_seen": int32(time.Now().Unix())}})
     if err != nil {
         e := fmt.Errorf("Thing <%s> cannot be touched (%v)", id.Hex(), err)
         ctx.Value("log").(*logging.Logger).Errorf(e.Error())
         return e
     }
 
+    // checking of res.ModifiedCount could be tricky since it is
+    // zero when method is called multiple times in one second - last_seen
+    // attribute is updated only in the first call
+    /*
     if res.ModifiedCount == 0 {
         return fmt.Errorf("Thing <%s> not found", id.Hex())
     }
+    */
 
     return nil
 }

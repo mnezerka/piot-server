@@ -81,6 +81,23 @@ func TestSetParent(t *testing.T) {
     */
 }
 
+func TestTouchThing(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+
+    const THING_NAME = "parent"
+    id := test.CreateThing(t, ctx, THING_NAME)
+
+    things := service.Things{}
+
+    err := things.TouchThing(ctx, id)
+    test.Ok(t, err)
+
+    thing, err := things.Get(ctx, id)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME, thing.Name)
+    // TODO check date
+}
 
 
 func TestSetAvailabilityAttributes(t *testing.T) {
