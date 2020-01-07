@@ -58,6 +58,7 @@ func GetRootSchema() string {
             type: String!
             enabled: Boolean!
             created: Int!
+            last_seen: Int!
             org: Org
             availability_topic: String!
             availability_yes: String!

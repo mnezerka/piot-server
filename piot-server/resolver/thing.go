@@ -49,6 +49,10 @@ func (r *ThingResolver) Created() int32 {
     return r.t.Created
 }
 
+func (r *ThingResolver) LastSeen() int32 {
+    return r.t.LastSeen
+}
+
 func (r *ThingResolver) Org() *OrgResolver {
 
     r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org for thing: %s", r.t.Id.Hex())
