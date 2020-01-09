@@ -86,7 +86,8 @@ func GetRootSchema() string {
             id: ID!,
             name: String
             alias: String,
-            orgId: ID
+            orgId: ID,
+            enabled: Boolean
         }
     `
 }

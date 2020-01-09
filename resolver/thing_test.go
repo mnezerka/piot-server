@@ -75,13 +75,14 @@ func TestThingUpdate(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                updateThing(thing: {id: "%s", name: "thing1new"}) { name}
+                updateThing(thing: {id: "%s", name: "thing1new", enabled: true}) {name, enabled}
             }
         `, id.Hex()),
         ExpectedResult: `
             {
                 "updateThing": {
-                    "name": "thing1new"
+                    "name": "thing1new",
+                    "enabled": true
                 }
             }
         `,
