@@ -65,6 +65,7 @@ func GetRootSchema() string {
             created: Int!
             last_seen: Int!
             org: Org
+            parent: Thing
             availability_topic: String!
             availability_yes: String!
             availability_no: String!

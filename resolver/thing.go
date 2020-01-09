@@ -73,6 +73,26 @@ func (r *ThingResolver) Org() *OrgResolver {
     return nil
 }
 
+func (r *ThingResolver) Parent() *ThingResolver {
+
+    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching parent for thing: %s", r.t.Id.Hex())
+
+    if r.t.ParentId != primitive.NilObjectID {
+
+        things := r.ctx.Value("things").(*service.Things)
+
+        parentThing , err := things.Get(r.ctx, r.t.ParentId)
+        if err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching parent %v for thing %v failed", r.t.ParentId, r.t.Id)
+        } else {
+            return &ThingResolver{r.ctx, parentThing}
+        }
+    }
+
+    return nil
+}
+
+
 func (r *ThingResolver) AvailabilityTopic() string {
     return r.t.AvailabilityTopic
 }
