@@ -148,6 +148,7 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
     return nil
 }
 
+// Process message received from MQTT broker for org subscription
 func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
 

@@ -21,7 +21,7 @@ func GetRootSchema() string {
 
         type Mutation {
             createOrg(name: String!, description: String!): Org
-            updateOrg(id: ID!, name: String, description: String): Org
+            updateOrg(org: OrgUpdate!): Org
             removeOrgUser(orgId: ID!, userId: ID!): Boolean
 
             createUser(user: UserCreate!): User
@@ -29,6 +29,7 @@ func GetRootSchema() string {
             addOrgUser(orgId: ID!, userId: ID!): Boolean
 
             updateThing(thing: ThingUpdate!): Thing
+            updateThingSensorData(data: ThingSensorDataUpdate!): Thing
         }
 
         type User {
@@ -49,11 +50,15 @@ func GetRootSchema() string {
             description: String!
             created: Int!
             users: [User!]!
+            influxdb: String!
+            influxdb_username: String!
+            influxdb_password: String!
         }
 
         type SensorData {
             class: String!
             measurement_topic: String!
+            store_influxdb: Boolean!
         }
 
         type Thing {
@@ -88,6 +93,20 @@ func GetRootSchema() string {
             alias: String,
             orgId: ID,
             enabled: Boolean
+        }
+
+        input ThingSensorDataUpdate {
+            id: ID!,
+            store_influxdb: Boolean
+        }
+
+        input OrgUpdate {
+            id: ID!,
+            name: String,
+            description: String
+            influxdb: String
+            influxdb_username: String
+            influxdb_password: String
         }
     `
 }

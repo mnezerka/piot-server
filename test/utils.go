@@ -83,6 +83,7 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
         "name": name,
         "type": "sensor",
         "created": int32(time.Now().Unix()),
+        "enabled": true,
         "sensor": bson.M{
             "class": "temperature",
             "measurement_topic": "value",
@@ -120,6 +121,9 @@ func CreateOrg(t *testing.T, ctx context.Context, name string) (primitive.Object
     res, err := db.Collection("orgs").InsertOne(ctx, bson.M{
         "name": name,
         "created": int32(time.Now().Unix()),
+        "influxdb": "db",
+        "influxdb_username": "db-username",
+        "influxdb_password": "db-password",
     })
     Ok(t, err)
 

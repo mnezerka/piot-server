@@ -147,6 +147,11 @@ func (p *PiotDevices) processDevice(ctx context.Context, thing *model.Thing, pac
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device data: %v", packet)
     mqtt := ctx.Value("mqtt").(IMqtt)
 
+    // dont' push anything if device is disabled
+    if !thing.Enabled {
+        return nil
+    }
+
     // update avalibility channel
     err := mqtt.PushThingData(ctx, thing, TOPIC_AVAILABLE, VALUE_YES)
     if err != nil {
@@ -179,6 +184,11 @@ func (p *PiotDevices) processDevice(ctx context.Context, thing *model.Thing, pac
 func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, reading model.PiotSensorReading) error {
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device reading data: %v", reading)
     mqtt := ctx.Value("mqtt").(IMqtt)
+
+    // dont' push anything if device is disabled
+    if !thing.Enabled {
+        return nil
+    }
 
     // update avalibility channel
     err := mqtt.PushThingData(ctx, thing, TOPIC_AVAILABLE, VALUE_YES)

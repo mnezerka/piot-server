@@ -9,7 +9,6 @@ import (
     "piot-server/test"
 )
 
-
 func TestOrgsGet(t *testing.T) {
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
@@ -49,14 +48,17 @@ func TestOrgGet(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                org(id: "%s") {name, users {email}}
+                org(id: "%s") {name, users {email}, influxdb, influxdb_username, influxdb_password}
             }
         `, orgId.Hex()),
         ExpectedResult: `
             {
                 "org": {
                     "name": "org1",
-                    "users": [{"email": "org1user@test.com"}]
+                    "users": [{"email": "org1user@test.com"}],
+                    "influxdb": "db",
+                    "influxdb_username": "db-username",
+                    "influxdb_password": "db-password"
                 }
             }
         `,

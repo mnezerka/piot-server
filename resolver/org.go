@@ -12,6 +12,15 @@ import (
     graphql "github.com/graph-gophers/graphql-go"
 )
 
+type orgUpdateInput struct {
+    Id      graphql.ID
+    Name    *string
+    Description *string
+    InfluxDb *string
+    InfluxDbUsername *string
+    InfluxDbPassword *string
+}
+
 /////////// Org Resolver
 
 type OrgResolver struct {
@@ -29,6 +38,18 @@ func (r *OrgResolver) Name() string {
 
 func (r *OrgResolver) Description() string {
     return r.org.Description
+}
+
+func (r *OrgResolver) InfluxDb() string {
+    return r.org.InfluxDb
+}
+
+func (r *OrgResolver) InfluxdbUsername() string {
+    return r.org.InfluxDbUsername
+}
+
+func (r *OrgResolver) InfluxdbPassword() string {
+    return r.org.InfluxDbPassword
 }
 
 func (r *OrgResolver) Created() int32 {
@@ -107,6 +128,7 @@ func (r *Resolver) Org(ctx context.Context, args struct {Id graphql.ID}) (*OrgRe
 
     collection := db.Collection("orgs")
     err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&org)
+
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
         return nil, err
@@ -184,14 +206,14 @@ func (r *Resolver) CreateOrg(ctx context.Context, args *struct {Name string; Des
     return &OrgResolver{ctx, org}, nil
 }
 
-func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name *string; Description *string}) (*OrgResolver, error) {
+func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInput}) (*OrgResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating org %ss", args.Id)
+    ctx.Value("log").(*logging.Logger).Debugf("Updating org %ss", args.Org.Id)
 
     db := ctx.Value("db").(*mongo.Database)
 
     // create ObjectID from string
-    id, err := primitive.ObjectIDFromHex(args.Id)
+    id, err := primitive.ObjectIDFromHex(string(args.Org.Id))
     if err != nil {
         return nil, err
     }
@@ -205,10 +227,10 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name 
     }
 
     // try to find similar org matching new name
-    if args.Name != nil {
+    if args.Org.Name != nil {
         var similarOrg model.Org
         collection := db.Collection("orgs")
-        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"name": args.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
+        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"name": args.Org.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
         if err == nil {
             return nil, errors.New("Org of such name already exists")
         }
@@ -216,8 +238,11 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args *struct {Id string; Name 
 
     // org exists -> update it
     updateFields := bson.M{}
-    if args.Name != nil { updateFields["name"] = args.Name}
-    if args.Description != nil { updateFields["description"] = args.Description}
+    if args.Org.Name != nil { updateFields["name"] = args.Org.Name}
+    if args.Org.Description != nil { updateFields["description"] = args.Org.Description}
+    if args.Org.InfluxDb != nil { updateFields["influxdb"] = args.Org.InfluxDb}
+    if args.Org.InfluxDbUsername != nil { updateFields["influxdb_username"] = args.Org.InfluxDbUsername}
+    if args.Org.InfluxDbPassword != nil { updateFields["influxdb_password"] = args.Org.InfluxDbPassword}
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)

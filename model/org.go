@@ -10,6 +10,9 @@ type Org struct {
     Name        string `json:"name"`
     Description string `json:"description"`
     Created     int32  `json:"created"`
+    InfluxDb    string `json:"influxdb"`
+    InfluxDbUsername   string `json:"influxdb_username" bson:"influxdb_username"`
+    InfluxDbPassword   string `json:"influxdb_password" bson:"influxdb_password"`
 }
 
 // Represents assignment of user to org

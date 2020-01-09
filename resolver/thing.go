@@ -21,6 +21,11 @@ type thingUpdateInput struct {
     OrgId   *graphql.ID
 }
 
+type thingSensorDataUpdateInput struct {
+    Id      graphql.ID
+    StoreInfluxDb *bool
+}
+
 type ThingResolver struct {
     ctx context.Context
     t *model.Thing
@@ -144,6 +149,10 @@ func (r *SensorResolver) Class() string {
     return r.t.Sensor.Class
 }
 
+func (r *SensorResolver) StoreInfluxDb() bool {
+    return r.t.Sensor.StoreInfluxDb
+}
+
 /////////////// Resolver
 
 func (r *Resolver) Thing(ctx context.Context, args struct {Id graphql.ID}) (*ThingResolver, error) {
@@ -265,5 +274,46 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     }
 
     ctx.Value("log").(*logging.Logger).Debugf("Thing updated %v", thing)
+    return &ThingResolver{ctx, &thing}, nil
+}
+
+func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data thingSensorDataUpdateInput}) (*ThingResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s sensor data", args.Data.Id)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Data.Id))
+    if err != nil {
+        return nil, err
+    }
+
+    // try to find thing to be updated
+    var thing model.Thing
+    collection := db.Collection("things")
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Thing does not exist")
+    }
+
+    // thing exists -> update it
+    updateFields := bson.M{}
+    if args.Data.StoreInfluxDb != nil { updateFields["sensor.store_influxdb"] = *args.Data.StoreInfluxDb}
+    update := bson.M{"$set": updateFields}
+
+    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        return nil, errors.New("Error while updating thing")
+    }
+
+    // read thing
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Cannot fetch thing data")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Thing sensor data updated %v", thing)
     return &ThingResolver{ctx, &thing}, nil
 }

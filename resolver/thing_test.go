@@ -50,13 +50,13 @@ func TestThingGet(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                thing(id: "%s") {name, sensor {class, measurement_topic}}
+                thing(id: "%s") {name, sensor {class, measurement_topic, store_influxdb}}
             }
         `, thingId.Hex()),
         ExpectedResult: `
             {
                 "thing": {
-                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "org1/thing1/temperature/value"}
+                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "org1/thing1/temperature/value", "store_influxdb": false}
                 }
             }
         `,
@@ -83,6 +83,31 @@ func TestThingUpdate(t *testing.T) {
                 "updateThing": {
                     "name": "thing1new",
                     "enabled": true
+                }
+            }
+        `,
+    })
+}
+
+func TestThingSensorDataUpdate(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+    id := test.CreateThing(t, ctx, "thing1")
+
+    t.Logf("Thing to be updated %s", id)
+
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                updateThingSensorData(data: {id: "%s", store_influxdb: true}) {sensor {store_influxdb}}
+            }
+        `, id.Hex()),
+        ExpectedResult: `
+            {
+                "updateThingSensorData": {
+                    "sensor": {"store_influxdb": true}
                 }
             }
         `,

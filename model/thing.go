@@ -55,6 +55,7 @@ type Thing struct {
 
     // The unit of measurement that the sensor is expressed in.
     Sensor SensorData `json:"sensor bson:"sensor""`
+
 }
 
 // Represents measurements for things that are sensors
@@ -75,4 +76,7 @@ type SensorData struct {
 
     // The unit of measurement that the sensor is expressed in.
     Unit string `json:"unit bson"unit""`
+
+    // Enable or Disable pushing values to organization assigned Influx database
+    StoreInfluxDb bool `json:"store_influxdb" bson:"store_influxdb"`
 }
