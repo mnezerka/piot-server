@@ -1,24 +1,65 @@
-# PIOT
+# PIOT Server
 
-PIOT is open source and patent-free IoT cloud platform. The name PIOT is a
-shortcut which stands for Pavoucek Internet Of Things, where Pavoucek (Spider)
-is name of the company that has strong interest in driving this project.
+## Architecture
 
-The main motivation for starting this project was a need for platform that
-supports our (business) use cases:
+The startup procedure of the server initiates global context which is later
+propagated to all handlers. This instance of the context is signleton and holds
+configuration parameters as well as instances of all services. The idea is to
+encapsulate all generic functionality and be albe to pass it to the chain of
+handlers.
 
-- Selling things as a service to customers (represented as organizations)
-- Provide nice UIs and possibility to call APIs without affecting other
-  organizations (multitenancy)
-- Management of IOT devices, users and organizations
-- Possibility to connect cheap and simple sensors with limited capabilities
-  (e.g. low memory), assembled and deployed by us
-- Receive data from sensors communicating in proprietary protocols (e.g. HTTP
-  packets of minimal size)
-- Easy integration of 3rd party applications (e.g. NodeRed)
-- Openness to world of IOT devices that are already on the market
-- Integration with Prometheus and Grafana as this is one of the main
-  use cases sold to customers
-- Persistency of selected IOT data to provide information from history
+```
+  +------------------+  +------------------+
+  | Logging Service  |  | Things Service   |  .... all services
+  +---------+--------+  +--------+---------+
+            |                    |
+            +--------------------+  Context holds instances (singletons)
+            |
+  +------------------+
+  | Context          +-------------------+
+  +------------------+                   |
+                                         |
+  +----------------------------------+   | Context is passed to handlers
+  | CORS handler                     |   |
+  | +------------------------------+ |   |
+  | | AddContext handler           +-----+
+  | | +--------------------------+ | |
+  | | | Logging handler          | | |
+  | | | +----------------------+ | | |
+  | | | | Auth handler         | | | |
+  | | | | +------------------+ | | | |
+  | | | | | GraphQL handler  | | | | |
+  | | | | +------------------+ | | | |
+  | | | +----------------------+ | | |
+  | | +--------------------------+ | |
+  | +------------------------------+ |
+  +----------------------------------+
+
+```
+
+## Development Environment
+
+1. Run only mongodb docker container
+
+   ```
+    docker-compose up -d mongodb
+   ```
+
+2. Run script ``scripts/env.sh`` to get IP address of mongo container
+   and set env variable for piot server
+
+3. Run tests:
+
+   ```
+   # all tests
+   go test ./...
+
+   # tests for selected package (handler)
+   go test ./handler
+
+   # tests for selected test case (matched against regexp)
+   go test --run ShortNotation
+
+   ```
 
 Refer to [documentation](doc) folder for more information
