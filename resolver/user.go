@@ -62,8 +62,8 @@ func (r *UserResolver) Orgs() []*OrgResolver {
     }
 
     // convert orgs to org resolvers
-    for _, userOrg := range orgs {
-        result = append(result, &OrgResolver{r.ctx, &userOrg})
+    for i := 0; i < len(orgs); i++ {
+        result = append(result, &OrgResolver{r.ctx, &orgs[i]})
     }
 
     return result

@@ -40,8 +40,10 @@ func TestUserGet(t *testing.T) {
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     orgId := test.CreateOrg(t, ctx, "org1")
+    org2Id := test.CreateOrg(t, ctx, "org2")
     userId := test.CreateUser(t, ctx, "user1@test.com", "")
     test.AddOrgUser(t, ctx, orgId, userId)
+    test.AddOrgUser(t, ctx, org2Id, userId)
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
@@ -55,7 +57,7 @@ func TestUserGet(t *testing.T) {
             {
                 "user": {
                     "email": "user1@test.com",
-                    "orgs": [{"name": "org1"}]
+                    "orgs": [{"name": "org1"}, {"name": "org2"}]
                 }
             }
         `,
