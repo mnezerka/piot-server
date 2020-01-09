@@ -1,5 +1,14 @@
 package service
 
+/* Note: checking of res.ModifiedCount could be tricky since it is
+ zero when method is called multiple times in one second - last_seen
+ attribute is updated only in the first call
+
+if res.ModifiedCount == 0 {
+    return fmt.Errorf("Thing <%s> not found", id.Hex())
+}
+*/
+
 import (
     "context"
     "errors"
@@ -93,15 +102,10 @@ func (t *Things) SetParent(ctx context.Context, id primitive.ObjectID, id_parent
         return errors.New("Parent thing not found when setting new parent for thing")
     }
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"parent_id": id_parent}})
+    _, err = db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"parent_id": id_parent}})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
         return errors.New("Error while updating thing parent")
-    }
-
-    // double check that appropriate thing was really updated
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("No thing with id <%s> updated", id.Hex())
     }
 
     return nil
@@ -112,14 +116,10 @@ func (t *Things) SetAvailabilityTopic(ctx context.Context, name string, topic st
 
     db := ctx.Value("db").(*mongo.Database)
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_topic": topic}})
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_topic": topic}})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
         return errors.New("Error while updating thing attributes")
-    }
-
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("No thing with name <%s> found", name)
     }
 
     return nil
@@ -130,14 +130,10 @@ func (t *Things) SetAvailabilityYesNo(ctx context.Context, name , yes, no string
 
     db := ctx.Value("db").(*mongo.Database)
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_yes": yes, "availability_no": no}})
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"availability_yes": yes, "availability_no": no}})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
         return errors.New("Error while updating thing attributes")
-    }
-
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("No thing with name <%s> found", name)
     }
 
     return nil
@@ -148,14 +144,10 @@ func (t *Things) SetSensorMeasurementTopic(ctx context.Context, name string, top
 
     db := ctx.Value("db").(*mongo.Database)
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
         return errors.New("Error while updating thing attributes")
-    }
-
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("No thing with name <%s> found", name)
     }
 
     return nil
@@ -166,14 +158,10 @@ func (t *Things) SetSensorClass(ctx context.Context, name string, class string) 
 
     db := ctx.Value("db").(*mongo.Database)
 
-    res, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.class": class}})
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.class": class}})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
         return errors.New("Error while updating thing attributes")
-    }
-
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("No thing with name <%s> found", name)
     }
 
     return nil
@@ -190,15 +178,6 @@ func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) 
         ctx.Value("log").(*logging.Logger).Errorf(e.Error())
         return e
     }
-
-    // checking of res.ModifiedCount could be tricky since it is
-    // zero when method is called multiple times in one second - last_seen
-    // attribute is updated only in the first call
-    /*
-    if res.ModifiedCount == 0 {
-        return fmt.Errorf("Thing <%s> not found", id.Hex())
-    }
-    */
 
     return nil
 }

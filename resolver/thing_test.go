@@ -42,19 +42,21 @@ func TestThingGet(t *testing.T) {
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     thingId := test.CreateThing(t, ctx, "thing1")
+    orgId := test.CreateOrg(t, ctx, "org1")
+    test.AddOrgThing(t, ctx, orgId, "thing1")
 
     gqltesting.RunTest(t, &gqltesting.Test{
         Context: ctx,
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                thing(id: "%s") {name}
+                thing(id: "%s") {name, sensor {class, measurement_topic}}
             }
         `, thingId.Hex()),
         ExpectedResult: `
             {
                 "thing": {
-                    "name": "thing1"
+                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "org1/thing1/temperature/value"}
                 }
             }
         `,

@@ -83,6 +83,10 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
         "name": name,
         "type": "sensor",
         "created": int32(time.Now().Unix()),
+        "sensor": bson.M{
+            "class": "temperature",
+            "measurement_topic": "value",
+        },
     })
     Ok(t, err)
 

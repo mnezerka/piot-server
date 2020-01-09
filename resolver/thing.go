@@ -2,6 +2,7 @@ package resolver
 
 import (
     "errors"
+    "strings"
     "piot-server/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
@@ -82,6 +83,45 @@ func (r *ThingResolver) AvailabilityYes() string {
 
 func (r *ThingResolver) AvailabilityNo() string {
     return r.t.AvailabilityNo
+}
+
+func (r *ThingResolver) Sensor() *SensorResolver {
+
+    if r.t.Type == model.THING_TYPE_SENSOR {
+        return &SensorResolver{r.ctx, r.t}
+    }
+
+    return nil
+}
+
+/////////////// Sensor Data Resolver
+
+type SensorResolver struct {
+    ctx context.Context
+    t *model.Thing
+}
+
+func (r *SensorResolver) MeasurementTopic() string {
+
+    // if thing is assigned to org
+    if r.t.OrgId != primitive.NilObjectID {
+
+        orgs := r.ctx.Value("orgs").(*service.Orgs)
+
+        org, err := orgs.Get(r.ctx, r.t.OrgId)
+        if err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
+            return ""
+        }
+
+        return strings.Join([]string{org.Name, r.t.Name, r.t.Sensor.Class, r.t.Sensor.MeasurementTopic}, "/")
+
+    }
+    return ""
+}
+
+func (r *SensorResolver) Class() string {
+    return r.t.Sensor.Class
 }
 
 /////////////// Resolver

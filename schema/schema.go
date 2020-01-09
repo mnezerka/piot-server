@@ -51,6 +51,11 @@ func GetRootSchema() string {
             users: [User!]!
         }
 
+        type SensorData {
+            class: String!
+            measurement_topic: String!
+        }
+
         type Thing {
             id: ID!
             name: String!
@@ -63,6 +68,7 @@ func GetRootSchema() string {
             availability_topic: String!
             availability_yes: String!
             availability_no: String!
+            sensor: SensorData
         }
 
         input UserUpdate {
