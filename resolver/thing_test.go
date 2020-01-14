@@ -56,7 +56,7 @@ func TestThingGet(t *testing.T) {
         ExpectedResult: `
             {
                 "thing": {
-                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "org1/thing1/temperature/value", "store_influxdb": false}
+                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "org1/thing1/temperature/value", "store_influxdb": true}
                 }
             }
         `,

@@ -33,19 +33,21 @@ func TestMqttMsgSensor(t *testing.T) {
     test.AddOrgThing(t, ctx, orgId, SENSOR)
 
     mqtt := service.NewMqtt("uri")
+    influxDb := ctx.Value("influxdb").(*service.InfluxDbMock)
 
     // send unit message to registered thing
-    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value/unit", ORG, SENSOR), "C")
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/unit", ORG, SENSOR), "C")
 
     // send temperature message to registered thing
-    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value/temperature", ORG, SENSOR), "23")
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value", ORG, SENSOR), "23")
+
+    // check if mqtt was called
+    test.Equals(t, 1, len(influxDb.Calls))
+
+    test.Equals(t, "23", influxDb.Calls[0].Value)
+    test.Equals(t, SENSOR, influxDb.Calls[0].Thing.Name)
 
     // second round of calls to check proper functionality for high load
-
-    // send unit message to registered thing (second call to check proper functionality
-    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value/unit", ORG, SENSOR), "C")
-
-    // send temperature message to registered thing
-    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value/temperature", ORG, SENSOR), "23")
-
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/unit", ORG, SENSOR), "C")
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value", ORG, SENSOR), "23")
 }

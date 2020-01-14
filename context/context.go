@@ -102,6 +102,18 @@ func NewContext(o *ContextOptions) context.Context {
     }
     ctx = context.WithValue(ctx, "mqtt", mqtt)
 
+    /////////////// PIOT INFLUXDB SERVICE
+
+    // create global influxdb service for all handlers
+    var influxdb service.IInfluxDb
+    if o.InfluxDbUri == "mock" {
+        influxdb = &service.InfluxDbMock{}
+    } else {
+        // real influxdb service instance
+        influxdb = service.NewInfluxDb(o.InfluxDbUri, o.InfluxDbUsername, o.InfluxDbPassword)
+    }
+    ctx = context.WithValue(ctx, "influxdb", influxdb)
+
     return ctx
 }
 

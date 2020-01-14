@@ -122,6 +122,18 @@ func (t *Mqtt) Disconnect(ctx context.Context) error {
     return nil
 }
 
+func (t *Mqtt) GetThingTopic(ctx context.Context, thing *model.Thing, topic string) (string, error) {
+
+    // get thing org
+    orgs := ctx.Value("orgs").(*Orgs)
+    org, err := orgs.Get(ctx, thing.OrgId)
+    if err != nil {
+        return "", err
+    }
+
+    return fmt.Sprintf("%s/%s/%s/%s", TOPIC_ROOT, org.Name, thing.Name, topic), nil
+}
+
 func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, value string) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Push thing data to mqtt broker: %s", thing.Name)
 
@@ -132,14 +144,10 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
         return err
     }
 
-    // get thing org
-    orgs := ctx.Value("orgs").(*Orgs)
-    org, err := orgs.Get(ctx, thing.OrgId)
+    mqttTopic, err := t.GetThingTopic(ctx, thing, topic)
     if err != nil {
         return err
     }
-
-    mqttTopic := fmt.Sprintf("%s/%s/%s/%s", TOPIC_ROOT, org.Name, thing.Name, topic)
 
     ctx.Value("log").(*logging.Logger).Debugf("MQTT Publish, topic: \"%s\", value: \"%s\"", mqttTopic, value)
 
@@ -183,10 +191,21 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
 
     // skip things that are not sensors
     switch thing.Type {
-    // if the device is sensor and the message is sensor reading, store it to db
+    // if the device is sensor
     case model.THING_TYPE_SENSOR:
-        if topic == thing.Sensor.MeasurementTopic {
-            // TODO: store value to measurements
+
+        measurementTopicFull, err := t.GetThingTopic(ctx, thing, thing.Sensor.MeasurementTopic)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+            return
+        }
+
+        ctx.Value("log").(*logging.Logger).Debugf("DEBUG %s %s %s", thing.Type, topic, measurementTopicFull)
+
+        // if the message holds value of sensor reading -> store it to db
+        if topic == measurementTopicFull {
+            influxDb := ctx.Value("influxdb").(IInfluxDb)
+            influxDb.PostMeasurement(ctx, thing, payload)
         }
     }
 }

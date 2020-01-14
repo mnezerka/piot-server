@@ -87,6 +87,7 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
         "sensor": bson.M{
             "class": "temperature",
             "measurement_topic": "value",
+            "store_influxdb": true,
         },
     })
     Ok(t, err)

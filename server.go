@@ -28,6 +28,9 @@ func runServer(c *cli.Context) {
     contextOptions.MqttUsername = c.GlobalString("mqtt-user")
     contextOptions.MqttPassword = c.GlobalString("mqtt-password")
     contextOptions.MqttClient = c.GlobalString("mqtt-client")
+    contextOptions.InfluxDbUri = c.GlobalString("influxdb-uri")
+    contextOptions.InfluxDbUsername = c.GlobalString("influxdb-user")
+    contextOptions.InfluxDbPassword = c.GlobalString("influxdb-password")
     contextOptions.Params.LogLevel = c.GlobalString("log-level")
     contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
     contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
@@ -152,6 +155,21 @@ func main() {
             Usage: "Expriation of JWT token in seconds",
             Value: time.Hour * 4,
             EnvVar: "JWT_TOKEN_EXPIRATION",
+        },
+        cli.StringFlag{
+            Name:   "influxdb-uri",
+            Usage:  "URI for the InfluxDB database",
+            EnvVar: "INFLUXDB_URI",
+        },
+        cli.StringFlag{
+            Name:   "influxdb-user",
+            Usage:  "Username for InfluxDB user with admin privileges",
+            EnvVar: "INFLUXDB_USER",
+        },
+        cli.StringFlag{
+            Name:   "influxdb-password",
+            Usage:  "Password for InfluxDB user with admin privileges",
+            EnvVar: "INFLUXDB_PASSWORD",
         },
     }
 
