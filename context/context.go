@@ -114,7 +114,12 @@ func NewContext(o *ContextOptions) context.Context {
     }
     ctx = context.WithValue(ctx, "influxdb", influxdb)
 
+    /////////////// HTTP CLIENT SERVICE
+
+    // create global http client service to be used by handlers
+    var httpClient service.IHttpClient
+    httpClient = service.NewHttpClient()
+    ctx = context.WithValue(ctx, "httpclient", httpClient)
+
     return ctx
 }
-
-

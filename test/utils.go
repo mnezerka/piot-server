@@ -14,6 +14,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "piot-server/utils"
+    "piot-server/service"
     piotcontext "piot-server/context"
 )
 
@@ -28,6 +29,11 @@ func CreateTestContext() context.Context {
     callerEmail := "caller@test.com"
     ctx = context.WithValue(ctx, "user_email", &callerEmail)
     ctx = context.WithValue(ctx, "is_authorized", true)
+
+    // override real http client by mocked instance
+    httpClient := &service.HttpClientMock{}
+    ctx = context.WithValue(ctx, "httpclient", httpClient)
+
     return ctx
 }
 

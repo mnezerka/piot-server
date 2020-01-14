@@ -5,6 +5,8 @@ import (
     "context"
     //"net/http"
     //"net/url"
+    "fmt"
+    "net/url"
     "piot-server/model"
     "github.com/op/go-logging"
 )
@@ -40,34 +42,24 @@ func (db *InfluxDb) PostMeasurement(ctx context.Context, thing *model.Thing, val
 
     ctx.Value("log").(*logging.Logger).Debugf("Going to post to InfluxDB %s as %s", org.InfluxDb, org.InfluxDbUsername)
 
-    /*
+    httpClient := ctx.Value("httpclient").(IHttpClient)
 
-    //db.Uri influxurl + "/write?db=demo" + org.InfluxDB
+    if thing.Type != model.THING_TYPE_SENSOR {
+        // ignore things which don't represent sensor
+        return
+    }
 
-    body := "home,room=livingroom temp=23,humidity=99"
+    body := fmt.Sprintf("sensor,id=%s,class=%s value=%s", thing.Name, thing.Sensor.Class, value)
 
     url, err := url.Parse(db.Uri)
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Cannot decode InfluxDB url from %s (%s)", db.Uri, err.Error())
         return
     }
-    q := url.Query()
-    q.Add("db", org.InfluxDb)
 
-    client := &http.Client{}
+    params := url.Query()
+    params.Add("db", org.InfluxDb)
+    url.RawQuery = params.Encode()
 
-    req, err := http.NewRequest("POST", url.String(), bytes.NewReader(body))
-    req.SetBasicAuth(db.Username, db.Password)
-    res, err := client.Do(req)
-    if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Push to InfluxDB failed (%s)", err.Error())
-        return
-    }
-    //robots, err := ioutil.ReadAll(res.Body)
-    res.Body.Close()
-    //if err != nil {
-    //    log.Fatal(err)
-    //}
-    //fmt.Printf("%s", robots)
-    */
+    httpClient.PostString(ctx, url.String(), body, &db.Username, &db.Password)
 }
