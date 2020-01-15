@@ -2,6 +2,7 @@ package service
 
 import (
     "bytes"
+    "io/ioutil"
     "context"
     "net/http"
     "github.com/op/go-logging"
@@ -36,10 +37,13 @@ func (c *HttpClient) PostString(ctx context.Context, url, body string, username 
         ctx.Value("log").(*logging.Logger).Errorf("Http Post failed (%s)", err.Error())
         return
     }
-    //robots, err := ioutil.ReadAll(res.Body)
+    response, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Http Post failed (%s)", err.Error())
+    }
+
     res.Body.Close()
-    //if err != nil {
-    //    log.Fatal(err)
-    //}
-    //fmt.Printf("%s", robots)
+
+    ctx.Value("log").(*logging.Logger).Debugf("Http post response status code: %d", res.StatusCode)
+    ctx.Value("log").(*logging.Logger).Debugf("Http post response body: %s", response)
 }

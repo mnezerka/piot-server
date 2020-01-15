@@ -82,6 +82,25 @@ func NewContext(o *ContextOptions) context.Context {
     piotdevices := service.NewPiotDevices()
     ctx = context.WithValue(ctx, "piotdevices", piotdevices)
 
+    /////////////// PIOT INFLUXDB SERVICE
+
+    // create global influxdb service for all handlers
+    var influxdb service.IInfluxDb
+    if o.InfluxDbUri == "mock" {
+        influxdb = &service.InfluxDbMock{}
+    } else {
+        // real influxdb service instance
+        influxdb = service.NewInfluxDb(o.InfluxDbUri, o.InfluxDbUsername, o.InfluxDbPassword)
+    }
+    ctx = context.WithValue(ctx, "influxdb", influxdb)
+
+    /////////////// HTTP CLIENT SERVICE
+
+    // create global http client service to be used by handlers
+    var httpClient service.IHttpClient
+    httpClient = service.NewHttpClient()
+    ctx = context.WithValue(ctx, "httpclient", httpClient)
+
     /////////////// PIOT MQTT SERVICE
 
     // create global mqtt service for all handlers
@@ -101,25 +120,6 @@ func NewContext(o *ContextOptions) context.Context {
         }
     }
     ctx = context.WithValue(ctx, "mqtt", mqtt)
-
-    /////////////// PIOT INFLUXDB SERVICE
-
-    // create global influxdb service for all handlers
-    var influxdb service.IInfluxDb
-    if o.InfluxDbUri == "mock" {
-        influxdb = &service.InfluxDbMock{}
-    } else {
-        // real influxdb service instance
-        influxdb = service.NewInfluxDb(o.InfluxDbUri, o.InfluxDbUsername, o.InfluxDbPassword)
-    }
-    ctx = context.WithValue(ctx, "influxdb", influxdb)
-
-    /////////////// HTTP CLIENT SERVICE
-
-    // create global http client service to be used by handlers
-    var httpClient service.IHttpClient
-    httpClient = service.NewHttpClient()
-    ctx = context.WithValue(ctx, "httpclient", httpClient)
 
     return ctx
 }

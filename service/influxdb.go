@@ -5,6 +5,7 @@ import (
     "context"
     //"net/http"
     //"net/url"
+    "path"
     "fmt"
     "net/url"
     "piot-server/model"
@@ -56,6 +57,8 @@ func (db *InfluxDb) PostMeasurement(ctx context.Context, thing *model.Thing, val
         ctx.Value("log").(*logging.Logger).Errorf("Cannot decode InfluxDB url from %s (%s)", db.Uri, err.Error())
         return
     }
+
+    url.Path = path.Join(url.Path, "write")
 
     params := url.Query()
     params.Add("db", org.InfluxDb)

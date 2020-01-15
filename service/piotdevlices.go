@@ -28,6 +28,7 @@ func NewPiotDevices() (*PiotDevices) {
 
 func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevicePacket) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device packet: %v", packet)
+
     params := ctx.Value("params").(*config.Parameters)
 
     // handle short notation of attributes (assign short to long attributes)
