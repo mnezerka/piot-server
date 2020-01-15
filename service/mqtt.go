@@ -204,8 +204,8 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
 
         // if the message holds value of sensor reading -> store it to db
         if topic == measurementTopicFull {
-            influxDb := ctx.Value("influxdb").(IInfluxDb)
-            influxDb.PostMeasurement(ctx, thing, payload)
+            //influxDb := ctx.Value("influxdb").(IInfluxDb)
+            //influxDb.PostMeasurement(ctx, thing, payload)
         }
     }
 }

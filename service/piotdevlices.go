@@ -99,12 +99,6 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
                 return err
             }
 
-            // set parent device
-            err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
-            if err != nil {
-                return err
-            }
-
             // register topics for measurements (if presetn)
             if things.SetSensorMeasurementTopic(ctx, reading.Address, PIOT_MEASUREMENT_TOPIC); err != nil {
                 return err
@@ -126,6 +120,15 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
                 if err := things.SetSensorClass(ctx, reading.Address, class); err != nil {
                     return err
                 }
+            }
+        }
+
+        // update parent device (this can happen any time since sensor can be
+        // re-connected to another device
+        if (sensor_thing.ParentId != thing.Id) {
+            err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
+            if err != nil {
+                return err
             }
         }
 

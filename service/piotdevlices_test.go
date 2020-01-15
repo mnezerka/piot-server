@@ -55,6 +55,75 @@ func TestPacketDeviceReg(t *testing.T) {
     test.Equals(t, thing.Id, thing_sensor.ParentId)
 }
 
+// VALID packet + NEW device -> successful registration
+// VALID packet + SENSOR reassigned -> change of parent
+// This test simulates scenario where sensor is disconnected
+// from one device and connected to another one
+func TestPacketDeviceUpdateParent(t *testing.T) {
+    const DEVICE = "device01"
+    const DEVICE2 = "device02"
+    const SENSOR = "SensorAddr"
+
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+
+    // get instance of piot devices service
+    s := ctx.Value("piotdevices").(*service.PiotDevices)
+
+    // process packet for unknown device
+    var packet model.PiotDevicePacket
+    packet.Device = DEVICE
+
+    var reading model.PiotSensorReading
+    var temp float32 = 4.5
+    reading.Address = SENSOR
+    reading.Temperature = &temp
+    packet.Readings = append(packet.Readings, reading)
+
+    err := s.ProcessPacket(ctx, packet)
+    test.Ok(t, err)
+
+    // Check if device is registered
+    db := ctx.Value("db").(*mongo.Database)
+    var thing model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": DEVICE}).Decode(&thing)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE, thing.Name)
+    test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
+    test.Equals(t, "available", thing.AvailabilityTopic)
+
+    var thing_sensor model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
+    test.Ok(t, err)
+    test.Equals(t, SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+
+    // check correct assignment
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
+
+    // assign sensor to new device
+    packet.Device = DEVICE2
+    err = s.ProcessPacket(ctx, packet)
+    test.Ok(t, err)
+
+    // Check if second device is registered
+    var thing2 model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": DEVICE2}).Decode(&thing2)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE2, thing2.Name)
+
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
+    test.Ok(t, err)
+    test.Equals(t, SENSOR, thing_sensor.Name)
+
+    // check correct re-assignment
+    test.Equals(t, thing2.Id, thing_sensor.ParentId)
+}
+
+
 // VALID packet + UNASSIGNED device -> no mqtt messages are published
 func TestPacketDeviceDataUnassigned(t *testing.T) {
 
