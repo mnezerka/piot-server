@@ -40,7 +40,7 @@ func TestPushMeasurementForSensor(t *testing.T) {
 
     // check call parameters
     test.Equals(t, "http://uri/write?db=db", httpClient.Calls[0].Url)
-    test.Equals(t, "sensor,id=SensorAddr,class=temperature value=23", httpClient.Calls[0].Body)
+    test.Equals(t, "sensor,id=" + sensorId.Hex() + ",name=SensorAddr,class=temperature value=23", httpClient.Calls[0].Body)
     test.Equals(t, "user", *httpClient.Calls[0].Username)
     test.Equals(t, "pass", *httpClient.Calls[0].Password)
 }

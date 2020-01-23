@@ -50,7 +50,13 @@ func (db *InfluxDb) PostMeasurement(ctx context.Context, thing *model.Thing, val
         return
     }
 
-    body := fmt.Sprintf("sensor,id=%s,class=%s value=%s", thing.Name, thing.Sensor.Class, value)
+    // get thing name, use alias if set
+    name := thing.Name
+    if thing.Alias != "" {
+        name = thing.Alias
+    }
+
+    body := fmt.Sprintf("sensor,id=%s,name=%s,class=%s value=%s", thing.Id.Hex(), name, thing.Sensor.Class, value)
 
     url, err := url.Parse(db.Uri)
     if err != nil {
