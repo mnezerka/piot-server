@@ -91,55 +91,25 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
         // handle short notation of address attribute
         if len(reading.AddressShort) > 0 { reading.Address = reading.AddressShort }
 
-        // look for device
-        sensor_thing, err := things.Find(ctx, reading.Address)
-        if err != nil {
-            // register register device
-            sensor_thing, err = things.Register(ctx, reading.Address, model.THING_TYPE_SENSOR)
-            if err != nil {
-                return err
-            }
-
-            // register topics for measurements (if presetn)
-            if things.SetSensorMeasurementTopic(ctx, reading.Address, PIOT_MEASUREMENT_TOPIC); err != nil {
-                return err
-            }
-
-            // set proper device class according to received measurement type
-            var class string
-            if reading.Temperature != nil {
-                class = model.THING_CLASS_TEMPERATURE
-            } else if reading.Humidity != nil {
-                class = model.THING_CLASS_HUMIDITY
-            } else if reading.Pressure != nil {
-                class = model.THING_CLASS_HUMIDITY
-            } else {
-                ctx.Value("log").(*logging.Logger).Warningf("Registering sensor for reading of unknown type <%v>", reading)
-            }
-
-            if class != "" {
-                if err := things.SetSensorClass(ctx, reading.Address, class); err != nil {
-                    return err
-                }
+        if reading.Temperature != nil {
+            class := model.THING_CLASS_TEMPERATURE
+            if err = p.processReading(ctx, class, thing, reading); err != nil {
+                ctx.Value("log").(*logging.Logger).Debugf("Failed to process reading data for thing <%s>", thing.Name)
             }
         }
 
-        // update parent device (this can happen any time since sensor can be
-        // re-connected to another device
-        if (sensor_thing.ParentId != thing.Id) {
-            err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
-            if err != nil {
-                return err
+        if reading.Humidity != nil {
+            class := model.THING_CLASS_HUMIDITY
+            if err = p.processReading(ctx, class, thing, reading); err != nil {
+                ctx.Value("log").(*logging.Logger).Debugf("Failed to process humidity reading data for thing <%s>", thing.Name)
             }
         }
 
-        // if thing is assigned to org
-        if sensor_thing.OrgId != primitive.NilObjectID {
-            if err = p.processReading(ctx, sensor_thing, reading); err != nil {
-                return err
+        if reading.Pressure != nil {
+            class := model.THING_CLASS_PRESSURE
+            if err = p.processReading(ctx, class, thing, reading); err != nil {
+                ctx.Value("log").(*logging.Logger).Debugf("Failed to process pressure reading data for thing <%s>", thing.Name)
             }
-        } else {
-            ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", sensor_thing.Name)
         }
     }
 
@@ -185,9 +155,77 @@ func (p *PiotDevices) processDevice(ctx context.Context, thing *model.Thing, pac
     return nil
 }
 
-func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, reading model.PiotSensorReading) error {
-    ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device reading data: %v", reading)
+func (p *PiotDevices) processReading(ctx context.Context, class string, thing *model.Thing, reading model.PiotSensorReading) error {
+    ctx.Value("log").(*logging.Logger).Debugf("Process PIOT device reading data of class \"%s\": %v", class, reading)
     mqtt := ctx.Value("mqtt").(IMqtt)
+
+    var address string = reading.Address
+    var value string
+    var unit string
+
+    // determine address from class
+    // this is necessary to have separate things for all sensor measurements
+    switch class {
+    case model.THING_CLASS_TEMPERATURE:
+        address = "T" + address
+        unit = "C"
+        if reading.Temperature != nil {
+            value = strconv.FormatFloat(float64(*reading.Temperature), 'f', -1, 32)
+        }
+    case model.THING_CLASS_HUMIDITY:
+        address = "H" + address
+        unit = "%"
+        if reading.Humidity!= nil {
+            value = strconv.FormatFloat(float64(*reading.Humidity), 'f', -1, 32)
+        }
+    case model.THING_CLASS_PRESSURE:
+        address = "P" + address
+        unit = "mPa"
+        if reading.Pressure!= nil {
+            value = strconv.FormatFloat(float64(*reading.Pressure), 'f', -1, 32)
+        }
+    }
+
+    // look for thing representing sensor
+    things := ctx.Value("things").(*Things)
+    sensor_thing, err := things.Find(ctx, address)
+
+    // if thing not found
+    if err != nil {
+
+        // register register device
+        sensor_thing, err = things.Register(ctx, address, model.THING_TYPE_SENSOR)
+        if err != nil {
+            return err
+        }
+
+        // register topics for measurements (if presetn)
+        if things.SetSensorMeasurementTopic(ctx, address, PIOT_MEASUREMENT_TOPIC); err != nil {
+            return err
+        }
+
+        // set proper device class according to received measurement type
+        if err := things.SetSensorClass(ctx, address, class); err != nil {
+            return err
+        }
+    }
+
+    // update parent thing (this can happen any time since sensor can be
+    // re-connected to another device
+    if (sensor_thing.ParentId != thing.Id) {
+        err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
+        if err != nil {
+            return err
+        }
+    }
+
+    // if thing is not assigned to org
+    if sensor_thing.OrgId == primitive.NilObjectID {
+        ctx.Value("log").(*logging.Logger).Debugf("Ignoring processing of data for thing <%s> that is not assigned to any organization", sensor_thing.Name)
+
+        // stop processing here
+        return nil
+    }
 
     // dont' push anything if device is disabled
     if !thing.Enabled {
@@ -195,36 +233,17 @@ func (p *PiotDevices) processReading(ctx context.Context, thing *model.Thing, re
     }
 
     // update avalibility channel
-    err := mqtt.PushThingData(ctx, thing, TOPIC_AVAILABLE, VALUE_YES)
+    err = mqtt.PushThingData(ctx, sensor_thing, TOPIC_AVAILABLE, VALUE_YES)
     if err != nil {
         return err
     }
 
-    var value string
-    var unit string
-
-    if reading.Temperature != nil {
-
-        value = strconv.FormatFloat(float64(*reading.Temperature), 'f', -1, 32)
-        unit = "C"
-    }
-
-    if reading.Pressure!= nil {
-        value = strconv.FormatFloat(float64(*reading.Pressure), 'f', -1, 32)
-        unit = "mPa"
-    }
-
-    if reading.Humidity!= nil {
-        value = strconv.FormatFloat(float64(*reading.Humidity), 'f', -1, 32)
-        unit = "%"
-    }
-
     if value != "" {
 
-        if err := mqtt.PushThingData(ctx, thing, PIOT_MEASUREMENT_TOPIC, value); err != nil {
+        if err := mqtt.PushThingData(ctx, sensor_thing, PIOT_MEASUREMENT_TOPIC, value); err != nil {
             return err
         }
-        if err := mqtt.PushThingData(ctx, thing, fmt.Sprintf("%s/%s", PIOT_MEASUREMENT_TOPIC, TOPIC_UNIT), unit); err != nil {
+        if err := mqtt.PushThingData(ctx, sensor_thing, fmt.Sprintf("%s/%s", PIOT_MEASUREMENT_TOPIC, TOPIC_UNIT), unit); err != nil {
             return err
         }
     } else {

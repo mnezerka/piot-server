@@ -44,9 +44,9 @@ func TestPacketDeviceReg(t *testing.T) {
     test.Equals(t, "available", thing.AvailabilityTopic)
 
     var thing_sensor model.Thing
-    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
     test.Ok(t, err)
-    test.Equals(t, SENSOR, thing_sensor.Name)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
     test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
     test.Equals(t, "temperature", thing_sensor.Sensor.Class)
     test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
@@ -54,6 +54,75 @@ func TestPacketDeviceReg(t *testing.T) {
     // check correct assignment
     test.Equals(t, thing.Id, thing_sensor.ParentId)
 }
+
+// VALID packet with more measurements per 1 sensor +
+// NEW device -> successful registration of device and all sensors
+func TestPacketDeviceRegMultiple(t *testing.T) {
+    const DEVICE = "device01"
+    const SENSOR = "SensorAddr"
+
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+
+    // get instance of piot devices service
+    s := ctx.Value("piotdevices").(*service.PiotDevices)
+
+    // process packet for unknown device
+    var packet model.PiotDevicePacket
+    packet.Device = DEVICE
+
+    var reading model.PiotSensorReading
+    reading.Address = SENSOR
+    var temp float32 = 4.5
+    reading.Temperature = &temp
+
+    var press float32 = 900
+    reading.Pressure = &press
+
+    var hum float32 = 20
+    reading.Humidity= &hum
+
+    packet.Readings = append(packet.Readings, reading)
+
+    err := s.ProcessPacket(ctx, packet)
+    test.Ok(t, err)
+
+    // Check if device is registered
+    db := ctx.Value("db").(*mongo.Database)
+    var thing model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": DEVICE}).Decode(&thing)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE, thing.Name)
+    test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
+    test.Equals(t, "available", thing.AvailabilityTopic)
+
+    var thing_sensor model.Thing
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
+    test.Ok(t, err)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "P" + SENSOR}).Decode(&thing_sensor)
+    test.Ok(t, err)
+    test.Equals(t, "P" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "pressure", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "H" + SENSOR}).Decode(&thing_sensor)
+    test.Ok(t, err)
+    test.Equals(t, "H" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "humidity", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+
+    // check correct assignment
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
+}
+
 
 // VALID packet + NEW device -> successful registration
 // VALID packet + SENSOR reassigned -> change of parent
@@ -94,9 +163,9 @@ func TestPacketDeviceUpdateParent(t *testing.T) {
     test.Equals(t, "available", thing.AvailabilityTopic)
 
     var thing_sensor model.Thing
-    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
     test.Ok(t, err)
-    test.Equals(t, SENSOR, thing_sensor.Name)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
     test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
     test.Equals(t, "temperature", thing_sensor.Sensor.Class)
     test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
@@ -115,9 +184,9 @@ func TestPacketDeviceUpdateParent(t *testing.T) {
     test.Ok(t, err)
     test.Equals(t, DEVICE2, thing2.Name)
 
-    err = db.Collection("things").FindOne(ctx, bson.M{"name": SENSOR}).Decode(&thing_sensor)
+    err = db.Collection("things").FindOne(ctx, bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
     test.Ok(t, err)
-    test.Equals(t, SENSOR, thing_sensor.Name)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
 
     // check correct re-assignment
     test.Equals(t, thing2.Id, thing_sensor.ParentId)
@@ -229,10 +298,10 @@ func TestPacketDeviceReadingTempAssigned(t *testing.T) {
 
     test.CleanDb(t, ctx)
     test.CreateThing(t, ctx, DEVICE)
-    test.CreateThing(t, ctx, SENSOR)
+    test.CreateThing(t, ctx, "T" + SENSOR)     // SENSOR is registered for temperature
     orgId := test.CreateOrg(t, ctx, "org1")
     test.AddOrgThing(t, ctx, orgId, DEVICE)
-    test.AddOrgThing(t, ctx, orgId, SENSOR)
+    test.AddOrgThing(t, ctx, orgId, "T" + SENSOR) // SENSOR is registered for temperature
 
     // get instance of piot devices service
     s := ctx.Value("piotdevices").(*service.PiotDevices)
@@ -264,15 +333,15 @@ func TestPacketDeviceReadingTempAssigned(t *testing.T) {
 
     test.Equals(t, "available", mqtt.Calls[1].Topic)
     test.Equals(t, "yes", mqtt.Calls[1].Value)
-    test.Equals(t, "SensorAddr", mqtt.Calls[1].Thing.Name)
+    test.Equals(t, "TSensorAddr", mqtt.Calls[1].Thing.Name)
 
     test.Equals(t, "value", mqtt.Calls[2].Topic)
     test.Equals(t, "4.5", mqtt.Calls[2].Value)
-    test.Equals(t, "SensorAddr", mqtt.Calls[2].Thing.Name)
+    test.Equals(t, "TSensorAddr", mqtt.Calls[2].Thing.Name)
 
     test.Equals(t, "value/unit", mqtt.Calls[3].Topic)
     test.Equals(t, "C", mqtt.Calls[3].Value)
-    test.Equals(t, "SensorAddr", mqtt.Calls[3].Thing.Name)
+    test.Equals(t, "TSensorAddr", mqtt.Calls[3].Thing.Name)
 }
 
 // Test DOS (Denial Of Service) protection

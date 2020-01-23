@@ -24,6 +24,8 @@ func CreateTestContext() context.Context {
     contextOptions.DbName = "piot-test"
     contextOptions.MqttUri = "mock"
     contextOptions.Params.LogLevel = "DEBUG"
+    //contextOptions.InfluxDbUri = "mock"
+
     ctx := piotcontext.NewContext(contextOptions)
 
     callerEmail := "caller@test.com"
