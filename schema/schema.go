@@ -28,6 +28,7 @@ func GetRootSchema() string {
             updateUser(user: UserUpdate!): User
             addOrgUser(orgId: ID!, userId: ID!): Boolean
 
+            createThing(name: String!, type: String!): Thing
             updateThing(thing: ThingUpdate!): Thing
             updateThingSensorData(data: ThingSensorDataUpdate!): Thing
         }

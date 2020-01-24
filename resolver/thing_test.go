@@ -10,6 +10,29 @@ import (
     "piot-server/test"
 )
 
+func TestThingCreate(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: `
+            mutation {
+                createThing(name: "NewThing", type: "sensor") { name, type }
+            }
+        `,
+        ExpectedResult: `
+            {
+                "createThing": {
+                    "name": "NewThing",
+                    "type": "sensor"
+                }
+            }
+        `,
+    })
+}
+
 func TestThingsGet(t *testing.T) {
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)

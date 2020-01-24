@@ -3,6 +3,7 @@ package resolver
 import (
     "errors"
     "strings"
+    "time"
     "piot-server/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
@@ -96,7 +97,6 @@ func (r *ThingResolver) Parent() *ThingResolver {
 
     return nil
 }
-
 
 func (r *ThingResolver) AvailabilityTopic() string {
     return r.t.AvailabilityTopic
@@ -215,6 +215,41 @@ func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
     }
 
     return result, nil
+}
+
+func (r *Resolver) CreateThing(ctx context.Context, args *struct {Name string; Type string}) (*ThingResolver, error) {
+
+    thing := &model.Thing{
+        Name: args.Name,
+        Type: args.Type,
+        Created: int32(time.Now().Unix()),
+    }
+
+    ctx.Value("log").(*logging.Logger).Infof("Creating thing %s of type %s", args.Name, args.Type)
+
+    if args.Type != model.THING_TYPE_DEVICE && args.Type != model.THING_TYPE_SENSOR && args.Type != model.THING_TYPE_SWITCH {
+        return nil, errors.New("Unknown type of Thing")
+    }
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // try to find existing thing
+    var existingThing model.Thing
+    collection := db.Collection("things")
+    err := collection.FindOne(ctx, bson.D{{"name", args.Name}}).Decode(&existingThing)
+    if err == nil {
+        return nil, errors.New("Thing of such name already exists!")
+    }
+
+    // thing does not exist -> create new one
+    _, err = collection.InsertOne(ctx, thing)
+    if err != nil {
+        return nil, errors.New("Error while creating thing")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Created thing: %v", *thing)
+
+    return &ThingResolver{ctx, thing}, nil
 }
 
 func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpdateInput}) (*ThingResolver, error) {

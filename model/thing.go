@@ -6,6 +6,7 @@ import (
 
 const THING_TYPE_DEVICE = "device"
 const THING_TYPE_SENSOR = "sensor"
+const THING_TYPE_SWITCH = "switch"
 
 const THING_CLASS_TEMPERATURE = "temperature"
 const THING_CLASS_HUMIDITY = "humidity"
