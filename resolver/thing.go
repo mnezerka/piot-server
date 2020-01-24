@@ -24,7 +24,10 @@ type thingUpdateInput struct {
 
 type thingSensorDataUpdateInput struct {
     Id      graphql.ID
+    Class *string
     StoreInfluxDb *bool
+    MeasurementTopic *string
+    MeasurementValue *string
 }
 
 type ThingResolver struct {
@@ -153,6 +156,19 @@ func (r *SensorResolver) MeasurementTopic() string {
 
     }
     return ""
+}
+
+func (r *SensorResolver) MeasurementValue() string {
+    return r.t.Sensor.MeasurementValue
+}
+
+
+func (r *SensorResolver) Value() string {
+    return r.t.Sensor.Value
+}
+
+func (r *SensorResolver) Unit() string {
+    return r.t.Sensor.Unit
 }
 
 func (r *SensorResolver) Class() string {
@@ -410,7 +426,10 @@ func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data 
 
     // thing exists -> update it
     updateFields := bson.M{}
+    if args.Data.Class != nil { updateFields["sensor.class"] = *args.Data.Class}
     if args.Data.StoreInfluxDb != nil { updateFields["sensor.store_influxdb"] = *args.Data.StoreInfluxDb}
+    if args.Data.MeasurementTopic != nil { updateFields["sensor.measurement_topic"] = *args.Data.MeasurementTopic}
+    if args.Data.MeasurementValue != nil { updateFields["sensor.measurement_value"] = *args.Data.MeasurementValue}
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)

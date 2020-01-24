@@ -11,7 +11,7 @@ require (
 	github.com/graph-gophers/graphql-go v0.0.0-20190902214650-641ae197eec7
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/stretchr/testify v1.4.0 // indirect
-	github.com/tidwall/pretty v1.0.0 // indirect
+	github.com/tidwall/gjson v1.4.0
 	github.com/urfave/cli v1.21.0
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect

@@ -9,6 +9,7 @@ import (
     "piot-server/model"
     "go.mongodb.org/mongo-driver/bson/primitive"
     mqtt "github.com/eclipse/paho.mqtt.golang"
+    "github.com/tidwall/gjson"
 )
 
 const VALUE_YES  = "yes"
@@ -200,10 +201,35 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
             return
         }
 
-        // if the message holds value of sensor reading -> store it to db
-        if thing.Sensor.StoreInfluxDb && topic == measurementTopicFull {
-            influxDb := ctx.Value("influxdb").(IInfluxDb)
-            influxDb.PostMeasurement(ctx, thing, payload)
+        // if the message holds value of sensor reading -> extract it
+        if topic == measurementTopicFull {
+
+            value := payload
+
+            ctx.Value("log").(*logging.Logger).Debugf("MQTT sensor measurement value template: \"%s\"", thing.Sensor.MeasurementValue)
+
+
+            // decode value from json in case value has template
+            if thing.Sensor.MeasurementValue != "" {
+                parsedValue := gjson.Get(payload, thing.Sensor.MeasurementValue)
+                if !parsedValue.Exists() {
+                    value = ""
+                } else {
+                    value = parsedValue.String()
+                }
+            }
+
+            err = things.SetSensorValue(ctx, thing.Name, value)
+            if err != nil {
+                // report error, but don't interrupt processing
+                ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+            }
+
+            // store it to influx db if configured
+            if thing.Sensor.StoreInfluxDb  {
+                influxDb := ctx.Value("influxdb").(IInfluxDb)
+                influxDb.PostMeasurement(ctx, thing, value)
+            }
         }
     }
 }

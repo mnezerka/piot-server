@@ -65,8 +65,16 @@ type Thing struct {
 // Represents measurements for things that are sensors
 type SensorData struct {
 
+    // Last value
+    Value string `json:"value" bson:"value"`
+
     // The MQTT topic where sensor values are published
     MeasurementTopic string `json:"measurement_topic" bson:"measurement_topic"`
+
+    // The template for parsing value from MQTT payload, empty value means use
+    // payload as it is. Else the value is extraced according to
+    // https://github.com/tidwall/gjson
+    MeasurementValue string `json:"measurement_value" bson:"measurement_value"`
 
     // Time when last measurement was received
     MeasurementLast int32 `json:"measurement_last" bson:"measurement_last"`

@@ -57,8 +57,11 @@ func GetRootSchema() string {
         }
 
         type SensorData {
+            value: String!
+            unit: String!
             class: String!
             measurement_topic: String!
+            measurement_value: String!
             store_influxdb: Boolean!
         }
 
@@ -108,8 +111,11 @@ func GetRootSchema() string {
         }
 
         input ThingSensorDataUpdate {
-            id: ID!,
+            id: ID!
+            class: String
             store_influxdb: Boolean
+            measurement_topic: String
+            measurement_value: String
         }
 
         input OrgUpdate {

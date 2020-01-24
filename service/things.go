@@ -167,6 +167,21 @@ func (t *Things) SetSensorClass(ctx context.Context, name string, class string) 
     return nil
 }
 
+func (t *Things) SetSensorValue(ctx context.Context, name string, value string) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> sensor value to <%s>", name, value)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"name": name}, bson.M{"$set": bson.M{"sensor.value": value}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", name, err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    return nil
+}
+
+
 func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Touch thing <%s>", id.Hex())
 
