@@ -119,6 +119,16 @@ func (r *ThingResolver) Sensor() *SensorResolver {
     return nil
 }
 
+func (r *ThingResolver) Switch() *SwitchResolver {
+
+    if r.t.Type == model.THING_TYPE_SWITCH {
+        return &SwitchResolver{r.ctx, r.t}
+    }
+
+    return nil
+}
+
+
 /////////////// Sensor Data Resolver
 
 type SensorResolver struct {
@@ -139,7 +149,7 @@ func (r *SensorResolver) MeasurementTopic() string {
             return ""
         }
 
-        return strings.Join([]string{org.Name, r.t.Name, r.t.Sensor.Class, r.t.Sensor.MeasurementTopic}, "/")
+        return strings.Join([]string{org.Name, r.t.Name, r.t.Sensor.MeasurementTopic}, "/")
 
     }
     return ""
@@ -152,6 +162,72 @@ func (r *SensorResolver) Class() string {
 func (r *SensorResolver) StoreInfluxDb() bool {
     return r.t.Sensor.StoreInfluxDb
 }
+
+/////////////// Switch Data Resolver
+
+type SwitchResolver struct {
+    ctx context.Context
+    t *model.Thing
+}
+
+func (r *SwitchResolver) StateTopic() string {
+
+    // if thing is assigned to org
+    if r.t.OrgId != primitive.NilObjectID {
+
+        orgs := r.ctx.Value("orgs").(*service.Orgs)
+
+        org, err := orgs.Get(r.ctx, r.t.OrgId)
+        if err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
+            return ""
+        }
+
+        return strings.Join([]string{org.Name, r.t.Name, r.t.Switch.StateTopic}, "/")
+
+    }
+    return ""
+}
+
+func (r *SwitchResolver) StateOn() string {
+    return r.t.Switch.StateOn
+}
+
+func (r *SwitchResolver) StateOff() string {
+    return r.t.Switch.StateOff
+}
+
+func (r *SwitchResolver) CommandTopic() string {
+
+    // if thing is assigned to org
+    if r.t.OrgId != primitive.NilObjectID {
+
+        orgs := r.ctx.Value("orgs").(*service.Orgs)
+
+        org, err := orgs.Get(r.ctx, r.t.OrgId)
+        if err != nil {
+            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
+            return ""
+        }
+
+        return strings.Join([]string{org.Name, r.t.Name, r.t.Switch.CommandTopic}, "/")
+
+    }
+    return ""
+}
+
+func (r *SwitchResolver) CommandOn() string {
+    return r.t.Switch.CommandOn
+}
+
+func (r *SwitchResolver) CommandOff() string {
+    return r.t.Switch.CommandOff
+}
+
+func (r *SwitchResolver) StoreInfluxDb() bool {
+    return r.t.Switch.StoreInfluxDb
+}
+
 
 /////////////// Resolver
 

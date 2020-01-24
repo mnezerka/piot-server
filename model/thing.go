@@ -14,6 +14,7 @@ const THING_CLASS_PRESSURE = "pressure"
 
 // Represents any device or app
 type Thing struct {
+
     // unique id of the thing
     Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 
@@ -55,8 +56,10 @@ type Thing struct {
     //////////// Sensor data
 
     // The unit of measurement that the sensor is expressed in.
-    Sensor SensorData `json:"sensor bson:"sensor""`
+    Sensor SensorData `json:"sensor" bson:"sensor"`
 
+    // The unit of measurement that the sensor is expressed in.
+    Switch SwitchData `json:"switch" bson:"switch"`
 }
 
 // Represents measurements for things that are sensors
@@ -77,6 +80,33 @@ type SensorData struct {
 
     // The unit of measurement that the sensor is expressed in.
     Unit string `json:"unit bson"unit""`
+
+    // Enable or Disable pushing values to organization assigned Influx database
+    StoreInfluxDb bool `json:"store_influxdb" bson:"store_influxdb"`
+}
+
+// Represents switch (e.g. high voltage power switch)
+type SwitchData struct {
+
+    State bool `json:"state" bson:"state"`
+
+    // Topic to send commands
+    CommandTopic string `json:"command_topic" bson:"command_topic"`
+
+    // Send command to switch on
+    CommandOn string `json:"command_on" bson:"command_on"`
+
+    // Send command to switch off
+    CommandOff string `json:"command_off" bson:"command_off"`
+
+    // Topic to receive switch state (ON or OFF)
+    StateTopic string `json:"state_topic" bson:"state_topic"`
+
+    // Value that represents ON state
+    StateOn string `json:"state_on" bson:"state_on"`
+
+    // Value that represents OFF state
+    StateOff string `json:"state_off" bson:"state_off"`
 
     // Enable or Disable pushing values to organization assigned Influx database
     StoreInfluxDb bool `json:"store_influxdb" bson:"store_influxdb"`

@@ -62,6 +62,16 @@ func GetRootSchema() string {
             store_influxdb: Boolean!
         }
 
+        type SwitchData {
+            state_topic: String!
+            state_on: String!
+            state_off: String!
+            command_topic: String!
+            command_on: String!
+            command_off: String!
+            store_influxdb: Boolean!
+        }
+
         type Thing {
             id: ID!
             name: String!
@@ -76,6 +86,7 @@ func GetRootSchema() string {
             availability_yes: String!
             availability_no: String!
             sensor: SensorData
+            switch: SwitchData
         }
 
         input UserUpdate {
