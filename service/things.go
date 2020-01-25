@@ -181,7 +181,6 @@ func (t *Things) SetSensorValue(ctx context.Context, name string, value string) 
     return nil
 }
 
-
 func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Touch thing <%s>", id.Hex())
 

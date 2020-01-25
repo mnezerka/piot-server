@@ -141,6 +141,10 @@ type SensorResolver struct {
 
 func (r *SensorResolver) MeasurementTopic() string {
 
+    return r.t.Sensor.MeasurementTopic
+
+    /*
+
     // if thing is assigned to org
     if r.t.OrgId != primitive.NilObjectID {
 
@@ -156,6 +160,7 @@ func (r *SensorResolver) MeasurementTopic() string {
 
     }
     return ""
+    */
 }
 
 func (r *SensorResolver) MeasurementValue() string {

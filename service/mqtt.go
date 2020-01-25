@@ -192,6 +192,7 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
 
     // skip things that are not sensors
     switch thing.Type {
+
     // if the device is sensor
     case model.THING_TYPE_SENSOR:
 

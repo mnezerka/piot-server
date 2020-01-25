@@ -93,7 +93,7 @@ func GetRootSchema() string {
         }
 
         input UserUpdate {
-            id: ID!,
+            id: ID!
             email: String
         }
 
@@ -103,10 +103,10 @@ func GetRootSchema() string {
         }
 
         input ThingUpdate {
-            id: ID!,
+            id: ID!
             name: String
-            alias: String,
-            orgId: ID,
+            alias: String
+            orgId: ID
             enabled: Boolean
         }
 
@@ -119,8 +119,8 @@ func GetRootSchema() string {
         }
 
         input OrgUpdate {
-            id: ID!,
-            name: String,
+            id: ID!
+            name: String
             description: String
             influxdb: String
             influxdb_username: String
