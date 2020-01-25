@@ -58,19 +58,19 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
     // get instance of Things service and look for the device (chip),
     // register it if it doesn't exist
     things := ctx.Value("things").(*Things)
-    thing, err := things.Find(ctx, packet.Device)
+    thing, err := things.FindPiot(ctx, packet.Device)
     if err != nil {
         // register device
-        thing, err = things.Register(ctx, packet.Device, model.THING_TYPE_DEVICE)
+        thing, err = things.RegisterPiot(ctx, packet.Device, model.THING_TYPE_DEVICE)
         if err != nil {
             return err
         }
 
         // configure availability topic
-        if err := things.SetAvailabilityTopic(ctx, packet.Device, "available"); err != nil {
+        if err := things.SetAvailabilityTopic(ctx, thing.Id, "available"); err != nil {
             return err
         }
-        if err := things.SetAvailabilityYesNo(ctx, packet.Device, "yes", "no"); err != nil {
+        if err := things.SetAvailabilityYesNo(ctx, thing.Id, "yes", "no"); err != nil {
             return err
         }
     }
@@ -194,18 +194,18 @@ func (p *PiotDevices) processReading(ctx context.Context, class string, thing *m
     if err != nil {
 
         // register register device
-        sensor_thing, err = things.Register(ctx, address, model.THING_TYPE_SENSOR)
+        sensor_thing, err = things.RegisterPiot(ctx, address, model.THING_TYPE_SENSOR)
         if err != nil {
             return err
         }
 
         // register topics for measurements (if presetn)
-        if things.SetSensorMeasurementTopic(ctx, address, PIOT_MEASUREMENT_TOPIC); err != nil {
+        if things.SetSensorMeasurementTopic(ctx, sensor_thing.Id, PIOT_MEASUREMENT_TOPIC); err != nil {
             return err
         }
 
         // set proper device class according to received measurement type
-        if err := things.SetSensorClass(ctx, address, class); err != nil {
+        if err := things.SetSensorClass(ctx, sensor_thing.Id, class); err != nil {
             return err
         }
     }

@@ -50,8 +50,9 @@ func TestRegisterThing(t *testing.T) {
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
     things := service.Things{}
-    thing, err := things.Register(ctx, "thing1", "sensor")
+    thing, err := things.RegisterPiot(ctx, "thing1", "sensor")
     test.Ok(t, err)
+    test.Equals(t, "thing1", thing.PiotId)
     test.Assert(t, thing.Name == "thing1", "Wrong thing name")
     test.Assert(t, thing.Type == "sensor", "Wrong thing type")
 }
@@ -99,16 +100,15 @@ func TestTouchThing(t *testing.T) {
     // TODO check date
 }
 
-
 func TestSetAvailabilityAttributes(t *testing.T) {
     const THING_NAME = "thing2"
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
-    test.CreateThing(t, ctx, THING_NAME)
+    thingId := test.CreateThing(t, ctx, THING_NAME)
     things := service.Things{}
-    err := things.SetAvailabilityTopic(ctx, THING_NAME, "available")
+    err := things.SetAvailabilityTopic(ctx, thingId, "available")
     test.Ok(t, err)
-    err = things.SetAvailabilityYesNo(ctx, THING_NAME, "yes", "no")
+    err = things.SetAvailabilityYesNo(ctx, thingId, "yes", "no")
     test.Ok(t, err)
 
     thing, err := things.Find(ctx, THING_NAME)
@@ -123,9 +123,9 @@ func TestSetSensorAttributes(t *testing.T) {
     const THING_NAME = "thing2"
     ctx := test.CreateTestContext()
     test.CleanDb(t, ctx)
-    test.CreateThing(t, ctx, THING_NAME)
+    thingId := test.CreateThing(t, ctx, THING_NAME)
     things := service.Things{}
-    err := things.SetSensorMeasurementTopic(ctx, THING_NAME, "value")
+    err := things.SetSensorMeasurementTopic(ctx, thingId, "value")
     test.Ok(t, err)
     /*
     err = things.SetSensorClass(ctx, THING_NAME, "temperature")

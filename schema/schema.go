@@ -77,7 +77,9 @@ func GetRootSchema() string {
 
         type Thing {
             id: ID!
+            piot_id: String!
             name: String!
+            description: String!
             alias: String!
             type: String!
             enabled: Boolean!
@@ -104,7 +106,9 @@ func GetRootSchema() string {
 
         input ThingUpdate {
             id: ID!
+            piotId: String
             name: String
+            description: String
             alias: String
             orgId: ID
             enabled: Boolean

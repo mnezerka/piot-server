@@ -16,7 +16,9 @@ import (
 
 type thingUpdateInput struct {
     Id      graphql.ID
+    PiotId *string
     Name    *string
+    Description *string
     Alias   *string
     Enabled *bool
     OrgId   *graphql.ID
@@ -39,8 +41,16 @@ func (r *ThingResolver) Id() graphql.ID {
     return graphql.ID(r.t.Id.Hex())
 }
 
+func (r *ThingResolver) PiotId() string {
+    return r.t.PiotId
+}
+
 func (r *ThingResolver) Name() string {
     return r.t.Name
+}
+
+func (r *ThingResolver) Description() string {
+    return r.t.Description
 }
 
 func (r *ThingResolver) Alias() string {
@@ -380,7 +390,9 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
 
     // thing exists -> update it
     updateFields := bson.M{}
+    if args.Thing.PiotId != nil { updateFields["piot_id"] = *args.Thing.PiotId}
     if args.Thing.Name != nil { updateFields["name"] = *args.Thing.Name}
+    if args.Thing.Description != nil { updateFields["description"] = *args.Thing.Description}
     if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
     if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
     if args.Thing.OrgId != nil {

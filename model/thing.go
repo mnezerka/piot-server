@@ -18,8 +18,16 @@ type Thing struct {
     // unique id of the thing
     Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 
+    // PIOT identification of the thing, this
+    // arrtibute is used for processing messages coming
+    // from PIOT chips via adapter
+    PiotId      string `json:"piot_id" bson:"piot_id"`
+
     // name of the thing
     Name        string `json:"name" bson:"name"`
+
+    // optional description
+    Description string `json:"description" bson:"description"`
 
     // optional alias of the thing - used e.g. in graphs
     Alias       string `json:"alias" bson:"alias"`

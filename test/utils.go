@@ -89,6 +89,7 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
 
     res, err := db.Collection("things").InsertOne(ctx, bson.M{
         "name": name,
+        "piot_id": name,
         "type": "sensor",
         "created": int32(time.Now().Unix()),
         "enabled": true,
@@ -161,5 +162,11 @@ func AddOrgThing(t *testing.T, ctx context.Context, orgId primitive.ObjectID, th
     Ok(t, err)
 
     t.Logf("Thing %s assigned to org %s", thingName, orgId.Hex())
+}
+
+func SetSensorMeasurementTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic string) {
+    db := ctx.Value("db").(*mongo.Database)
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
+    Ok(t, err)
 }
 

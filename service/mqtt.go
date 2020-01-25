@@ -7,6 +7,7 @@ import (
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
+    "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     mqtt "github.com/eclipse/paho.mqtt.golang"
     "github.com/tidwall/gjson"
@@ -135,6 +136,7 @@ func (t *Mqtt) GetThingTopic(ctx context.Context, thing *model.Thing, topic stri
     return fmt.Sprintf("%s/%s/%s/%s", TOPIC_ROOT, org.Name, thing.Name, topic), nil
 }
 
+
 func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, value string) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Push thing data to mqtt broker: %s", thing.Name)
 
@@ -157,14 +159,68 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
     return nil
 }
 
+func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payload string) {
+    ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for sensors in org \"%s\"", topic, org.Name)
+
+    // look for sensors attached to this topic from active org
+    things := ctx.Value("things").(*Things)
+
+    sensors, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SENSOR, "sensor.measurement_topic": topic})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" sensors: %s", org.Name, err.Error())
+        return
+    }
+
+    // convert orgs to org resolvers
+    for i := 0; i < len(sensors); i++ {
+        ctx.Value("log").(*logging.Logger).Debugf("have sensor")
+
+        thing := sensors[i]
+
+        value := payload
+
+        ctx.Value("log").(*logging.Logger).Debugf("MQTT sensor measurement value template: \"%s\"", thing.Sensor.MeasurementValue)
+
+        // decode value from json in case value has template
+        if thing.Sensor.MeasurementValue != "" {
+            parsedValue := gjson.Get(payload, thing.Sensor.MeasurementValue)
+            if !parsedValue.Exists() {
+                value = ""
+            } else {
+                value = parsedValue.String()
+            }
+        }
+
+        // update sensor last seen status
+        err = things.TouchThing(ctx, thing.Id)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+
+        // set value to one from incoming payload
+        err = things.SetSensorValue(ctx, thing.Id, value)
+        if err != nil {
+            // report error, but don't interrupt processing
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+
+        // store it to influx db if configured
+        if thing.Sensor.StoreInfluxDb  {
+            influxDb := ctx.Value("influxdb").(IInfluxDb)
+            influxDb.PostMeasurement(ctx, thing, value)
+        }
+    }
+}
+
+
 // Process message received from MQTT broker for org subscription
 func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
 
     topicParts := strings.Split(topic, "/")
 
-    // skip topics that cannot be sensor thing due too low
-    // number of hierarchy levels
+    // skip topics that don't contain org section (first two
+    // parts
     if len(topicParts) < 3 {
         return
     }
@@ -174,63 +230,20 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
         return
     }
 
-    // look for thing
-    thingName := topicParts[2]
-    things := ctx.Value("things").(*Things)
+    topicThing := strings.Join(topicParts[2:], "/")
 
-    thing, err := things.Find(ctx, thingName)
+    // get org ID
+    orgs := ctx.Value("orgs").(*Orgs)
+    org, err := orgs.GetByName(ctx, topicParts[1])
     if err != nil {
-        // thing not found, ignore topic
+        // unknown organization
+        ctx.Value("log").(*logging.Logger).Warningf("MQTT processing error, unknown org: %s (%s)", topicParts[1], err.Error())
         return
     }
 
-    // update thing last seen status
-    err = things.TouchThing(ctx, thing.Id)
-    if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
-    }
-
-    // skip things that are not sensors
-    switch thing.Type {
-
-    // if the device is sensor
-    case model.THING_TYPE_SENSOR:
-
-        measurementTopicFull, err := t.GetThingTopic(ctx, thing, thing.Sensor.MeasurementTopic)
-        if err != nil {
-            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
-            return
-        }
-
-        // if the message holds value of sensor reading -> extract it
-        if topic == measurementTopicFull {
-
-            value := payload
-
-            ctx.Value("log").(*logging.Logger).Debugf("MQTT sensor measurement value template: \"%s\"", thing.Sensor.MeasurementValue)
 
 
-            // decode value from json in case value has template
-            if thing.Sensor.MeasurementValue != "" {
-                parsedValue := gjson.Get(payload, thing.Sensor.MeasurementValue)
-                if !parsedValue.Exists() {
-                    value = ""
-                } else {
-                    value = parsedValue.String()
-                }
-            }
+    t.ProcessSensors(ctx, org, topicThing, payload);
 
-            err = things.SetSensorValue(ctx, thing.Name, value)
-            if err != nil {
-                // report error, but don't interrupt processing
-                ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
-            }
-
-            // store it to influx db if configured
-            if thing.Sensor.StoreInfluxDb  {
-                influxDb := ctx.Value("influxdb").(IInfluxDb)
-                influxDb.PostMeasurement(ctx, thing, value)
-            }
-        }
-    }
+    // look for switches attached to this topic
 }
