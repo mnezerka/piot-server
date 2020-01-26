@@ -31,6 +31,7 @@ func GetRootSchema() string {
             createThing(name: String!, type: String!): Thing
             updateThing(thing: ThingUpdate!): Thing
             updateThingSensorData(data: ThingSensorDataUpdate!): Thing
+            updateThingSwitchData(data: ThingSwitchDataUpdate!): Thing
         }
 
         type User {
@@ -66,6 +67,7 @@ func GetRootSchema() string {
         }
 
         type SwitchData {
+            state: Boolean!
             state_topic: String!
             state_on: String!
             state_off: String!
@@ -124,6 +126,17 @@ func GetRootSchema() string {
             store_influxdb: Boolean
             measurement_topic: String
             measurement_value: String
+        }
+
+        input ThingSwitchDataUpdate {
+            id: ID!
+            store_influxdb: Boolean
+            state_topic: String
+            state_on: String
+            state_off: String
+            command_topic: String
+            command_on: String
+            command_off: String
         }
 
         input OrgUpdate {

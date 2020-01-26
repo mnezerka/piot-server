@@ -17,8 +17,11 @@ type InfluxDbMock struct {
 }
 
 func (db *InfluxDbMock) PostMeasurement(ctx context.Context, thing *model.Thing, value string) {
-    ctx.Value("log").(*logging.Logger).Debugf("Influxdb - push measurement, thing: %s, val: %s", thing.Name, value)
-
+    ctx.Value("log").(*logging.Logger).Debugf("Influxdb - post measurement, thing: %s, val: %s", thing.Name, value)
     db.Calls = append(db.Calls, influxDbMockCall{thing, value})
-    //return nil
+}
+
+func (db *InfluxDbMock) PostSwitchState(ctx context.Context, thing *model.Thing, value string) {
+    ctx.Value("log").(*logging.Logger).Debugf("Influxdb - post switch state, thing: %s, val: %s", thing.Name, value)
+    db.Calls = append(db.Calls, influxDbMockCall{thing, value})
 }

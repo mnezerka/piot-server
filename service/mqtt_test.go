@@ -157,4 +157,33 @@ func TestMqttMsgMultipleSensors(t *testing.T) {
     test.Equals(t, SENSOR2, influxDb.Calls[1].Thing.Name)
 }
 
+func TestMqttMsgSwitch(t *testing.T) {
+    const THING = "THING1"
+    const ORG = "org1"
 
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+    sensorId := test.CreateSwitch(t, ctx, THING)
+    test.SetSwitchStateTopic(t, ctx, sensorId, THING + "/" + "state", "ON", "OFF")
+    orgId := test.CreateOrg(t, ctx, ORG)
+    test.AddOrgThing(t, ctx, orgId, THING)
+
+    mqtt := service.NewMqtt("uri")
+    influxDb := ctx.Value("influxdb").(*service.InfluxDbMock)
+
+    // send state change to ON
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/state", ORG, THING), "ON")
+
+    // send state change to OFF
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/state", ORG, THING), "OFF")
+
+    // check if mqtt was called
+    test.Equals(t, 2, len(influxDb.Calls))
+
+    test.Equals(t, "1", influxDb.Calls[0].Value)
+    test.Equals(t, THING, influxDb.Calls[0].Thing.Name)
+
+    test.Equals(t, "0", influxDb.Calls[1].Value)
+    test.Equals(t, THING, influxDb.Calls[1].Thing.Name)
+}

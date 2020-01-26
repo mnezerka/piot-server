@@ -101,6 +101,34 @@ func CreateDevice(t *testing.T, ctx context.Context, name string) (primitive.Obj
     return res.InsertedID.(primitive.ObjectID)
 }
 
+func CreateSwitch(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").InsertOne(ctx, bson.M{
+        "name": name,
+        "piot_id": name,
+        "type": "switch",
+        "created": int32(time.Now().Unix()),
+        "enabled": true,
+        "switch": bson.M{
+            "state_topic": "state",
+            "state_on": "ON",
+            "state_off": "OFF",
+            "command_topic": "cmnd",
+            "command_on": "ON",
+            "command_off": "OFF",
+            "store_influxdb": true,
+        },
+    })
+    Ok(t, err)
+
+    t.Logf("Created thing %v", res.InsertedID)
+
+    return res.InsertedID.(primitive.ObjectID)
+}
+
+
 
 func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
 
@@ -192,6 +220,17 @@ func SetSensorMeasurementTopic(t *testing.T, ctx context.Context, thingId primit
 func SetThingTelemetryTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic string) {
     db := ctx.Value("db").(*mongo.Database)
     _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": bson.M{"telemetry_topic": topic}})
+    Ok(t, err)
+}
+
+func SetSwitchStateTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic, on, off string) {
+    update := bson.M{
+        "switch.state_topic": topic,
+        "switch.state_on": on,
+        "switch.state_off": off,
+    }
+    db := ctx.Value("db").(*mongo.Database)
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": update})
     Ok(t, err)
 }
 

@@ -245,6 +245,20 @@ func (t *Things) SetSensorValue(ctx context.Context, id primitive.ObjectID, valu
     return nil
 }
 
+func (t *Things) SetSwitchState(ctx context.Context, id primitive.ObjectID, value bool) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> switch value to <%v>", id, value)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"switch.state": value}})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    return nil
+}
+
 func (t *Things) TouchThing(ctx context.Context, id primitive.ObjectID) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Touch thing <%s>", id.Hex())
 

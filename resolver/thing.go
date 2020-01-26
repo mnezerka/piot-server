@@ -2,7 +2,6 @@ package resolver
 
 import (
     "errors"
-    "strings"
     "time"
     "piot-server/model"
     "github.com/op/go-logging"
@@ -32,6 +31,18 @@ type thingSensorDataUpdateInput struct {
     StoreInfluxDb *bool
     MeasurementTopic *string
     MeasurementValue *string
+}
+
+type thingSwitchDataUpdateInput struct {
+    Id      graphql.ID
+    Class *string
+    StoreInfluxDb *bool
+    StateTopic *string
+    StateOn *string
+    StateOff *string
+    CommandTopic *string
+    CommandOn *string
+    CommandOff *string
 }
 
 type ThingResolver struct {
@@ -211,23 +222,12 @@ type SwitchResolver struct {
     t *model.Thing
 }
 
+func (r *SwitchResolver) State() bool {
+    return r.t.Switch.State
+}
+
 func (r *SwitchResolver) StateTopic() string {
-
-    // if thing is assigned to org
-    if r.t.OrgId != primitive.NilObjectID {
-
-        orgs := r.ctx.Value("orgs").(*service.Orgs)
-
-        org, err := orgs.Get(r.ctx, r.t.OrgId)
-        if err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
-            return ""
-        }
-
-        return strings.Join([]string{org.Name, r.t.Name, r.t.Switch.StateTopic}, "/")
-
-    }
-    return ""
+    return r.t.Switch.StateTopic
 }
 
 func (r *SwitchResolver) StateOn() string {
@@ -239,22 +239,7 @@ func (r *SwitchResolver) StateOff() string {
 }
 
 func (r *SwitchResolver) CommandTopic() string {
-
-    // if thing is assigned to org
-    if r.t.OrgId != primitive.NilObjectID {
-
-        orgs := r.ctx.Value("orgs").(*service.Orgs)
-
-        org, err := orgs.Get(r.ctx, r.t.OrgId)
-        if err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
-            return ""
-        }
-
-        return strings.Join([]string{org.Name, r.t.Name, r.t.Switch.CommandTopic}, "/")
-
-    }
-    return ""
+    return r.t.Switch.CommandTopic
 }
 
 func (r *SwitchResolver) CommandOn() string {
@@ -477,3 +462,51 @@ func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data 
     ctx.Value("log").(*logging.Logger).Debugf("Thing sensor data updated %v", thing)
     return &ThingResolver{ctx, &thing}, nil
 }
+
+func (r *Resolver) UpdateThingSwitchData(ctx context.Context, args struct {Data thingSwitchDataUpdateInput}) (*ThingResolver, error) {
+
+    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s switch data", args.Data.Id)
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Data.Id))
+    if err != nil {
+        return nil, err
+    }
+
+    // try to find thing to be updated
+    var thing model.Thing
+    collection := db.Collection("things")
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Thing does not exist")
+    }
+
+    // thing exists -> update it
+    updateFields := bson.M{}
+    if args.Data.StoreInfluxDb != nil { updateFields["switch.store_influxdb"] = *args.Data.StoreInfluxDb}
+    if args.Data.StateTopic != nil { updateFields["switch.state_topic"] = *args.Data.StateTopic}
+    if args.Data.StateOn != nil { updateFields["switch.state_on"] = *args.Data.StateOn}
+    if args.Data.StateOff != nil { updateFields["switch.state_off"] = *args.Data.StateOff}
+    if args.Data.CommandTopic != nil { updateFields["switch.command_topic"] = *args.Data.CommandTopic}
+    if args.Data.CommandOn != nil { updateFields["switch.command_on"] = *args.Data.CommandOn}
+    if args.Data.CommandOff != nil { updateFields["switch.command_off"] = *args.Data.CommandOff}
+    update := bson.M{"$set": updateFields}
+
+    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        return nil, errors.New("Error while updating thing")
+    }
+
+    // read thing
+    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return nil, errors.New("Cannot fetch thing data")
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("Thing switch data updated %v", thing)
+    return &ThingResolver{ctx, &thing}, nil
+}
+

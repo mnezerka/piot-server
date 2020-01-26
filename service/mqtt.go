@@ -2,6 +2,7 @@ package service
 
 import (
     "context"
+    "errors"
     "fmt"
     "strings"
     "time"
@@ -171,9 +172,6 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
         return
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("devices: %d", len(devices))
-
-
     for i := 0; i < len(devices); i++ {
 
         thing := devices[i]
@@ -193,8 +191,6 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
         return
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("devices: %d", len(devices))
-
     for i := 0; i < len(devices); i++ {
 
         thing := devices[i]
@@ -212,7 +208,6 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
     }
 }
 
-
 func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for sensors in org \"%s\"", topic, org.Name)
 
@@ -227,8 +222,6 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
 
     // convert orgs to org resolvers
     for i := 0; i < len(sensors); i++ {
-        ctx.Value("log").(*logging.Logger).Debugf("have sensor")
-
         thing := sensors[i]
 
         value := payload
@@ -266,7 +259,52 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
     }
 }
 
+func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, payload string) {
+    ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for switches in org \"%s\"", topic, org.Name)
 
+    // look for sensors attached to this topic from active org
+    things := ctx.Value("things").(*Things)
+
+    switches, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SWITCH, "switch.state_topic": topic})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" switches: %s", org.Name, err.Error())
+        return
+    }
+
+    // convert orgs to org resolvers
+    for i := 0; i < len(switches); i++ {
+
+        thing := switches[i]
+
+
+        // update sensor last seen status
+        err = things.TouchThing(ctx, thing.Id)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+
+        influxValue := ""
+        switch(payload) {
+        case thing.Switch.StateOn:
+            err = things.SetSwitchState(ctx, thing.Id, true)
+            influxValue = "1"
+        case thing.Switch.StateOff:
+            err = things.SetSwitchState(ctx, thing.Id, false)
+            influxValue = "0"
+        default:
+            err = errors.New("Unknown switch state")
+        }
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Warningf("Issue with processing of switch %s MQTT state messsage: %s", thing.Name, err.Error())
+        }
+
+        // store it to influx db if configured
+        if thing.Switch.StoreInfluxDb {
+            influxDb := ctx.Value("influxdb").(IInfluxDb)
+            influxDb.PostSwitchState(ctx, thing, influxValue)
+        }
+    }
+}
 
 // Process message received from MQTT broker for org subscription
 func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
@@ -300,6 +338,8 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     t.ProcessDevices(ctx, org, topicThing, payload);
 
     t.ProcessSensors(ctx, org, topicThing, payload);
+
+    t.ProcessSwitches(ctx, org, topicThing, payload);
 
     // look for switches attached to this topic
 }

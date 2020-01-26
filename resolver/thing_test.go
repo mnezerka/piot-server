@@ -138,3 +138,28 @@ func TestThingSensorDataUpdate(t *testing.T) {
         `,
     })
 }
+
+func TestThingSwitchDataUpdate(t *testing.T) {
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+    id := test.CreateSwitch(t, ctx, "thing1")
+
+    t.Logf("Thing to be updated %s", id)
+
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: ctx,
+        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Query: fmt.Sprintf(`
+            mutation {
+                updateThingSwitchData(data: {id: "%s", store_influxdb: false, state_topic: "statetopic"}) {switch {store_influxdb, state_topic}}
+            }
+        `, id.Hex()),
+        ExpectedResult: `
+            {
+                "updateThingSwitchData": {
+                    "switch": {"store_influxdb": false, "state_topic": "statetopic"}
+                }
+            }
+        `,
+    })
+}
