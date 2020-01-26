@@ -61,6 +61,12 @@ type Thing struct {
     AvailabilityYes     string `json:"availability_yes" bson:"availability_yes"`
     AvailabilityNo      string `json:"availability_no" bson:"availability_no"`
 
+    // the MQTT topic for receiving telemetry information
+    TelemetryTopic      string `json:"telemetry_topic" bson:"telemetry_topic"`
+
+    // time the thing was seen last time
+    Telemetry           string `json:"telemetry" bson:"telemetry"`
+
     //////////// Sensor data
 
     // The unit of measurement that the sensor is expressed in.

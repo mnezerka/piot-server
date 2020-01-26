@@ -22,6 +22,8 @@ type thingUpdateInput struct {
     Alias   *string
     Enabled *bool
     OrgId   *graphql.ID
+    AvailabilityTopic   *string
+    TelemetryTopic   *string
 }
 
 type thingSensorDataUpdateInput struct {
@@ -121,6 +123,14 @@ func (r *ThingResolver) AvailabilityYes() string {
 
 func (r *ThingResolver) AvailabilityNo() string {
     return r.t.AvailabilityNo
+}
+
+func (r *ThingResolver) TelemetryTopic() string {
+    return r.t.TelemetryTopic
+}
+
+func (r *ThingResolver) Telemetry() string {
+    return r.t.Telemetry
 }
 
 func (r *ThingResolver) Sensor() *SensorResolver {
@@ -395,6 +405,9 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     if args.Thing.Description != nil { updateFields["description"] = *args.Thing.Description}
     if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
     if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
+    if args.Thing.AvailabilityTopic != nil { updateFields["availability_topic"] = *args.Thing.AvailabilityTopic}
+    if args.Thing.TelemetryTopic != nil { updateFields["telemetry_topic"] = *args.Thing.TelemetryTopic}
+
     if args.Thing.OrgId != nil {
         // create ObjectID from string
         orgId, err := primitive.ObjectIDFromHex(string(*args.Thing.OrgId))

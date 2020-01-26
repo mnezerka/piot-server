@@ -136,7 +136,6 @@ func (t *Mqtt) GetThingTopic(ctx context.Context, thing *model.Thing, topic stri
     return fmt.Sprintf("%s/%s/%s/%s", TOPIC_ROOT, org.Name, thing.Name, topic), nil
 }
 
-
 func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, value string) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Push thing data to mqtt broker: %s", thing.Name)
 
@@ -158,6 +157,61 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
     token.Wait()
     return nil
 }
+
+func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payload string) {
+    ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for devices in org \"%s\"", topic, org.Name)
+
+    // look for sensors attached to this topic from active org
+    things := ctx.Value("things").(*Things)
+
+    // update availability
+    devices, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "availability_topic": topic})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
+        return
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("devices: %d", len(devices))
+
+
+    for i := 0; i < len(devices); i++ {
+
+        thing := devices[i]
+
+        // update sensor last seen status
+        err = things.TouchThing(ctx, thing.Id)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+    }
+
+
+    // update telemetry
+    devices, err = things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
+        return
+    }
+
+    ctx.Value("log").(*logging.Logger).Debugf("devices: %d", len(devices))
+
+    for i := 0; i < len(devices); i++ {
+
+        thing := devices[i]
+
+        // update sensor last seen status
+        err = things.TouchThing(ctx, thing.Id)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+
+        err = things.SetTelemetry(ctx, thing.Id, payload)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+    }
+}
+
 
 func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for sensors in org \"%s\"", topic, org.Name)
@@ -213,6 +267,7 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
 }
 
 
+
 // Process message received from MQTT broker for org subscription
 func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
@@ -242,6 +297,7 @@ func (t *Mqtt) ProcessMessage(ctx context.Context, topic, payload string) {
     }
 
 
+    t.ProcessDevices(ctx, org, topicThing, payload);
 
     t.ProcessSensors(ctx, org, topicThing, payload);
 

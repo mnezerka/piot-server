@@ -83,6 +83,25 @@ func CleanDb(t *testing.T, ctx context.Context) {
     t.Log("DB is clean")
 }
 
+func CreateDevice(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    res, err := db.Collection("things").InsertOne(ctx, bson.M{
+        "name": name,
+        "piot_id": name,
+        "type": "device",
+        "created": int32(time.Now().Unix()),
+        "enabled": true,
+    })
+    Ok(t, err)
+
+    t.Logf("Created thing of type device: %v", res.InsertedID)
+
+    return res.InsertedID.(primitive.ObjectID)
+}
+
+
 func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
 
     db := ctx.Value("db").(*mongo.Database)
@@ -167,6 +186,12 @@ func AddOrgThing(t *testing.T, ctx context.Context, orgId primitive.ObjectID, th
 func SetSensorMeasurementTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic string) {
     db := ctx.Value("db").(*mongo.Database)
     _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
+    Ok(t, err)
+}
+
+func SetThingTelemetryTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic string) {
+    db := ctx.Value("db").(*mongo.Database)
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": bson.M{"telemetry_topic": topic}})
     Ok(t, err)
 }
 

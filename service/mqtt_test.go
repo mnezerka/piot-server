@@ -23,6 +23,30 @@ func TestMqttMsgNotSensor(t *testing.T) {
     mqtt.ProcessMessage(ctx, "org/hello/x", "payload")
 }
 
+func TestMqttThingTelemetry(t *testing.T) {
+    const THING = "device1"
+    const ORG = "org1"
+
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+    thingId := test.CreateDevice(t, ctx, THING)
+    test.SetThingTelemetryTopic(t, ctx, thingId, THING + "/" + "telemetry")
+    orgId := test.CreateOrg(t, ctx, ORG)
+    test.AddOrgThing(t, ctx, orgId, THING)
+
+    mqtt := service.NewMqtt("uri")
+
+    // send telemetry message
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/telemetry", ORG, THING), "telemetry data")
+
+    things := service.Things{}
+    thing, err := things.Get(ctx, thingId)
+    test.Ok(t, err)
+    test.Equals(t, THING, thing.Name)
+    test.Equals(t, "telemetry data", thing.Telemetry)
+}
+
 func TestMqttMsgSensor(t *testing.T) {
     const SENSOR = "sensor1"
     const ORG = "org1"

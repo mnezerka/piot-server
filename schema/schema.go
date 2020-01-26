@@ -90,6 +90,8 @@ func GetRootSchema() string {
             availability_topic: String!
             availability_yes: String!
             availability_no: String!
+            telemetry_topic: String!
+            telemetry: String!
             sensor: SensorData
             switch: SwitchData
         }
@@ -112,6 +114,8 @@ func GetRootSchema() string {
             alias: String
             orgId: ID
             enabled: Boolean
+            availability_topic: String
+            telemetry_topic: String
         }
 
         input ThingSensorDataUpdate {
@@ -126,6 +130,7 @@ func GetRootSchema() string {
             id: ID!
             name: String
             description: String
+
             influxdb: String
             influxdb_username: String
             influxdb_password: String
