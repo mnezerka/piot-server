@@ -55,6 +55,8 @@ func GetRootSchema() string {
             influxdb: String!
             influxdb_username: String!
             influxdb_password: String!
+            mqtt_username: String!
+            mqtt_password: String!
         }
 
         type SensorData {
@@ -147,6 +149,8 @@ func GetRootSchema() string {
             influxdb: String
             influxdb_username: String
             influxdb_password: String
+            mqtt_username: String
+            mqtt_password: String
         }
     `
 }

@@ -19,6 +19,8 @@ type orgUpdateInput struct {
     InfluxDb *string
     InfluxDbUsername *string
     InfluxDbPassword *string
+    MqttUsername *string
+    MqttPassword *string
 }
 
 /////////// Org Resolver
@@ -50,6 +52,14 @@ func (r *OrgResolver) InfluxdbUsername() string {
 
 func (r *OrgResolver) InfluxdbPassword() string {
     return r.org.InfluxDbPassword
+}
+
+func (r *OrgResolver) MqttUsername() string {
+    return r.org.MqttUsername
+}
+
+func (r *OrgResolver) MqttPassword() string {
+    return r.org.MqttPassword
 }
 
 func (r *OrgResolver) Created() int32 {
@@ -243,6 +253,9 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInpu
     if args.Org.InfluxDb != nil { updateFields["influxdb"] = args.Org.InfluxDb}
     if args.Org.InfluxDbUsername != nil { updateFields["influxdb_username"] = args.Org.InfluxDbUsername}
     if args.Org.InfluxDbPassword != nil { updateFields["influxdb_password"] = args.Org.InfluxDbPassword}
+    if args.Org.MqttUsername != nil { updateFields["mqtt_username"] = args.Org.MqttUsername}
+    if args.Org.MqttPassword != nil { updateFields["mqtt_password"] = args.Org.MqttPassword}
+
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
