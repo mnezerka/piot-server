@@ -16,6 +16,13 @@ type MysqlDbMock struct {
     Calls []mysqlDbMockCall
 }
 
+func (db *MysqlDbMock) Open(ctx context.Context) error {
+    return nil
+}
+
+func (db *MysqlDbMock) Close(ctx context.Context) {
+}
+
 func (db *MysqlDbMock) StoreMeasurement(ctx context.Context, thing *model.Thing, value string) {
     ctx.Value("log").(*logging.Logger).Debugf("Mysqldb mock - store measurement, thing: %s, val: %s", thing.Name, value)
     db.Calls = append(db.Calls, mysqlDbMockCall{thing, value})

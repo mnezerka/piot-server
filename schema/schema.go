@@ -69,6 +69,7 @@ func GetRootSchema() string {
             measurement_topic: String!
             measurement_value: String!
             store_influxdb: Boolean!
+            store_mysqldb: Boolean!
         }
 
         type SwitchData {
@@ -80,6 +81,7 @@ func GetRootSchema() string {
             command_on: String!
             command_off: String!
             store_influxdb: Boolean!
+            store_mysqldb: Boolean!
         }
 
         type Thing {
@@ -129,6 +131,7 @@ func GetRootSchema() string {
             id: ID!
             class: String
             store_influxdb: Boolean
+            store_mysqldb: Boolean
             measurement_topic: String
             measurement_value: String
         }
@@ -136,6 +139,7 @@ func GetRootSchema() string {
         input ThingSwitchDataUpdate {
             id: ID!
             store_influxdb: Boolean
+            store_mysqldb: Boolean
             state_topic: String
             state_on: String
             state_off: String

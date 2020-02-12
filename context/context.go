@@ -91,6 +91,7 @@ func NewContext(o *ContextOptions) context.Context {
     } else {
         // real influxdb service instance
         influxdb = service.NewInfluxDb(o.InfluxDbUri, o.InfluxDbUsername, o.InfluxDbPassword)
+
     }
     ctx = context.WithValue(ctx, "influxdb", influxdb)
 
@@ -103,6 +104,11 @@ func NewContext(o *ContextOptions) context.Context {
     } else {
         // real mysqldb service instance
         mysqldb = service.NewMysqlDb(o.MysqlDbHost, o.MysqlDbUsername, o.MysqlDbPassword)
+        err := mysqldb.Open(ctx)
+        if err != nil {
+            log.Fatalf("Connect to mysql server failed %v", err)
+            os.Exit(1)
+        }
     }
     ctx = context.WithValue(ctx, "mysqldb", mysqldb)
 
