@@ -48,7 +48,12 @@ func TestOrgGet(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                org(id: "%s") {name, users {email}, influxdb, influxdb_username, influxdb_password}
+                org(id: "%s") {
+                    name,
+                    users {email},
+                    influxdb, influxdb_username, influxdb_password,
+                    mysqldb, mysqldb_username, mysqldb_password,
+                }
             }
         `, orgId.Hex()),
         ExpectedResult: `
@@ -58,7 +63,10 @@ func TestOrgGet(t *testing.T) {
                     "users": [{"email": "org1user@test.com"}],
                     "influxdb": "db",
                     "influxdb_username": "db-username",
-                    "influxdb_password": "db-password"
+                    "influxdb_password": "db-password",
+                    "mysqldb": "mysqldb",
+                    "mysqldb_username": "mysqldb-username",
+                    "mysqldb_password": "mysqldb-password"
                 }
             }
         `,

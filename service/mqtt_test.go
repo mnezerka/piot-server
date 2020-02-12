@@ -47,6 +47,7 @@ func TestMqttThingTelemetry(t *testing.T) {
     test.Equals(t, "telemetry data", thing.Telemetry)
 }
 
+// incoming sensor MQTT message for registered sensor
 func TestMqttMsgSensor(t *testing.T) {
     const SENSOR = "sensor1"
     const ORG = "org1"
@@ -61,6 +62,7 @@ func TestMqttMsgSensor(t *testing.T) {
 
     mqtt := service.NewMqtt("uri")
     influxDb := ctx.Value("influxdb").(*service.InfluxDbMock)
+    mysqlDb := ctx.Value("mysqldb").(*service.MysqlDbMock)
 
     // send unit message to registered thing
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/unit", ORG, SENSOR), "C")
@@ -68,11 +70,15 @@ func TestMqttMsgSensor(t *testing.T) {
     // send temperature message to registered thing
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value", ORG, SENSOR), "23")
 
-    // check if mqtt was called
+    // check if influxdb was called
     test.Equals(t, 1, len(influxDb.Calls))
-
     test.Equals(t, "23", influxDb.Calls[0].Value)
     test.Equals(t, SENSOR, influxDb.Calls[0].Thing.Name)
+
+    // check if mysql was called
+    test.Equals(t, 1, len(mysqlDb.Calls))
+    test.Equals(t, "23", mysqlDb.Calls[0].Value)
+    test.Equals(t, SENSOR, mysqlDb.Calls[0].Thing.Name)
 
     // second round of calls to check proper functionality for high load
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/unit", ORG, SENSOR), "C")
@@ -99,15 +105,18 @@ func TestMqttMsgSensorWithComplexValue(t *testing.T) {
 
     mqtt := service.NewMqtt("uri")
     influxDb := ctx.Value("influxdb").(*service.InfluxDbMock)
+    mysqlDb := ctx.Value("mysqldb").(*service.MysqlDbMock)
 
     // send temperature message to registered thing
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value", ORG, SENSOR), "{\"temp\": \"23\"}")
 
-    // check if mqtt was called
+    // check if persistent storages were called
     test.Equals(t, 1, len(influxDb.Calls))
-
+    test.Equals(t, 1, len(mysqlDb.Calls))
     test.Equals(t, "23", influxDb.Calls[0].Value)
     test.Equals(t, SENSOR, influxDb.Calls[0].Thing.Name)
+    test.Equals(t, "23", mysqlDb.Calls[0].Value)
+    test.Equals(t, SENSOR, mysqlDb.Calls[0].Thing.Name)
 
     // more complex structure
     _, err = db.Collection("things").UpdateOne(ctx, bson.M{"_id": sensorId}, bson.M{"$set": bson.M{"sensor.measurement_value": "DS18B20.Temperature"}})
@@ -116,14 +125,16 @@ func TestMqttMsgSensorWithComplexValue(t *testing.T) {
     payload := "{\"Time\":\"2020-01-24T22:52:58\",\"DS18B20\":{\"Id\":\"0416C18091FF\",\"Temperature\":23.0}"
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/value", ORG, SENSOR), payload)
 
-    // check if mqtt was called
+    // check if persistent storages were called
     test.Equals(t, 2, len(influxDb.Calls))
-
+    test.Equals(t, 2, len(mysqlDb.Calls))
     test.Equals(t, "23", influxDb.Calls[1].Value)
     test.Equals(t, SENSOR, influxDb.Calls[1].Thing.Name)
+    test.Equals(t, "23", mysqlDb.Calls[1].Value)
+    test.Equals(t, SENSOR, mysqlDb.Calls[1].Thing.Name)
 }
 
-// test for case when more sensors sue same topic
+// test for case when more sensors share same topic
 func TestMqttMsgMultipleSensors(t *testing.T) {
     const SENSOR1 = "sensor1"
     const SENSOR2 = "sensor2"
@@ -143,18 +154,23 @@ func TestMqttMsgMultipleSensors(t *testing.T) {
 
     mqtt := service.NewMqtt("uri")
     influxDb := ctx.Value("influxdb").(*service.InfluxDbMock)
+    mysqlDb := ctx.Value("mysqldb").(*service.MysqlDbMock)
 
     // send temperature message to registered thing
     mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/xyz/value", ORG), "23")
 
-    // check if influxdb was called
+    // check if persistent storages were called
     test.Equals(t, 2, len(influxDb.Calls))
-
     test.Equals(t, "23", influxDb.Calls[0].Value)
     test.Equals(t, SENSOR1, influxDb.Calls[0].Thing.Name)
-
     test.Equals(t, "23", influxDb.Calls[1].Value)
     test.Equals(t, SENSOR2, influxDb.Calls[1].Thing.Name)
+
+    test.Equals(t, 2, len(mysqlDb.Calls))
+    test.Equals(t, "23", mysqlDb.Calls[0].Value)
+    test.Equals(t, SENSOR1, mysqlDb.Calls[0].Thing.Name)
+    test.Equals(t, "23", mysqlDb.Calls[1].Value)
+    test.Equals(t, SENSOR2, mysqlDb.Calls[1].Thing.Name)
 }
 
 func TestMqttMsgSwitch(t *testing.T) {

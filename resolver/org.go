@@ -19,6 +19,9 @@ type orgUpdateInput struct {
     InfluxDb *string
     InfluxDbUsername *string
     InfluxDbPassword *string
+    MysqlDb *string
+    MysqlDbUsername *string
+    MysqlDbPassword *string
     MqttUsername *string
     MqttPassword *string
 }
@@ -52,6 +55,18 @@ func (r *OrgResolver) InfluxdbUsername() string {
 
 func (r *OrgResolver) InfluxdbPassword() string {
     return r.org.InfluxDbPassword
+}
+
+func (r *OrgResolver) MysqlDb() string {
+    return r.org.MysqlDb
+}
+
+func (r *OrgResolver) MysqldbUsername() string {
+    return r.org.MysqlDbUsername
+}
+
+func (r *OrgResolver) MysqldbPassword() string {
+    return r.org.MysqlDbPassword
 }
 
 func (r *OrgResolver) MqttUsername() string {
@@ -253,6 +268,9 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInpu
     if args.Org.InfluxDb != nil { updateFields["influxdb"] = args.Org.InfluxDb}
     if args.Org.InfluxDbUsername != nil { updateFields["influxdb_username"] = args.Org.InfluxDbUsername}
     if args.Org.InfluxDbPassword != nil { updateFields["influxdb_password"] = args.Org.InfluxDbPassword}
+    if args.Org.MysqlDb != nil { updateFields["mysqldb"] = args.Org.MysqlDb}
+    if args.Org.MysqlDbUsername != nil { updateFields["mysqldb_username"] = args.Org.MysqlDbUsername}
+    if args.Org.MysqlDbPassword != nil { updateFields["mysqldb_password"] = args.Org.MysqlDbPassword}
     if args.Org.MqttUsername != nil { updateFields["mqtt_username"] = args.Org.MqttUsername}
     if args.Org.MqttPassword != nil { updateFields["mqtt_password"] = args.Org.MqttPassword}
 

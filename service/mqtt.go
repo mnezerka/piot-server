@@ -256,6 +256,13 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
             influxDb := ctx.Value("influxdb").(IInfluxDb)
             influxDb.PostMeasurement(ctx, thing, value)
         }
+
+        // store it to mysql db if configured
+        if thing.Sensor.StoreMysqlDb {
+            mysqlDb := ctx.Value("mysqldb").(IMysqlDb)
+            mysqlDb.StoreMeasurement(ctx, thing, value)
+        }
+
     }
 }
 
@@ -283,14 +290,14 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
 
-        influxValue := ""
+        dbValue := ""
         switch(payload) {
         case thing.Switch.StateOn:
             err = things.SetSwitchState(ctx, thing.Id, true)
-            influxValue = "1"
+            dbValue = "1"
         case thing.Switch.StateOff:
             err = things.SetSwitchState(ctx, thing.Id, false)
-            influxValue = "0"
+            dbValue = "0"
         default:
             err = errors.New("Unknown switch state")
         }
@@ -301,7 +308,13 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
         // store it to influx db if configured
         if thing.Switch.StoreInfluxDb {
             influxDb := ctx.Value("influxdb").(IInfluxDb)
-            influxDb.PostSwitchState(ctx, thing, influxValue)
+            influxDb.PostSwitchState(ctx, thing, dbValue)
+        }
+
+        // store it to mysql db if configured
+        if thing.Switch.StoreMysqlDb {
+            mysqlDb := ctx.Value("mysqldb").(IMysqlDb)
+            mysqlDb.StoreSwitchState(ctx, thing, dbValue)
         }
     }
 }

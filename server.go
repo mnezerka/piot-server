@@ -171,6 +171,22 @@ func main() {
             Usage:  "Password for InfluxDB user with admin privileges",
             EnvVar: "INFLUXDB_PASSWORD",
         },
+        cli.StringFlag{
+            Name:   "mysqldb-host",
+            Usage:  "Hostname for the Mysql database",
+            EnvVar: "MYSQLDB_URI",
+        },
+        cli.StringFlag{
+            Name:   "mysqldb-user",
+            Usage:  "Username for mysql user with admin privileges",
+            EnvVar: "MYSQLDB_USER",
+        },
+        cli.StringFlag{
+            Name:   "mysqldb-password",
+            Usage:  "Password for mysql user with admin privileges",
+            EnvVar: "MYSQLDB_PASSWORD",
+        },
+
     }
 
     app.Run(os.Args)

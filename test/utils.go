@@ -24,7 +24,8 @@ func CreateTestContext() context.Context {
     contextOptions.DbName = "piot-test"
     contextOptions.MqttUri = "mock"
     contextOptions.Params.LogLevel = "DEBUG"
-    //contextOptions.InfluxDbUri = "mock"
+    contextOptions.InfluxDbUri = "mock"
+    contextOptions.MysqlDbHost = "mock"
 
     ctx := piotcontext.NewContext(contextOptions)
 
@@ -84,7 +85,6 @@ func CleanDb(t *testing.T, ctx context.Context) {
 }
 
 func CreateDevice(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
-
     db := ctx.Value("db").(*mongo.Database)
 
     res, err := db.Collection("things").InsertOne(ctx, bson.M{
@@ -102,7 +102,6 @@ func CreateDevice(t *testing.T, ctx context.Context, name string) (primitive.Obj
 }
 
 func CreateSwitch(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
-
     db := ctx.Value("db").(*mongo.Database)
 
     res, err := db.Collection("things").InsertOne(ctx, bson.M{
@@ -128,10 +127,7 @@ func CreateSwitch(t *testing.T, ctx context.Context, name string) (primitive.Obj
     return res.InsertedID.(primitive.ObjectID)
 }
 
-
-
 func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.ObjectID) {
-
     db := ctx.Value("db").(*mongo.Database)
 
     res, err := db.Collection("things").InsertOne(ctx, bson.M{
@@ -144,6 +140,7 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
             "class": "temperature",
             "measurement_topic": "value",
             "store_influxdb": true,
+            "store_mysqldb": true,
         },
     })
     Ok(t, err)
@@ -181,6 +178,9 @@ func CreateOrg(t *testing.T, ctx context.Context, name string) (primitive.Object
         "influxdb": "db",
         "influxdb_username": "db-username",
         "influxdb_password": "db-password",
+        "mysqldb": "mysqldb",
+        "mysqldb_username": "mysqldb-username",
+        "mysqldb_password": "mysqldb-password",
     })
     Ok(t, err)
 

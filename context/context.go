@@ -94,6 +94,18 @@ func NewContext(o *ContextOptions) context.Context {
     }
     ctx = context.WithValue(ctx, "influxdb", influxdb)
 
+    /////////////// PIOT MYSQLDB SERVICE
+
+    // create global mysql db service for all handlers
+    var mysqldb service.IMysqlDb
+    if o.MysqlDbHost == "mock" {
+        mysqldb = &service.MysqlDbMock{}
+    } else {
+        // real mysqldb service instance
+        mysqldb = service.NewMysqlDb(o.MysqlDbHost, o.MysqlDbUsername, o.MysqlDbPassword)
+    }
+    ctx = context.WithValue(ctx, "mysqldb", mysqldb)
+
     /////////////// HTTP CLIENT SERVICE
 
     // create global http client service to be used by handlers

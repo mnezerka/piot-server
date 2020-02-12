@@ -105,6 +105,9 @@ type SensorData struct {
 
     // Enable or Disable pushing values to organization assigned Influx database
     StoreInfluxDb bool `json:"store_influxdb" bson:"store_influxdb"`
+
+    // Enable or Disable storing values to mysql db assigned to organization
+    StoreMysqlDb bool `json:"store_mysqldb" bson:"store_mysqldb"`
 }
 
 // Represents switch (e.g. high voltage power switch)
@@ -132,4 +135,7 @@ type SwitchData struct {
 
     // Enable or Disable pushing values to organization assigned Influx database
     StoreInfluxDb bool `json:"store_influxdb" bson:"store_influxdb"`
+
+    // Enable or Disable storing values to mysql db assigned to organization
+    StoreMysqlDb bool `json:"store_mysqldb" bson:"store_mysqldb"`
 }

@@ -55,6 +55,9 @@ func GetRootSchema() string {
             influxdb: String!
             influxdb_username: String!
             influxdb_password: String!
+            mysqldb: String!
+            mysqldb_username: String!
+            mysqldb_password: String!
             mqtt_username: String!
             mqtt_password: String!
         }
@@ -145,10 +148,12 @@ func GetRootSchema() string {
             id: ID!
             name: String
             description: String
-
             influxdb: String
             influxdb_username: String
             influxdb_password: String
+            mysqldb: String
+            mysqldb_username: String
+            mysqldb_password: String
             mqtt_username: String
             mqtt_password: String
         }

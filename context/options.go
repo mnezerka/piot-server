@@ -14,6 +14,9 @@ type ContextOptions struct {
     InfluxDbUri string
     InfluxDbUsername string
     InfluxDbPassword string
+    MysqlDbHost string
+    MysqlDbUsername string
+    MysqlDbPassword string
     Params *config.Parameters
 }
 
@@ -25,9 +28,12 @@ func NewContextOptions() *ContextOptions {
         MqttClient:     "",
         DbUri:          "piot",
         DbName:         "piot",
-        InfluxDbUri:        "mock",
+        InfluxDbUri:        "",
         InfluxDbUsername:   "",
         InfluxDbPassword:   "",
+        MysqlDbHost:        "",
+        MysqlDbUsername:   "",
+        MysqlDbPassword:   "",
         Params:         config.NewParameters(),
     }
     return o

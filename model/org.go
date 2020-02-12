@@ -15,6 +15,9 @@ type Org struct {
     InfluxDbPassword   string `json:"influxdb_password" bson:"influxdb_password"`
     MqttUsername   string `json:"mqtt_username" bson:"mqtt_username"`
     MqttPassword   string `json:"mqtt_password" bson:"mqtt_password"`
+    MysqlDb    string `json:"mysqldb"`
+    MysqlDbUsername   string `json:"mysqldb_username" bson:"mysqldb_username"`
+    MysqlDbPassword   string `json:"mysqldb_password" bson:"mysqldb_password"`
 }
 
 // Represents assignment of user to org

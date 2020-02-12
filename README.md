@@ -48,11 +48,11 @@ handlers.
 2. Run script ``scripts/env.sh`` to get IP address of mongo container
    and set env variable for piot server
 
-3. Run tests:
+3. Run tests (not in parallel since shared mongodb is used):
 
    ```
    # all tests
-   go test ./...
+   go test -p 1 ./...
 
    # tests for selected package (handler)
    go test ./handler
