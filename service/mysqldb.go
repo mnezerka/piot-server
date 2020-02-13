@@ -106,7 +106,7 @@ func (db *MysqlDb) StoreMeasurement(ctx context.Context, thing *model.Thing, val
         return
     }
 
-    query := "INSERT IGNORE INTO sensors (`id`, `org`, `class`, `value`, `time`) VALUES (?, ?, ?, ?, ?)"
+    query := "INSERT IGNORE INTO piot_sensors (`id`, `org`, `class`, `value`, `time`) VALUES (?, ?, ?, ?, ?)"
 
     r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, thing.Sensor.Class, valueFloat, int32(time.Now().Unix()))
 
@@ -135,7 +135,7 @@ func (db *MysqlDb) StoreSwitchState(ctx context.Context, thing *model.Thing, val
         return
     }
 
-    query := "INSERT IGNORE INTO switches (`id`, `org`, `value`, `time`) VALUES (?, ?, ?, ?)"
+    query := "INSERT IGNORE INTO piot_switches (`id`, `org`, `value`, `time`) VALUES (?, ?, ?, ?)"
 
     r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, valueInt, int32(time.Now().Unix()))
 

@@ -177,7 +177,7 @@ func main() {
         cli.StringFlag{
             Name:   "mysqldb-host",
             Usage:  "Hostname for the Mysql database",
-            EnvVar: "MYSQLDB_URI",
+            EnvVar: "MYSQLDB_HOST",
         },
         cli.StringFlag{
             Name:   "mysqldb-user",
