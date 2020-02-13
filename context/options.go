@@ -17,6 +17,7 @@ type ContextOptions struct {
     MysqlDbHost string
     MysqlDbUsername string
     MysqlDbPassword string
+    MysqlDbName string
     Params *config.Parameters
 }
 
@@ -34,6 +35,7 @@ func NewContextOptions() *ContextOptions {
         MysqlDbHost:        "",
         MysqlDbUsername:   "",
         MysqlDbPassword:   "",
+        MysqlDbName    :   "",
         Params:         config.NewParameters(),
     }
     return o

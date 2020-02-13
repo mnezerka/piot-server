@@ -34,6 +34,7 @@ func runServer(c *cli.Context) {
     contextOptions.MysqlDbHost = c.GlobalString("mysqldb-host")
     contextOptions.MysqlDbUsername = c.GlobalString("mysqldb-user")
     contextOptions.MysqlDbPassword = c.GlobalString("mysqldb-password")
+    contextOptions.MysqlDbName = c.GlobalString("mysqldb-name")
     contextOptions.Params.LogLevel = c.GlobalString("log-level")
     contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
     contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
@@ -189,7 +190,11 @@ func main() {
             Usage:  "Password for mysql user with admin privileges",
             EnvVar: "MYSQLDB_PASSWORD",
         },
-
+        cli.StringFlag{
+            Name:   "mysqldb-name",
+            Usage:  "Mysql database name",
+            EnvVar: "MYSQLDB_NAME",
+        },
     }
 
     app.Run(os.Args)

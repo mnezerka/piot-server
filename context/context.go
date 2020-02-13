@@ -103,7 +103,7 @@ func NewContext(o *ContextOptions) context.Context {
         mysqldb = &service.MysqlDbMock{}
     } else {
         // real mysqldb service instance
-        mysqldb = service.NewMysqlDb(o.MysqlDbHost, o.MysqlDbUsername, o.MysqlDbPassword)
+        mysqldb = service.NewMysqlDb(o.MysqlDbHost, o.MysqlDbUsername, o.MysqlDbPassword, o.MysqlDbName)
         err := mysqldb.Open(ctx)
         if err != nil {
             log.Fatalf("Connect to mysql server failed %v", err)

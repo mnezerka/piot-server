@@ -22,14 +22,16 @@ type MysqlDb struct {
     Host string
     Username string
     Password string
+    Name string
     Db *sql.DB
 }
 
-func NewMysqlDb(host, username, password string) IMysqlDb {
+func NewMysqlDb(host, username, password, name string) IMysqlDb {
     db := &MysqlDb{}
     db.Host = host
     db.Username = username
     db.Password = password
+    db.Name = name
     db.Db = nil
 
     return db
@@ -39,12 +41,12 @@ func (db *MysqlDb) Open(ctx context.Context) error {
     ctx.Value("log").(*logging.Logger).Infof("Connecting to mysql database %s", db.Host)
 
     // open database if host is specified
-    if db.Host == "" {
-        ctx.Value("log").(*logging.Logger).Warningf("Refusing to open mysql database, host not specified")
+    if db.Host == "" || db.Name == "" {
+        ctx.Value("log").(*logging.Logger).Warningf("Refusing to open mysql database, host or db name not specified")
         return nil
     }
 
-    dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", db.Username, db.Password, db.Host, "piot")
+    dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", db.Username, db.Password, db.Host, db.Name)
     ctx.Value("log").(*logging.Logger).Debugf("Mysql DSN: %s", dsn)
 
     d, err := sql.Open("mysql", dsn)
