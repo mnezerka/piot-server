@@ -99,7 +99,11 @@ func (db *MysqlDb) verifyOrg(ctx context.Context, thing *model.Thing) *model.Org
 func (db *MysqlDb) StoreMeasurement(ctx context.Context, thing *model.Thing, value string) {
     ctx.Value("log").(*logging.Logger).Debugf("Storing measurement to mysql db, thing: %s, val: %s", thing.Name, value)
 
+    // verify if all preconditions are met
     org := db.verifyOrg(ctx, thing)
+    if org == nil {
+        return
+    }
 
     // convert value to float
     valueFloat, err := strconv.ParseFloat(value, 32)
@@ -123,7 +127,11 @@ func (db *MysqlDb) StoreMeasurement(ctx context.Context, thing *model.Thing, val
 func (db *MysqlDb) StoreSwitchState(ctx context.Context, thing *model.Thing, value string) {
     ctx.Value("log").(*logging.Logger).Debugf("Storing switch state to MysqlDb, thing: %s, val: %s", thing.Name, value)
 
+    // verify if all preconditions are met
     org := db.verifyOrg(ctx, thing)
+    if org == nil {
+        return
+    }
 
     if thing.Type != model.THING_TYPE_SWITCH {
         // ignore things which don't represent switch
