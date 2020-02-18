@@ -126,7 +126,6 @@ func (t *Mqtt) Disconnect(ctx context.Context) error {
 }
 
 func (t *Mqtt) GetThingTopic(ctx context.Context, thing *model.Thing, topic string) (string, error) {
-
     // get thing org
     orgs := ctx.Value("orgs").(*Orgs)
     org, err := orgs.Get(ctx, thing.OrgId)
@@ -258,7 +257,7 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
         }
 
         // store it to mysql db if configured
-        if thing.Sensor.StoreMysqlDb {
+        if thing.StoreMysqlDb {
             mysqlDb := ctx.Value("mysqldb").(IMysqlDb)
             mysqlDb.StoreMeasurement(ctx, thing, value)
         }
@@ -312,7 +311,7 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
         }
 
         // store it to mysql db if configured
-        if thing.Switch.StoreMysqlDb {
+        if thing.StoreMysqlDb {
             mysqlDb := ctx.Value("mysqldb").(IMysqlDb)
             mysqlDb.StoreSwitchState(ctx, thing, dbValue)
         }

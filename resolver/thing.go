@@ -20,9 +20,12 @@ type thingUpdateInput struct {
     Description *string
     Alias   *string
     Enabled *bool
+    LastSeenInterval *int32
     OrgId   *graphql.ID
     AvailabilityTopic   *string
     TelemetryTopic   *string
+    StoreMysqlDb *bool
+    StoreMysqlDbInterval *int32
 }
 
 type thingSensorDataUpdateInput struct {
@@ -88,6 +91,10 @@ func (r *ThingResolver) LastSeen() int32 {
     return r.t.LastSeen
 }
 
+func (r *ThingResolver) LastSeenInterval() int32 {
+    return r.t.LastSeenInterval
+}
+
 func (r *ThingResolver) Org() *OrgResolver {
 
     r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org for thing: %s", r.t.Id.Hex())
@@ -144,6 +151,14 @@ func (r *ThingResolver) TelemetryTopic() string {
 
 func (r *ThingResolver) Telemetry() string {
     return r.t.Telemetry
+}
+
+func (r *ThingResolver) StoreMysqlDb() bool {
+    return r.t.StoreMysqlDb
+}
+
+func (r *ThingResolver) StoreMysqlDbInterval() int32 {
+    return r.t.StoreMysqlDbInterval
 }
 
 func (r *ThingResolver) Sensor() *SensorResolver {
@@ -399,8 +414,11 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     if args.Thing.Description != nil { updateFields["description"] = *args.Thing.Description}
     if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
     if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
+    if args.Thing.LastSeenInterval != nil { updateFields["last_seen_interval"] = *args.Thing.LastSeenInterval}
     if args.Thing.AvailabilityTopic != nil { updateFields["availability_topic"] = *args.Thing.AvailabilityTopic}
     if args.Thing.TelemetryTopic != nil { updateFields["telemetry_topic"] = *args.Thing.TelemetryTopic}
+    if args.Thing.StoreMysqlDb != nil { updateFields["store_mysqldb"] = *args.Thing.StoreMysqlDb}
+    if args.Thing.StoreMysqlDbInterval != nil { updateFields["store_mysqldb_interval"] = *args.Thing.StoreMysqlDbInterval}
 
     if args.Thing.OrgId != nil {
         // create ObjectID from string

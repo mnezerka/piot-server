@@ -136,6 +136,7 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
         "type": "sensor",
         "created": int32(time.Now().Unix()),
         "enabled": true,
+        "store_mysqldb": true,
         "sensor": bson.M{
             "class": "temperature",
             "measurement_topic": "value",
@@ -151,7 +152,6 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
 }
 
 func CreateUser(t *testing.T, ctx context.Context, email, password string) (primitive.ObjectID) {
-
     db := ctx.Value("db").(*mongo.Database)
 
     hash, err := utils.GetPasswordHash(password)

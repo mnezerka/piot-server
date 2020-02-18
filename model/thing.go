@@ -56,6 +56,11 @@ type Thing struct {
     // time the thing was seen last time
     LastSeen    int32  `json:"last_seen" bson:"last_seen"`
 
+    // maximal interval (in seconds) for which device can be unseen
+    // (see LastSeen attribute). Default value is 0, which disables
+    // this feature
+    LastSeenInterval    int32  `json:"last_seen_interval" bson:"last_seen_interval"`
+
     // The MQTT topic subscribed to receive thing availability
     AvailabilityTopic   string `json:"availability_topic" bson:"availability_topic"`
     AvailabilityYes     string `json:"availability_yes" bson:"availability_yes"`
@@ -66,6 +71,14 @@ type Thing struct {
 
     // time the thing was seen last time
     Telemetry           string `json:"telemetry" bson:"telemetry"`
+
+    // Enable or Disable storing values to mysql db assigned to organization
+    StoreMysqlDb bool `json:"store_mysqldb" bson:"store_mysqldb"`
+
+    // minimal interval (in seconds) for storing values to mysql db,
+    // more values to be stored in same inteval will be ignored, only
+    // first one will be stored
+    StoreMysqlDbInterval int32 `json:"store_mysqldb_interval" bson:"store_mysqldb_interval"`
 
     //////////// Sensor data
 

@@ -1,6 +1,5 @@
 package schema
 
-
 func GetRootSchema() string {
 
     return `
@@ -94,6 +93,7 @@ func GetRootSchema() string {
             enabled: Boolean!
             created: Int!
             last_seen: Int!
+            last_seen_interval: Int!
             org: Org
             parent: Thing
             availability_topic: String!
@@ -101,6 +101,8 @@ func GetRootSchema() string {
             availability_no: String!
             telemetry_topic: String!
             telemetry: String!
+            store_mysqldb: Boolean!
+            store_mysqldb_interval: Int!
             sensor: SensorData
             switch: SwitchData
         }
@@ -123,8 +125,11 @@ func GetRootSchema() string {
             alias: String
             orgId: ID
             enabled: Boolean
+            last_seen_interval: Int
             availability_topic: String
             telemetry_topic: String
+            store_mysqldb: Boolean
+            store_mysqldb_interval: Int
         }
 
         input ThingSensorDataUpdate {

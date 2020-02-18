@@ -1,7 +1,6 @@
 package resolver
 
 import (
-    //"context"
     "fmt"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
@@ -98,7 +97,26 @@ func TestThingUpdate(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                updateThing(thing: {id: "%s", name: "thing1new", enabled: true, availability_topic: "at", telemetry_topic: "tt"}) {name, enabled, availability_topic, telemetry_topic}
+                updateThing(
+                    thing: {
+                        id: "%s",
+                        name: "thing1new",
+                        enabled: true,
+                        last_seen_interval: 345,
+                        availability_topic: "at",
+                        telemetry_topic: "tt",
+                        store_mysqldb: true,
+                        store_mysqldb_interval: 60
+                    }
+                ) {
+                    name,
+                    enabled,
+                    last_seen_interval,
+                    availability_topic,
+                    telemetry_topic
+                    store_mysqldb,
+                    store_mysqldb_interval
+                }
             }
         `, id.Hex()),
         ExpectedResult: `
@@ -106,8 +124,11 @@ func TestThingUpdate(t *testing.T) {
                 "updateThing": {
                     "name": "thing1new",
                     "enabled": true,
+                    "last_seen_interval": 345,
                     "availability_topic": "at",
-                    "telemetry_topic": "tt"
+                    "telemetry_topic": "tt",
+                    "store_mysqldb": true,
+                    "store_mysqldb_interval": 60
                 }
             }
         `,

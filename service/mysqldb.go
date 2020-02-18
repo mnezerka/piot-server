@@ -72,7 +72,6 @@ func (db *MysqlDb) Close(ctx context.Context) {
 }
 
 func (db *MysqlDb) verifyOrg(ctx context.Context, thing *model.Thing) *model.Org {
-
     if db.Db == nil {
         ctx.Value("log").(*logging.Logger).Warningf("Mysql database is not initialized")
         return nil
@@ -95,6 +94,17 @@ func (db *MysqlDb) verifyOrg(ctx context.Context, thing *model.Thing) *model.Org
     return org
 }
 
+func (db *MysqlDb) getTimestamp(ctx context.Context, thing *model.Thing) int32 {
+    // generate unix timestamp
+    ts := int32(time.Now().Unix())
+
+    // alter timestamp to match low boundary of configured interval
+    if thing.StoreMysqlDbInterval > 0 {
+        ts = ts - (ts % thing.StoreMysqlDbInterval)
+    }
+
+    return ts
+}
 
 func (db *MysqlDb) StoreMeasurement(ctx context.Context, thing *model.Thing, value string) {
     ctx.Value("log").(*logging.Logger).Debugf("Storing measurement to mysql db, thing: %s, val: %s", thing.Name, value)
@@ -112,9 +122,11 @@ func (db *MysqlDb) StoreMeasurement(ctx context.Context, thing *model.Thing, val
         return
     }
 
+    ts := db.getTimestamp(ctx, thing)
+
     query := "INSERT IGNORE INTO piot_sensors (`id`, `org`, `class`, `value`, `time`) VALUES (?, ?, ?, ?, ?)"
 
-    r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, thing.Sensor.Class, valueFloat, int32(time.Now().Unix()))
+    r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, thing.Sensor.Class, valueFloat, ts)
 
     // Failure when trying to store data
     if err != nil {
@@ -145,9 +157,11 @@ func (db *MysqlDb) StoreSwitchState(ctx context.Context, thing *model.Thing, val
         return
     }
 
+    ts := db.getTimestamp(ctx, thing)
+
     query := "INSERT IGNORE INTO piot_switches (`id`, `org`, `value`, `time`) VALUES (?, ?, ?, ?)"
 
-    r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, valueInt, int32(time.Now().Unix()))
+    r, err := db.Db.Query(query, thing.Id.Hex(), org.MysqlDb, valueInt, ts)
 
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("Mysql database operation failed: %s", err.Error())
