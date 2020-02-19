@@ -1,6 +1,8 @@
 PIOT Server
 ===========
 
+.. image:: https://dev.azure.com/michalnezerka/PIOT/_apis/build/status/mnezerka.piot-server?branchName=master
+
 Architecture
 ------------
 
