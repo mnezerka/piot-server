@@ -17,6 +17,7 @@ type thingUpdateInput struct {
     Id      graphql.ID
     PiotId *string
     Name    *string
+    Type    *string
     Description *string
     Alias   *string
     Enabled *bool
@@ -24,6 +25,7 @@ type thingUpdateInput struct {
     OrgId   *graphql.ID
     AvailabilityTopic   *string
     TelemetryTopic   *string
+    StoreInfluxDb *bool
     StoreMysqlDb *bool
     StoreMysqlDbInterval *int32
 }
@@ -151,6 +153,10 @@ func (r *ThingResolver) TelemetryTopic() string {
 
 func (r *ThingResolver) Telemetry() string {
     return r.t.Telemetry
+}
+
+func (r *ThingResolver) StoreInfluxDb() bool {
+    return r.t.StoreInfluxDb
 }
 
 func (r *ThingResolver) StoreMysqlDb() bool {
@@ -411,12 +417,14 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     updateFields := bson.M{}
     if args.Thing.PiotId != nil { updateFields["piot_id"] = *args.Thing.PiotId}
     if args.Thing.Name != nil { updateFields["name"] = *args.Thing.Name}
+    if args.Thing.Type != nil { updateFields["type"] = *args.Thing.Type}
     if args.Thing.Description != nil { updateFields["description"] = *args.Thing.Description}
     if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
     if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
     if args.Thing.LastSeenInterval != nil { updateFields["last_seen_interval"] = *args.Thing.LastSeenInterval}
     if args.Thing.AvailabilityTopic != nil { updateFields["availability_topic"] = *args.Thing.AvailabilityTopic}
     if args.Thing.TelemetryTopic != nil { updateFields["telemetry_topic"] = *args.Thing.TelemetryTopic}
+    if args.Thing.StoreInfluxDb != nil { updateFields["store_influxdb"] = *args.Thing.StoreInfluxDb}
     if args.Thing.StoreMysqlDb != nil { updateFields["store_mysqldb"] = *args.Thing.StoreMysqlDb}
     if args.Thing.StoreMysqlDbInterval != nil { updateFields["store_mysqldb_interval"] = *args.Thing.StoreMysqlDbInterval}
 

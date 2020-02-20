@@ -101,6 +101,7 @@ func GetRootSchema() string {
             availability_no: String!
             telemetry_topic: String!
             telemetry: String!
+            store_influxdb: Boolean!
             store_mysqldb: Boolean!
             store_mysqldb_interval: Int!
             sensor: SensorData
@@ -121,6 +122,7 @@ func GetRootSchema() string {
             id: ID!
             piotId: String
             name: String
+            type: String
             description: String
             alias: String
             orgId: ID
@@ -128,6 +130,7 @@ func GetRootSchema() string {
             last_seen_interval: Int
             availability_topic: String
             telemetry_topic: String
+            store_influxdb: Boolean
             store_mysqldb: Boolean
             store_mysqldb_interval: Int
         }
