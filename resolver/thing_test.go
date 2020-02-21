@@ -72,13 +72,13 @@ func TestThingGet(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             {
-                thing(id: "%s") {name, sensor {class, measurement_topic, store_influxdb}}
+                thing(id: "%s") {name, sensor {class, measurement_topic}}
             }
         `, thingId.Hex()),
         ExpectedResult: `
             {
                 "thing": {
-                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "value", "store_influxdb": true}
+                    "name": "thing1", "sensor": {"class": "temperature", "measurement_topic": "value"}
                 }
             }
         `,
@@ -147,13 +147,13 @@ func TestThingSensorDataUpdate(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                updateThingSensorData(data: {id: "%s", store_influxdb: true}) {sensor {store_influxdb}}
+                updateThingSensorData(data: {id: "%s", measurement_topic: "xyz"}) {sensor {measurement_topic}}
             }
         `, id.Hex()),
         ExpectedResult: `
             {
                 "updateThingSensorData": {
-                    "sensor": {"store_influxdb": true}
+                    "sensor": {"measurement_topic": "xyz"}
                 }
             }
         `,
@@ -172,13 +172,13 @@ func TestThingSwitchDataUpdate(t *testing.T) {
         Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
         Query: fmt.Sprintf(`
             mutation {
-                updateThingSwitchData(data: {id: "%s", store_influxdb: false, state_topic: "statetopic"}) {switch {store_influxdb, state_topic}}
+                updateThingSwitchData(data: {id: "%s", state_topic: "statetopic"}) {switch {state_topic}}
             }
         `, id.Hex()),
         ExpectedResult: `
             {
                 "updateThingSwitchData": {
-                    "switch": {"store_influxdb": false, "state_topic": "statetopic"}
+                    "switch": {"state_topic": "statetopic"}
                 }
             }
         `,

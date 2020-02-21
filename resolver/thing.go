@@ -33,8 +33,6 @@ type thingUpdateInput struct {
 type thingSensorDataUpdateInput struct {
     Id      graphql.ID
     Class *string
-    StoreInfluxDb *bool
-    StoreMysqlDb *bool
     MeasurementTopic *string
     MeasurementValue *string
 }
@@ -42,8 +40,6 @@ type thingSensorDataUpdateInput struct {
 type thingSwitchDataUpdateInput struct {
     Id      graphql.ID
     Class *string
-    StoreInfluxDb *bool
-    StoreMysqlDb *bool
     StateTopic *string
     StateOn *string
     StateOff *string
@@ -234,14 +230,6 @@ func (r *SensorResolver) Class() string {
     return r.t.Sensor.Class
 }
 
-func (r *SensorResolver) StoreInfluxDb() bool {
-    return r.t.Sensor.StoreInfluxDb
-}
-
-func (r *SensorResolver) StoreMysqlDb() bool {
-    return r.t.Sensor.StoreMysqlDb
-}
-
 /////////////// Switch Data Resolver
 
 type SwitchResolver struct {
@@ -275,14 +263,6 @@ func (r *SwitchResolver) CommandOn() string {
 
 func (r *SwitchResolver) CommandOff() string {
     return r.t.Switch.CommandOff
-}
-
-func (r *SwitchResolver) StoreInfluxDb() bool {
-    return r.t.Switch.StoreInfluxDb
-}
-
-func (r *SwitchResolver) StoreMysqlDb() bool {
-    return r.t.Switch.StoreMysqlDb
 }
 
 /////////////// Resolver
@@ -477,8 +457,6 @@ func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data 
     // thing exists -> update it
     updateFields := bson.M{}
     if args.Data.Class != nil { updateFields["sensor.class"] = *args.Data.Class}
-    if args.Data.StoreInfluxDb != nil { updateFields["sensor.store_influxdb"] = *args.Data.StoreInfluxDb}
-    if args.Data.StoreMysqlDb != nil { updateFields["sensor.store_mysqldb"] = *args.Data.StoreMysqlDb}
     if args.Data.MeasurementTopic != nil { updateFields["sensor.measurement_topic"] = *args.Data.MeasurementTopic}
     if args.Data.MeasurementValue != nil { updateFields["sensor.measurement_value"] = *args.Data.MeasurementValue}
     update := bson.M{"$set": updateFields}
@@ -521,8 +499,6 @@ func (r *Resolver) UpdateThingSwitchData(ctx context.Context, args struct {Data 
 
     // thing exists -> update it
     updateFields := bson.M{}
-    if args.Data.StoreInfluxDb != nil { updateFields["switch.store_influxdb"] = *args.Data.StoreInfluxDb}
-    if args.Data.StoreMysqlDb != nil { updateFields["switch.store_mysqldb"] = *args.Data.StoreMysqlDb}
     if args.Data.StateTopic != nil { updateFields["switch.state_topic"] = *args.Data.StateTopic}
     if args.Data.StateOn != nil { updateFields["switch.state_on"] = *args.Data.StateOn}
     if args.Data.StateOff != nil { updateFields["switch.state_off"] = *args.Data.StateOff}

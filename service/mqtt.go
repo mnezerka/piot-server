@@ -251,7 +251,7 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
         }
 
         // store it to influx db if configured
-        if thing.Sensor.StoreInfluxDb  {
+        if thing.StoreInfluxDb  {
             influxDb := ctx.Value("influxdb").(IInfluxDb)
             influxDb.PostMeasurement(ctx, thing, value)
         }
@@ -305,7 +305,7 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
         }
 
         // store it to influx db if configured
-        if thing.Switch.StoreInfluxDb {
+        if thing.StoreInfluxDb {
             influxDb := ctx.Value("influxdb").(IInfluxDb)
             influxDb.PostSwitchState(ctx, thing, dbValue)
         }

@@ -110,6 +110,7 @@ func CreateSwitch(t *testing.T, ctx context.Context, name string) (primitive.Obj
         "type": "switch",
         "created": int32(time.Now().Unix()),
         "enabled": true,
+        "store_influxdb": true,
         "switch": bson.M{
             "state_topic": "state",
             "state_on": "ON",
@@ -117,7 +118,6 @@ func CreateSwitch(t *testing.T, ctx context.Context, name string) (primitive.Obj
             "command_topic": "cmnd",
             "command_on": "ON",
             "command_off": "OFF",
-            "store_influxdb": true,
         },
     })
     Ok(t, err)
@@ -137,11 +137,10 @@ func CreateThing(t *testing.T, ctx context.Context, name string) (primitive.Obje
         "created": int32(time.Now().Unix()),
         "enabled": true,
         "store_mysqldb": true,
+        "store_influxdb": true,
         "sensor": bson.M{
             "class": "temperature",
             "measurement_topic": "value",
-            "store_influxdb": true,
-            "store_mysqldb": true,
         },
     })
     Ok(t, err)
