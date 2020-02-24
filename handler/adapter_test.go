@@ -11,7 +11,7 @@ import (
 
 /* GET method is not supported */
 func TestForbiddenGet(t *testing.T) {
-    req, err := http.NewRequest("GET", "/", nil)
+    req, err := http.NewRequest("GET", "/", strings.NewReader(""))
     test.Ok(t, err)
     req = req.WithContext(test.CreateTestContext())
 

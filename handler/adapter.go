@@ -1,8 +1,10 @@
 package handler
 
 import (
+    "bytes"
     "encoding/json"
     "errors"
+    "io/ioutil"
     "net/http"
     "github.com/op/go-logging"
     "piot-server/model"
@@ -15,6 +17,17 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     ctx := r.Context()
     ctx.Value("log").(*logging.Logger).Debugf("Incoming packet")
+
+    // get info of debug mode directly from logger
+    if ctx.Value("log").(*logging.Logger).IsEnabledFor(logging.DEBUG) {
+        body, err := ioutil.ReadAll(r.Body)
+        if err == nil {
+            ctx.Value("log").(*logging.Logger).Errorf("Reading request body error: %s", err)
+        }
+        reqStr := ioutil.NopCloser(bytes.NewBuffer(body))
+        ctx.Value("log").(*logging.Logger).Debugf("Request body: %s", reqStr)
+        r.Body = reqStr
+    }
 
     // check http method, POST is required
     if r.Method != http.MethodPost {
