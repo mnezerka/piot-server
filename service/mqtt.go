@@ -5,6 +5,7 @@ import (
     "errors"
     "fmt"
     "strings"
+    "strconv"
     "time"
     "github.com/op/go-logging"
     "piot-server/model"
@@ -161,7 +162,6 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
 func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for devices in org \"%s\"", topic, org.Name)
 
-    // look for sensors attached to this topic from active org
     things := ctx.Value("things").(*Things)
 
     // update availability
@@ -181,7 +181,6 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
     }
-
 
     // update telemetry
     devices, err = things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
@@ -205,6 +204,68 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
     }
+
+    // update location
+    devices, err = things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "location_topic": topic})
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
+        return
+    }
+
+    for i := 0; i < len(devices); i++ {
+
+
+        thing := devices[i]
+
+        // update sensor last seen status
+        err = things.TouchThing(ctx, thing.Id)
+        if err != nil {
+            ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+        }
+
+        // decode lat and lng value from json - templates are mandatory
+        if thing.LocationLatValue == "" || thing.LocationLngValue == "" {
+            ctx.Value("log").(*logging.Logger).Warningf("Ignoring MQTT location message for device %s (\"%s\") due to missing location templates: %s", thing.Id.Hex(), org.Name)
+            continue
+        }
+
+        var loc model.LocationData
+        var haveLat = false;
+        var haveLng = false;
+
+        parsedValue := gjson.Get(payload, thing.LocationLatValue)
+        if parsedValue.Exists() {
+            loc.Latitude, err = strconv.ParseFloat(parsedValue.String(), 8)
+            if (err == nil) {
+                haveLat = true;
+            }
+        }
+        if !haveLat {
+            ctx.Value("log").(*logging.Logger).Warningf("Ignoring MQTT location message for device %s (\"%s\") due to failed parsing of lat value", thing.Id.Hex(), org.Name)
+            continue
+        }
+
+        parsedValue = gjson.Get(payload, thing.LocationLngValue)
+        if parsedValue.Exists() {
+            loc.Longitude, err = strconv.ParseFloat(parsedValue.String(), 8)
+            if (err == nil) {
+                haveLng = true;
+            }
+        }
+        if !haveLng {
+            ctx.Value("log").(*logging.Logger).Warningf("Ignoring MQTT location message for device %s (\"%s\") due to failed parsing of lng value", thing.Id.Hex(), org.Name)
+            continue
+        }
+
+        // if both latitude and longitude were parsed, update thing
+        if haveLat && haveLng {
+            err = things.SetLocation(ctx, thing.Id, loc)
+            if err != nil {
+                ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
+            }
+        }
+    }
+
 }
 
 func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payload string) {

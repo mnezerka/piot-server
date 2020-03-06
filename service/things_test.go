@@ -4,6 +4,7 @@ import (
     "testing"
     "piot-server/service"
     "piot-server/test"
+    "piot-server/model"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -117,6 +118,25 @@ func TestSetAvailabilityAttributes(t *testing.T) {
     test.Equals(t, "available", thing.AvailabilityTopic)
     test.Equals(t, "yes", thing.AvailabilityYes)
     test.Equals(t, "no", thing.AvailabilityNo)
+}
+
+func TestSetLocation(t *testing.T) {
+    const THING_NAME = "thing2"
+    ctx := test.CreateTestContext()
+    test.CleanDb(t, ctx)
+    thingId := test.CreateThing(t, ctx, THING_NAME)
+    things := service.Things{}
+
+    loc := model.LocationData{23.12, 56.33333};
+
+    err := things.SetLocation(ctx, thingId, loc)
+    test.Ok(t, err)
+
+    thing, err := things.Find(ctx, THING_NAME)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME, thing.Name)
+    test.Equals(t, 23.12, thing.Location.Latitude)
+    test.Equals(t, 56.33333, thing.Location.Longitude)
 }
 
 func TestSetSensorAttributes(t *testing.T) {

@@ -47,6 +47,33 @@ func TestMqttThingTelemetry(t *testing.T) {
     test.Equals(t, "telemetry data", thing.Telemetry)
 }
 
+func TestMqttThingLocation(t *testing.T) {
+    const THING = "device1"
+    const ORG = "org1"
+
+    ctx := test.CreateTestContext()
+
+    test.CleanDb(t, ctx)
+    thingId := test.CreateDevice(t, ctx, THING)
+    test.SetThingLocationParams(t, ctx, thingId , THING + "/" + "loc", "lat", "lng")
+
+    orgId := test.CreateOrg(t, ctx, ORG)
+    test.AddOrgThing(t, ctx, orgId, THING)
+
+    mqtt := service.NewMqtt("uri")
+
+    // send location message
+    mqtt.ProcessMessage(ctx, fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789}")
+
+    things := service.Things{}
+    thing, err := things.Get(ctx, thingId)
+    test.Ok(t, err)
+    test.Equals(t, THING, thing.Name)
+    test.Assert(t, thing.Location != nil, "Thing location not initialized")
+    test.Equals(t, 123.234, thing.Location.Latitude)
+    test.Equals(t, 678.789, thing.Location.Longitude)
+}
+
 // incoming sensor MQTT message for registered sensor
 func TestMqttMsgSensor(t *testing.T) {
     const SENSOR = "sensor1"

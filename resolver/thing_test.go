@@ -106,7 +106,12 @@ func TestThingUpdate(t *testing.T) {
                         availability_topic: "at",
                         telemetry_topic: "tt",
                         store_mysqldb: true,
-                        store_mysqldb_interval: 60
+                        store_mysqldb_interval: 60,
+                        location_topic: "ltopic",
+                        location_lat_value: "llatval",
+                        location_lng_value: "llngval",
+                        location_lat: 34.555,
+                        location_lng: 10.121212
                     }
                 ) {
                     name,
@@ -115,7 +120,12 @@ func TestThingUpdate(t *testing.T) {
                     availability_topic,
                     telemetry_topic
                     store_mysqldb,
-                    store_mysqldb_interval
+                    store_mysqldb_interval,
+                    location_topic,
+                    location_lat_value,
+                    location_lng_value,
+                    location_lat,
+                    location_lng
                 }
             }
         `, id.Hex()),
@@ -128,7 +138,12 @@ func TestThingUpdate(t *testing.T) {
                     "availability_topic": "at",
                     "telemetry_topic": "tt",
                     "store_mysqldb": true,
-                    "store_mysqldb_interval": 60
+                    "store_mysqldb_interval": 60,
+                    "location_topic": "ltopic",
+                    "location_lat_value": "llatval",
+                    "location_lng_value": "llngval",
+                    "location_lat": 34.555,
+                    "location_lng": 10.121212
                 }
             }
         `,

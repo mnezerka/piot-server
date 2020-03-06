@@ -28,6 +28,11 @@ type thingUpdateInput struct {
     StoreInfluxDb *bool
     StoreMysqlDb *bool
     StoreMysqlDbInterval *int32
+    LocationLat *float64
+    LocationLng *float64
+    LocationTopic *string
+    LocationLatValue *string
+    LocationLngValue *string
 }
 
 type thingSensorDataUpdateInput struct {
@@ -161,6 +166,32 @@ func (r *ThingResolver) StoreMysqlDb() bool {
 
 func (r *ThingResolver) StoreMysqlDbInterval() int32 {
     return r.t.StoreMysqlDbInterval
+}
+
+func (r *ThingResolver) LocationLat() *float64 {
+    if r.t.Location != nil {
+        return &r.t.Location.Latitude
+    }
+    return nil
+}
+
+func (r *ThingResolver) LocationLng() *float64 {
+    if r.t.Location != nil {
+        return &r.t.Location.Longitude
+    }
+    return nil
+}
+
+func (r *ThingResolver) LocationTopic() string {
+    return r.t.LocationTopic
+}
+
+func (r *ThingResolver) LocationLatValue() string {
+    return r.t.LocationLatValue
+}
+
+func (r *ThingResolver) LocationLngValue() string {
+    return r.t.LocationLngValue
 }
 
 func (r *ThingResolver) Sensor() *SensorResolver {
@@ -407,6 +438,11 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     if args.Thing.StoreInfluxDb != nil { updateFields["store_influxdb"] = *args.Thing.StoreInfluxDb}
     if args.Thing.StoreMysqlDb != nil { updateFields["store_mysqldb"] = *args.Thing.StoreMysqlDb}
     if args.Thing.StoreMysqlDbInterval != nil { updateFields["store_mysqldb_interval"] = *args.Thing.StoreMysqlDbInterval}
+    if args.Thing.LocationTopic != nil { updateFields["location_topic"] = *args.Thing.LocationTopic}
+    if args.Thing.LocationLatValue != nil { updateFields["location_lat_value"] = *args.Thing.LocationLatValue}
+    if args.Thing.LocationLngValue != nil { updateFields["location_lng_value"] = *args.Thing.LocationLngValue}
+    if args.Thing.LocationLat != nil { updateFields["location.latitude"] = *args.Thing.LocationLat}
+    if args.Thing.LocationLng != nil { updateFields["location.longitude"] = *args.Thing.LocationLng}
 
     if args.Thing.OrgId != nil {
         // create ObjectID from string

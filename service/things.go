@@ -203,6 +203,33 @@ func (t *Things) SetTelemetry(ctx context.Context, id primitive.ObjectID, teleme
     return nil
 }
 
+func (t *Things) SetLocation(ctx context.Context, id primitive.ObjectID, location model.LocationData) (error) {
+    ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> location", id.Hex())
+
+    db := ctx.Value("db").(*mongo.Database)
+
+    _, err := db.Collection("things").UpdateOne(
+        ctx,
+        bson.M{"_id": id},
+        bson.M{
+            "$set": bson.M{
+                "location.latitude": location.Latitude,
+                "location.longitude": location.Longitude,
+            },
+        },
+    )
+
+    if err != nil {
+        ctx.Value("log").(*logging.Logger).Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    return nil
+
+}
+
+
+
 func (t *Things) SetSensorMeasurementTopic(ctx context.Context, id primitive.ObjectID, topic string) (error) {
     ctx.Value("log").(*logging.Logger).Debugf("Setting thing <%s> sensor measurement topic to <%s>", id.Hex(), topic)
 

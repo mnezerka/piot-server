@@ -222,6 +222,19 @@ func SetThingTelemetryTopic(t *testing.T, ctx context.Context, thingId primitive
     Ok(t, err)
 }
 
+func SetThingLocationParams(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic string, lat_value string, lng_value string) {
+    update := bson.M{
+        "location_topic": topic,
+        "location_lat_value": lat_value,
+        "location_lng_value": lng_value,
+    }
+
+    db := ctx.Value("db").(*mongo.Database)
+    _, err := db.Collection("things").UpdateOne(ctx, bson.M{"_id": thingId}, bson.M{"$set": update})
+    Ok(t, err)
+}
+
+
 func SetSwitchStateTopic(t *testing.T, ctx context.Context, thingId primitive.ObjectID, topic, on, off string) {
     update := bson.M{
         "switch.state_topic": topic,

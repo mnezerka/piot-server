@@ -12,6 +12,14 @@ const THING_CLASS_TEMPERATURE = "temperature"
 const THING_CLASS_HUMIDITY = "humidity"
 const THING_CLASS_PRESSURE = "pressure"
 
+type LocationData struct {
+     // The latitude in degrees. It must be in the range [-90.0, +90.0].
+    Latitude float64 `json:"latitude,omitempty" bson:"latitude,omitempty"`
+
+    // The longitude in degrees. It must be in the range [-180.0, +180.0].
+    Longitude float64  `json:"longitude,omitempty bson:"longitude,omitempty"`
+}
+
 // Represents any device or app
 type Thing struct {
 
@@ -83,7 +91,13 @@ type Thing struct {
     // first one will be stored
     StoreMysqlDbInterval int32 `json:"store_mysqldb_interval" bson:"store_mysqldb_interval"`
 
-    //////////// Sensor data
+    // last location of the device
+    Location *LocationData `json:"location,omitempty" bson:"location,omitempty""`
+
+    // The MQTT topic subscribed to receive thing location
+    LocationTopic   string `json:"location_topic" bson:"location_topic"`
+    LocationLatValue string `json:"location_lat_value" bson:"location_lat_value"`
+    LocationLngValue string `json:"location_lng_value" bson:"location_lng_value"`
 
     // The unit of measurement that the sensor is expressed in.
     Sensor SensorData `json:"sensor" bson:"sensor"`
