@@ -3,7 +3,8 @@ package resolver
 import (
     "errors"
     "time"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
@@ -123,9 +124,9 @@ func (r *ThingResolver) Parent() *ThingResolver {
 
     if r.t.ParentId != primitive.NilObjectID {
 
-        things := r.ctx.Value("things").(*service.Things)
+        things := r.ctx.Value("things").(*piot.Things)
 
-        parentThing , err := things.Get(r.ctx, r.t.ParentId)
+        parentThing , err := things.Get(r.t.ParentId)
         if err != nil {
             r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching parent %v for thing %v failed", r.t.ParentId, r.t.Id)
         } else {

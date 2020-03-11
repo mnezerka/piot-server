@@ -5,7 +5,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "piot-server/test"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "piot-server/service"
 )
 

@@ -8,7 +8,7 @@ import (
     "path"
     "fmt"
     "net/url"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "github.com/op/go-logging"
 )
 

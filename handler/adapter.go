@@ -7,7 +7,8 @@ import (
     "io/ioutil"
     "net/http"
     "github.com/op/go-logging"
-    "piot-server/model"
+    //"piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "piot-server/service"
 )
 

@@ -8,7 +8,8 @@ import (
     "strconv"
     "time"
     "github.com/op/go-logging"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/model"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -162,10 +163,10 @@ func (t *Mqtt) PushThingData(ctx context.Context, thing *model.Thing, topic, val
 func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payload string) {
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for devices in org \"%s\"", topic, org.Name)
 
-    things := ctx.Value("things").(*Things)
+    things := ctx.Value("things").(*piot.Things)
 
     // update availability
-    devices, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "availability_topic": topic})
+    devices, err := things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "availability_topic": topic})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -176,14 +177,14 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
         thing := devices[i]
 
         // update sensor last seen status
-        err = things.TouchThing(ctx, thing.Id)
+        err = things.TouchThing(thing.Id)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
     }
 
     // update telemetry
-    devices, err = things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
+    devices, err = things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -194,19 +195,19 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
         thing := devices[i]
 
         // update sensor last seen status
-        err = things.TouchThing(ctx, thing.Id)
+        err = things.TouchThing(thing.Id)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
 
-        err = things.SetTelemetry(ctx, thing.Id, payload)
+        err = things.SetTelemetry(thing.Id, payload)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
     }
 
     // update location
-    devices, err = things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "location_topic": topic})
+    devices, err = things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "location_topic": topic})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -218,7 +219,7 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
         thing := devices[i]
 
         // update sensor last seen status
-        err = things.TouchThing(ctx, thing.Id)
+        err = things.TouchThing(thing.Id)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
@@ -259,7 +260,7 @@ func (t *Mqtt) ProcessDevices(ctx context.Context, org *model.Org, topic, payloa
 
         // if both latitude and longitude were parsed, update thing
         if haveLat && haveLng {
-            err = things.SetLocation(ctx, thing.Id, loc)
+            err = things.SetLocation(thing.Id, loc)
             if err != nil {
                 ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
             }
@@ -272,9 +273,9 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for sensors in org \"%s\"", topic, org.Name)
 
     // look for sensors attached to this topic from active org
-    things := ctx.Value("things").(*Things)
+    things := ctx.Value("things").(*piot.Things)
 
-    sensors, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SENSOR, "sensor.measurement_topic": topic})
+    sensors, err := things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_SENSOR, "sensor.measurement_topic": topic})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" sensors: %s", org.Name, err.Error())
         return
@@ -299,13 +300,13 @@ func (t *Mqtt) ProcessSensors(ctx context.Context, org *model.Org, topic, payloa
         }
 
         // update sensor last seen status
-        err = things.TouchThing(ctx, thing.Id)
+        err = things.TouchThing(thing.Id)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
 
         // set value to one from incoming payload
-        err = things.SetSensorValue(ctx, thing.Id, value)
+        err = things.SetSensorValue(thing.Id, value)
         if err != nil {
             // report error, but don't interrupt processing
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
@@ -330,9 +331,9 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
     ctx.Value("log").(*logging.Logger).Debugf("Processing MQTT message with topic \"%s\" for switches in org \"%s\"", topic, org.Name)
 
     // look for sensors attached to this topic from active org
-    things := ctx.Value("things").(*Things)
+    things := ctx.Value("things").(*piot.Things)
 
-    switches, err := things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SWITCH, "switch.state_topic": topic})
+    switches, err := things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_SWITCH, "switch.state_topic": topic})
     if err != nil {
         ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error, falied fetching of org \"%s\" switches: %s", org.Name, err.Error())
         return
@@ -345,7 +346,7 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
 
 
         // update sensor last seen status
-        err = things.TouchThing(ctx, thing.Id)
+        err = things.TouchThing(thing.Id)
         if err != nil {
             ctx.Value("log").(*logging.Logger).Errorf("MQTT processing error: %s", err.Error())
         }
@@ -353,10 +354,10 @@ func (t *Mqtt) ProcessSwitches(ctx context.Context, org *model.Org, topic, paylo
         dbValue := ""
         switch(payload) {
         case thing.Switch.StateOn:
-            err = things.SetSwitchState(ctx, thing.Id, true)
+            err = things.SetSwitchState(thing.Id, true)
             dbValue = "1"
         case thing.Switch.StateOff:
-            err = things.SetSwitchState(ctx, thing.Id, false)
+            err = things.SetSwitchState(thing.Id, false)
             dbValue = "0"
         default:
             err = errors.New("Unknown switch state")

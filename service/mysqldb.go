@@ -5,7 +5,7 @@ import (
     "fmt"
     "strconv"
     "time"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "github.com/op/go-logging"
     "database/sql"
     _"github.com/go-sql-driver/mysql"

@@ -3,7 +3,7 @@ package service
 import (
     "context"
     "github.com/op/go-logging"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
 )
 
 type call struct {

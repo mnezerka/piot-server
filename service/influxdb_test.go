@@ -4,7 +4,8 @@ import (
     "testing"
     "piot-server/test"
     "piot-server/service"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/model"
 )
 
 // Push measurement for sensor
@@ -25,10 +26,10 @@ func TestPushMeasurementForSensor(t *testing.T) {
     influxdb := service.NewInfluxDb("http://uri", "user", "pass")
 
     // get instance of piot devices service
-    things := ctx.Value("things").(*service.Things)
+    things := ctx.Value("things").(*piot.Things)
 
     // get thing instance
-    thing, err := things.Get(ctx, sensorId)
+    thing, err := things.Get(sensorId)
     test.Ok(t, err)
 
     // push measurement for thing
@@ -60,10 +61,10 @@ func TestPushMeasurementForDevice(t *testing.T) {
     influxdb := service.NewInfluxDb("http://uri", "user", "pass")
 
     // get instance of piot devices service
-    things := ctx.Value("things").(*service.Things)
+    things := ctx.Value("things").(*piot.Things)
 
     // get thing instance
-    thing, err := things.Get(ctx, thingId)
+    thing, err := things.Get(thingId)
     test.Ok(t, err)
 
     // change type of the thing to device

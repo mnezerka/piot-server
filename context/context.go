@@ -5,6 +5,7 @@ import (
     "log"
     "os"
     "piot-server/service"
+    "github.com/mnezerka/go-piot"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -55,7 +56,8 @@ func NewContext(o *ContextOptions) context.Context {
     /////////////// THINGS
 
     // create global things service for all handlers
-    things := &service.Things{}
+    //things := &service.Things{}
+    things := piot.NewThings(db, log)
     ctx = context.WithValue(ctx, "things", things)
 
     /////////////// USERS SERVICE

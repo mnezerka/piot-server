@@ -7,7 +7,7 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
 )
 
 type Orgs struct { }

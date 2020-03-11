@@ -7,7 +7,8 @@ import (
     "strconv"
     "time"
     "github.com/op/go-logging"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/model"
     "piot-server/config"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -57,20 +58,20 @@ func (p *PiotDevices) ProcessPacket(ctx context.Context, packet model.PiotDevice
 
     // get instance of Things service and look for the device (chip),
     // register it if it doesn't exist
-    things := ctx.Value("things").(*Things)
-    thing, err := things.FindPiot(ctx, packet.Device)
+    things := ctx.Value("things").(*piot.Things)
+    thing, err := things.FindPiot(packet.Device)
     if err != nil {
         // register device
-        thing, err = things.RegisterPiot(ctx, packet.Device, model.THING_TYPE_DEVICE)
+        thing, err = things.RegisterPiot(packet.Device, model.THING_TYPE_DEVICE)
         if err != nil {
             return err
         }
 
         // configure availability topic
-        if err := things.SetAvailabilityTopic(ctx, thing.Id, "available"); err != nil {
+        if err := things.SetAvailabilityTopic(thing.Id, "available"); err != nil {
             return err
         }
-        if err := things.SetAvailabilityYesNo(ctx, thing.Id, "yes", "no"); err != nil {
+        if err := things.SetAvailabilityYesNo(thing.Id, "yes", "no"); err != nil {
             return err
         }
     }
@@ -187,25 +188,25 @@ func (p *PiotDevices) processReading(ctx context.Context, class string, thing *m
     }
 
     // look for thing representing sensor
-    things := ctx.Value("things").(*Things)
-    sensor_thing, err := things.Find(ctx, address)
+    things := ctx.Value("things").(*piot.Things)
+    sensor_thing, err := things.Find(address)
 
     // if thing not found
     if err != nil {
 
         // register register device
-        sensor_thing, err = things.RegisterPiot(ctx, address, model.THING_TYPE_SENSOR)
+        sensor_thing, err = things.RegisterPiot(address, model.THING_TYPE_SENSOR)
         if err != nil {
             return err
         }
 
         // register topics for measurements (if presetn)
-        if things.SetSensorMeasurementTopic(ctx, sensor_thing.Id, PIOT_MEASUREMENT_TOPIC); err != nil {
+        if things.SetSensorMeasurementTopic(sensor_thing.Id, PIOT_MEASUREMENT_TOPIC); err != nil {
             return err
         }
 
         // set proper device class according to received measurement type
-        if err := things.SetSensorClass(ctx, sensor_thing.Id, class); err != nil {
+        if err := things.SetSensorClass(sensor_thing.Id, class); err != nil {
             return err
         }
     }
@@ -213,7 +214,7 @@ func (p *PiotDevices) processReading(ctx context.Context, class string, thing *m
     // update parent thing (this can happen any time since sensor can be
     // re-connected to another device
     if (sensor_thing.ParentId != thing.Id) {
-        err = things.SetParent(ctx, sensor_thing.Id, thing.Id);
+        err = things.SetParent(sensor_thing.Id, thing.Id);
         if err != nil {
             return err
         }

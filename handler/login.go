@@ -4,7 +4,7 @@ import (
     "encoding/json"
     "errors"
     "time"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "piot-server/config"
     "github.com/op/go-logging"
     "net/http"

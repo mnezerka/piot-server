@@ -3,7 +3,7 @@ package resolver
 import (
     "errors"
     "time"
-    "piot-server/model"
+    "github.com/mnezerka/go-piot/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
