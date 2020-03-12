@@ -3,41 +3,46 @@ package handler_test
 import (
     "net/http"
     "testing"
-    "piot-server/test"
+    "github.com/mnezerka/go-piot/test"
 )
 
 func TestLoginSuccessful(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD)
-    Login(t, &ctx, ADMIN_EMAIL, ADMIN_PASSWORD, http.StatusOK)
+    db := test.GetDb(t)
+    log := test.GetLogger(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    LoginUser(t, log, db, ADMIN_EMAIL, ADMIN_PASSWORD, http.StatusOK)
 }
 
 func TestLoginWrongPassword(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD)
-    Login(t, &ctx, ADMIN_EMAIL, "xxx", 401)
+    db := test.GetDb(t)
+    log := test.GetLogger(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    LoginUser(t, log, db, ADMIN_EMAIL, "xxx", 401)
 }
 
 func TestLoginWrongEmail(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD)
-    Login(t, &ctx, "xxx", ADMIN_PASSWORD, 401)
+    db := test.GetDb(t)
+    log := test.GetLogger(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    LoginUser(t, log, db, "xxx", ADMIN_PASSWORD, 401)
 }
 
 func TestLoginWrongEmailAndPassword(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD)
-    Login(t, &ctx, "xxx", "yyy", 401)
+    db := test.GetDb(t)
+    log := test.GetLogger(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    LoginUser(t, log, db, "xxx", "yyy", 401)
 }
 
 func TestLoginEmptyEmailAndPassword(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, ADMIN_EMAIL, ADMIN_PASSWORD)
-    Login(t, &ctx, "", "", 401)
+    db := test.GetDb(t)
+    log := test.GetLogger(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    LoginUser(t, log, db, "", "", 401)
 }
 

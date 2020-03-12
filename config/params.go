@@ -9,6 +9,8 @@ type Parameters struct {
     DOSInterval time.Duration
     JwtTokenExpiration time.Duration
     JwtPassword string
+    DbUri string
+    DbName string
 }
 
 func NewParameters() *Parameters {
@@ -17,6 +19,8 @@ func NewParameters() *Parameters {
         DOSInterval:    1 * time.Second,
         JwtTokenExpiration: 5 * time.Hour,
         JwtPassword: "jwt-secret",
+        DbUri: "",
+        DbName: "",
     }
     return p
 }

@@ -2,12 +2,6 @@ package context
 
 import (
     "context"
-    "log"
-    "os"
-    "piot-server/service"
-    "github.com/mnezerka/go-piot"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
@@ -22,43 +16,7 @@ func NewContext(o *ContextOptions) context.Context {
     /////////////// Parameters
     ctx = context.WithValue(ctx, "params", o.Params)
 
-    /////////////// DB
-
-    // try to open database
-    dbClient, err := mongo.Connect(ctx, options.Client().ApplyURI(o.DbUri))
-    if err != nil {
-        log.Fatalf("Failed to open database on %s (%v)", o.DbUri, err)
-        os.Exit(1)
-    }
-
-    // Check the connection
-    err = dbClient.Ping(ctx, nil)
-    if err != nil {
-        log.Fatalf("Cannot ping database on %s (%v)", o.DbUri, err)
-        os.Exit(1)
-    }
-
-    ctx = context.WithValue(ctx, "dbClient", dbClient)
-
-    db := dbClient.Database(o.DbName)
-    ctx = context.WithValue(ctx, "db", db)
-
-    /////////////// LOGGER
-
-    // create global logger for all handlers
-    log, err := service.NewLogger(LOG_FORMAT, o.Params.LogLevel)
-    if err != nil {
-        log.Fatalf("Cannot create logger for level %s (%v)", o.Params.LogLevel, err)
-        os.Exit(1)
-    }
-    ctx = context.WithValue(ctx, "log", log)
-
-    /////////////// THINGS
-
-    // create global things service for all handlers
-    //things := &service.Things{}
-    things := piot.NewThings(db, log)
-    ctx = context.WithValue(ctx, "things", things)
+    /*
 
     /////////////// USERS SERVICE
 
@@ -140,6 +98,8 @@ func NewContext(o *ContextOptions) context.Context {
         }
     }
     ctx = context.WithValue(ctx, "mqtt", mqtt)
+
+    */
 
     return ctx
 }

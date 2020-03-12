@@ -1,23 +1,25 @@
-package resolver
+package resolver_test
 
 import (
+    "context"
     "fmt"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
+    "github.com/mnezerka/go-piot/test"
     "piot-server/schema"
-    "piot-server/test"
 )
 
 func TestOrgsGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateOrg(t, ctx, "org1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    test.CreateOrg(t, db, "org1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
-            Context: ctx,
-            Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+            Context: context.TODO(),
+            Schema: schema,
             Query: `
                 {
                     orgs { name }
@@ -37,15 +39,16 @@ func TestOrgsGet(t *testing.T) {
 }
 
 func TestOrgGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    orgId := test.CreateOrg(t, ctx, "org1")
-    userId := test.CreateUser(t, ctx, "org1user@test.com", "")
-    test.AddOrgUser(t, ctx, orgId, userId)
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    orgId := test.CreateOrg(t, db, "org1")
+    userId := test.CreateUser(t, db, "org1user@test.com", "")
+    test.AddOrgUser(t, db, orgId, userId)
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             {
                 org(id: "%s") {
@@ -74,19 +77,20 @@ func TestOrgGet(t *testing.T) {
 }
 
 func TestAddOrgUser(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    userId := test.CreateUser(t, ctx, "user1@test.com", "")
-    orgId := test.CreateOrg(t, ctx, "test-org")
-    org2Id := test.CreateOrg(t, ctx, "test-org2")
-    test.CreateOrg(t, ctx, "test-org3")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    userId := test.CreateUser(t, db, "user1@test.com", "")
+    orgId := test.CreateOrg(t, db, "test-org")
+    org2Id := test.CreateOrg(t, db, "test-org2")
+    test.CreateOrg(t, db, "test-org3")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("Test adding user %s to org %s", userId, orgId)
 
     // assign user to the first organization
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 addOrgUser(orgId: "%s", userId: "%s")
@@ -103,8 +107,8 @@ func TestAddOrgUser(t *testing.T) {
 
     // assign user to the second organization
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 addOrgUser(orgId: "%s", userId: "%s")
@@ -119,20 +123,21 @@ func TestAddOrgUser(t *testing.T) {
 }
 
 func TestRemoveOrgUser(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    userId := test.CreateUser(t, ctx, "user1@test.com", "")
-    orgId := test.CreateOrg(t, ctx, "test-org")
-    org2Id := test.CreateOrg(t, ctx, "test-org2")
-    test.AddOrgUser(t, ctx, orgId, userId)
-    test.AddOrgUser(t, ctx, org2Id, userId)
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    userId := test.CreateUser(t, db, "user1@test.com", "")
+    orgId := test.CreateOrg(t, db, "test-org")
+    org2Id := test.CreateOrg(t, db, "test-org2")
+    test.AddOrgUser(t, db, orgId, userId)
+    test.AddOrgUser(t, db, org2Id, userId)
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("Test remove user %s from org %s", userId, orgId)
 
     // assign user to the first organization
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 removeOrgUser(orgId: "%s", userId: "%s")

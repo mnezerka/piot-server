@@ -1,23 +1,26 @@
-package resolver
+package resolver_test
 
 import (
+    "context"
     "fmt"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
+    "github.com/mnezerka/go-piot/test"
     "piot-server/schema"
-    "piot-server/test"
 )
 
 func TestUsersGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    test.CreateUser(t, ctx, "user1@test.com", "")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    test.CreateUser(t, db, "user1@test.com", "")
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
-            Context: ctx,
-            Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+            Context: context.TODO(),
+            Schema: schema,
             Query: `
                 {
                     users { email }
@@ -37,17 +40,19 @@ func TestUsersGet(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    orgId := test.CreateOrg(t, ctx, "org1")
-    org2Id := test.CreateOrg(t, ctx, "org2")
-    userId := test.CreateUser(t, ctx, "user1@test.com", "")
-    test.AddOrgUser(t, ctx, orgId, userId)
-    test.AddOrgUser(t, ctx, org2Id, userId)
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    orgId := test.CreateOrg(t, db, "org1")
+    org2Id := test.CreateOrg(t, db, "org2")
+    userId := test.CreateUser(t, db, "user1@test.com", "")
+    test.AddOrgUser(t, db, orgId, userId)
+    test.AddOrgUser(t, db, org2Id, userId)
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema:  schema,
         Query: fmt.Sprintf(`
             {
                 user(id: "%s") {email, orgs {name}}
@@ -65,12 +70,14 @@ func TestUserGet(t *testing.T) {
 }
 
 func TestUserCreate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: `
             mutation {
                 createUser(user: {email: "user_new@test.com"}) { email }
@@ -87,15 +94,17 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserUpdate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    id := test.CreateUser(t, ctx, "user1@test.com", "")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    id := test.CreateUser(t, db, "user1@test.com", "")
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("User to be updated %s", id)
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 updateUser(user: {id: "%s", email: "user1_new@test.com"}) { email }

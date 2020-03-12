@@ -3,6 +3,7 @@ package resolver
 import (
     "errors"
     "time"
+    "github.com/mnezerka/go-piot"
     "github.com/mnezerka/go-piot/model"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
@@ -29,7 +30,9 @@ type orgUpdateInput struct {
 /////////// Org Resolver
 
 type OrgResolver struct {
-    ctx context.Context
+    log *logging.Logger
+    db *mongo.Database
+    users *piot.Users
     org *model.Org
 }
 
@@ -86,11 +89,9 @@ func (r *OrgResolver) Users() []*UserResolver {
 
     var result []*UserResolver
 
-    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching users for org: %s", r.org.Id.Hex())
+    r.log.Debugf("GQL: Fetching users for org: %s", r.org.Id.Hex())
 
-    db := r.ctx.Value("db").(*mongo.Database)
-
-    collection := db.Collection("orgusers")
+    collection := r.db.Collection("orgusers")
 
     // filter orusers to current (single) org
     stage_match := bson.M{"$match": bson.M{"org_id": r.org.Id}}
@@ -106,28 +107,24 @@ func (r *OrgResolver) Users() []*UserResolver {
 
     pipeline := []bson.M{stage_match, stage_lookup, stage_unwind, stage_new_root}
 
-    //r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Pipeline %v", pipeline)
-
-    cur, err := collection.Aggregate(r.ctx, pipeline)
+    cur, err := collection.Aggregate(context.TODO(), pipeline)
     if err != nil {
-        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+        r.log.Errorf("GQL: error : %v", err)
         return result
     }
-    defer cur.Close(r.ctx)
+    defer cur.Close(context.TODO())
 
-    for cur.Next(r.ctx) {
-        //r.ctx.Value("log").(*logging.Logger).Debugf("Org users iteration %v", cur.Current)
-
+    for cur.Next(context.TODO()) {
         var user model.User
         if err := cur.Decode(&user); err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            r.log.Errorf("GQL: error : %v", err)
             return result
         }
-        result = append(result, &UserResolver{r.ctx, &user})
+        result = append(result, &UserResolver{r.log, r.users, r.db, &user})
     }
 
     if err := cur.Err(); err != nil {
-        r.ctx.Value("log").(*logging.Logger).Errorf("GQL: error during cursor processing: %v", err)
+        r.log.Errorf("GQL: error during cursor processing: %v", err)
         return result
     }
 
@@ -136,62 +133,58 @@ func (r *OrgResolver) Users() []*UserResolver {
 
 /////////// Resolver
 
-func (r *Resolver) Org(ctx context.Context, args struct {Id graphql.ID}) (*OrgResolver, error) {
-
-    db := ctx.Value("db").(*mongo.Database)
+func (r *Resolver) Org(args struct {Id graphql.ID}) (*OrgResolver, error) {
 
     org := model.Org{}
 
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org %v", args.Id)
+    r.log.Debugf("GQL: Fetching org %v", args.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Id))
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        r.log.Errorf("Graphql error : %v", err)
         return nil, errors.New("Cannot decode ID")
     }
 
-    collection := db.Collection("orgs")
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&org)
+    collection := r.db.Collection("orgs")
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&org)
 
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        r.log.Errorf("Graphql error : %v", err)
         return nil, err
     }
 
-    return &OrgResolver{ctx, &org}, nil
+    return &OrgResolver{r.log, r.db, r.users, &org}, nil
 }
 
-func (r *Resolver) Orgs(ctx context.Context) ([]*OrgResolver, error) {
+func (r *Resolver) Orgs() ([]*OrgResolver, error) {
 
-    db := ctx.Value("db").(*mongo.Database)
-
-    collection := db.Collection("orgs")
+    collection := r.db.Collection("orgs")
 
     count, _ := collection.EstimatedDocumentCount(context.TODO())
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Estimated orgs count %d", count)
+    r.log.Debugf("GQL: Estimated orgs count %d", count)
 
-    cur, err := collection.Find(ctx, bson.M{})
+    cur, err := collection.Find(context.TODO(), bson.M{})
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+        r.log.Errorf("GQL: error : %v", err)
         return nil, err
     }
-    defer cur.Close(ctx)
+    defer cur.Close(context.TODO())
 
     var result []*OrgResolver
 
-    for cur.Next(ctx) {
+    for cur.Next(context.TODO()) {
         // To decode into a struct, use cursor.Decode()
         var org model.Org
         if err := cur.Decode(&org); err != nil {
-            ctx.Value("log").(*logging.Logger).Debugf("GQL: After decode %v", err)
-            ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            r.log.Debugf("GQL: After decode %v", err)
+            r.log.Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &OrgResolver{ctx, &org})
+        result = append(result, &OrgResolver{r.log, r.db, r.users, &org})
     }
 
-    ctx.Value("log").(*logging.Logger).Debug("Have orgs")
+    r.log.Debug("Have orgs")
 
     if err := cur.Err(); err != nil {
       return nil, err
@@ -200,7 +193,7 @@ func (r *Resolver) Orgs(ctx context.Context) ([]*OrgResolver, error) {
     return result, nil
 }
 
-func (r *Resolver) CreateOrg(ctx context.Context, args *struct {Name string; Description string}) (*OrgResolver, error) {
+func (r *Resolver) CreateOrg(args *struct {Name string; Description string}) (*OrgResolver, error) {
 
     org := &model.Org{
         Name: args.Name,
@@ -208,34 +201,30 @@ func (r *Resolver) CreateOrg(ctx context.Context, args *struct {Name string; Des
         Created: int32(time.Now().Unix()),
     }
 
-    ctx.Value("log").(*logging.Logger).Infof("Creating org %s", args.Name)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Infof("Creating org %s", args.Name)
 
     // try to find existing user
     var orgExisting model.Org
-    collection := db.Collection("orgs")
-    err := collection.FindOne(ctx, bson.D{{"name", args.Name}}).Decode(&orgExisting)
+    collection := r.db.Collection("orgs")
+    err := collection.FindOne(context.TODO(), bson.D{{"name", args.Name}}).Decode(&orgExisting)
     if err == nil {
         return nil, errors.New("Organization of such name already exists!")
     }
 
     // org does not exist -> create new one
-    _, err = collection.InsertOne(ctx, org)
+    _, err = collection.InsertOne(context.TODO(), org)
     if err != nil {
         return nil, errors.New("Error while creating organizaton")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Created organization: %v", *org)
+    r.log.Debugf("Created organization: %v", *org)
 
-    return &OrgResolver{ctx, org}, nil
+    return &OrgResolver{r.log, r.db, r.users, org}, nil
 }
 
-func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInput}) (*OrgResolver, error) {
+func (r *Resolver) UpdateOrg(args struct {Org orgUpdateInput}) (*OrgResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating org %ss", args.Org.Id)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Updating org %ss", args.Org.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Org.Id))
@@ -245,8 +234,8 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInpu
 
     // try to find org to be updated
     var org model.Org
-    collection := db.Collection("orgs")
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&org)
+    collection := r.db.Collection("orgs")
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&org)
     if err != nil {
         return nil, errors.New("Org does not exist")
     }
@@ -254,8 +243,8 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInpu
     // try to find similar org matching new name
     if args.Org.Name != nil {
         var similarOrg model.Org
-        collection := db.Collection("orgs")
-        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"name": args.Org.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
+        collection := r.db.Collection("orgs")
+        err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"name": args.Org.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
         if err == nil {
             return nil, errors.New("Org of such name already exists")
         }
@@ -276,27 +265,25 @@ func (r *Resolver) UpdateOrg(ctx context.Context, args struct {Org orgUpdateInpu
 
     update := bson.M{"$set": updateFields}
 
-    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    _, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Updating org failed %v", err)
+        r.log.Errorf("Updating org failed %v", err)
         return nil, errors.New("Error while updating org")
     }
 
     // read org
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&org)
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&org)
     if err != nil {
         return nil, errors.New("Cannot fetch org data")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Org updated %v", org)
-    return &OrgResolver{ctx, &org}, nil
+    r.log.Debugf("Org updated %v", org)
+    return &OrgResolver{r.log, r.db, r.users, &org}, nil
 }
 
-func (r *Resolver) AddOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
+func (r *Resolver) AddOrgUser(args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Adding user %s to org %s", args.UserId, args.OrgId)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Adding user %s to org %s", args.UserId, args.OrgId)
 
     // create ObjectIDs from string
     orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
@@ -310,8 +297,8 @@ func (r *Resolver) AddOrgUser(ctx context.Context, args *struct {OrgId graphql.I
 
     // try to find existing assignment
     var similarOrgUser model.OrgUser
-    collection := db.Collection("orgusers")
-    err = collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}}).Decode(&similarOrgUser)
+    collection := r.db.Collection("orgusers")
+    err = collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}}).Decode(&similarOrgUser)
     if err == nil {
         return nil, errors.New("User is allready assigned to given organization")
     }
@@ -322,20 +309,18 @@ func (r *Resolver) AddOrgUser(ctx context.Context, args *struct {OrgId graphql.I
         OrgId: orgId,
         Created: int32(time.Now().Unix()),
     }
-    _, err = collection.InsertOne(ctx, orgUser)
+    _, err = collection.InsertOne(context.TODO(), orgUser)
     if err != nil {
         return nil, errors.New("Error while adding user to organization")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("User %s added to Org %s", userId, orgId)
+    r.log.Debugf("User %s added to Org %s", userId, orgId)
     return nil, nil
 }
 
-func (r *Resolver) RemoveOrgUser(ctx context.Context, args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
+func (r *Resolver) RemoveOrgUser(args *struct {OrgId graphql.ID; UserId graphql.ID}) (*bool, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Removing user %s from org %s", args.UserId, args.OrgId)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Removing user %s from org %s", args.UserId, args.OrgId)
 
     // create ObjectIDs from string
     orgId, err := primitive.ObjectIDFromHex(string(args.OrgId))
@@ -347,13 +332,13 @@ func (r *Resolver) RemoveOrgUser(ctx context.Context, args *struct {OrgId graphq
         return nil, err
     }
 
-    collection := db.Collection("orgusers")
-    _, err = collection.DeleteOne(ctx, bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}})
+    collection := r.db.Collection("orgusers")
+    _, err = collection.DeleteOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}})
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Cannot remove user %s from org %s (%v)", args.UserId, args.OrgId, err)
+        r.log.Errorf("Cannot remove user %s from org %s (%v)", args.UserId, args.OrgId, err)
         return nil, errors.New("Remove user from organization failed")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("User %s removed from  org %s", args.UserId, args.OrgId)
+    r.log.Debugf("User %s removed from  org %s", args.UserId, args.OrgId)
     return nil, nil
 }

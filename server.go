@@ -1,24 +1,114 @@
 package main
 
 import (
+    "context"
     "log"
     "net/http"
     "os"
     "time"
     "github.com/urfave/cli"
     "piot-server/handler"
-    "piot-server/config"
+    piotconfig "piot-server/config"
     "piot-server/resolver"
     "piot-server/schema"
-    //"piot-server/service"
-    //"piot-server/test"
+    "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/config"
     piotcontext "piot-server/context"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
-    "github.com/op/go-logging"
+    "go.mongodb.org/mongo-driver/mongo/options"
+    //"github.com/op/go-logging"
 )
 
+const LOG_FORMAT = "%{color}%{time:2006/01/02 15:04:05 -07:00 MST} [%{level:.6s}] %{shortfile} : %{color:reset}%{message}"
+
 func runServer(c *cli.Context) {
+
+    cfg := config.NewParameters()
+    cfg.DbUri = c.GlobalString("mongodb-uri")
+    cfg.DbName = "piot"
+    cfg.LogLevel = c.GlobalString("log-level")
+
+    ///////////////// LOGGER instance
+    logger, err := piot.NewLogger(LOG_FORMAT, cfg.LogLevel)
+    if err != nil {
+        log.Fatalf("Cannot create logger for level %s (%v)", cfg.LogLevel, err)
+        os.Exit(1)
+    }
+
+    /////////////// DB (mongo)
+    dbUri := c.GlobalString("mongodb-uri")
+
+    // try to open database
+    dbClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(dbUri))
+    if err != nil {
+        logger.Fatalf("Failed to open database on %s (%v)", dbUri, err)
+        os.Exit(1)
+    }
+
+    // Check the connection
+    err = dbClient.Ping(context.TODO(), nil)
+    if err != nil {
+        logger.Fatalf("Cannot ping database on %s (%v)", dbUri, err)
+        os.Exit(1)
+    }
+
+    db := dbClient.Database("piot")
+
+    /////////////// USERS service
+    users := piot.NewUsers(logger, db)
+
+    /////////////// ORGS service
+    orgs := piot.NewOrgs(logger, db)
+
+    /////////////// HTTP CLIENT service
+    var httpClient piot.IHttpClient
+    httpClient = piot.NewHttpClient(logger)
+
+    /////////////// PIOT INFLUXDB SERVICE
+
+    // create global influxdb service for all handlers
+    influxDbUri := c.GlobalString("influxdb-uri")
+    influxDbUsername := c.GlobalString("influxdb-user")
+    influxDbPassword := c.GlobalString("influxdb-password")
+    influxDb := piot.NewInfluxDb(logger, orgs, httpClient, influxDbUri, influxDbUsername, influxDbPassword)
+
+    /////////////// PIOT MYSQLDB SERVICE
+
+    // create global mysql db service for all handlers
+    mysqlDbHost := c.GlobalString("mysqldb-host")
+    mysqlDbUsername := c.GlobalString("mysqldb-user")
+    mysqlDbPassword := c.GlobalString("mysqldb-password")
+    mysqlDbName := c.GlobalString("mysqldb-name")
+
+    // real mysqldb service instance
+    mysqlDb := piot.NewMysqlDb(logger, orgs, mysqlDbHost, mysqlDbUsername, mysqlDbPassword, mysqlDbName)
+    err = mysqlDb.Open()
+    if err != nil {
+        logger.Fatalf("Connect to mysql server failed %v", err)
+        os.Exit(1)
+    }
+
+    //////////////// THINGS service instance
+    things := piot.NewThings(db, logger)
+
+    /////////////// PIOT MQTT service instance
+    mqttUri := c.GlobalString("mqtt-uri")
+    mqttUsername := c.GlobalString("mqtt-user")
+    mqttPassword := c.GlobalString("mqtt-password")
+    mqttClient := c.GlobalString("mqtt-client")
+    mqtt := piot.NewMqtt(mqttUri, logger, things, orgs, influxDb, mysqlDb)
+    mqtt.SetUsername(mqttUsername)
+    mqtt.SetPassword(mqttPassword)
+    mqtt.SetClient(mqttClient)
+    err = mqtt.Connect()
+    if err != nil {
+        logger.Fatalf("Connect to mqtt server failed %v", err)
+        os.Exit(1)
+    }
+
+    /////////////// PIOT DEVICES service instance
+    piotDevices := piot.NewPiotDevices(logger, things, mqtt, cfg)
 
     // create global context for all handlers
     contextOptions := piotcontext.NewContextOptions()
@@ -43,15 +133,15 @@ func runServer(c *cli.Context) {
     ctx := piotcontext.NewContext(contextOptions)
 
     // Auto disconnect from mongo
-    defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
+    //defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
 
-    logger := ctx.Value("log").(*logging.Logger)
-    logger.Infof("Starting PIOT server %s", config.VersionString())
+    logger.Infof("Starting PIOT server %s", piotconfig.VersionString())
 
     /////////////// HANDLERS
 
-    // create GraphQL schema
-    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), &resolver.Resolver{})
+    // create GraphQL schema together with resolver
+    resolver := resolver.NewResolver(logger, db, orgs, users, things)
+    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), resolver)
 
     http.HandleFunc("/", handler.RootHandler)
 
@@ -59,7 +149,8 @@ func runServer(c *cli.Context) {
     http.Handle("/register", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Registration()))))
 
     // endpoint for authentication - token is generaged
-    http.Handle("/login", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.LoginHandler()))))
+    loginHandler := handler.NewLogin(logger, db, cfg)
+    http.Handle("/login", handler.CORS(handler.AddContext(ctx, handler.Logging(loginHandler))))
 
     // endpoint for refreshing nearly expired token
     //r.HandleFunc("/refresh", handler.RefreshHandler)
@@ -73,11 +164,12 @@ func runServer(c *cli.Context) {
     }))
 
     //http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.Adapter{})))))
-    http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(&handler.Adapter{}))))
+    adapterHandler := handler.NewAdapter(logger, piotDevices)
+    http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(adapterHandler))))
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
-    err := http.ListenAndServe(c.GlobalString("bind-address"), nil)
+    err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
     FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }
 
@@ -92,7 +184,7 @@ func main() {
     app := cli.NewApp()
 
     app.Name = "PIOT Server"
-    app.Version = config.VersionString()
+    app.Version = piotconfig.VersionString()
     app.Authors = []cli.Author{
         {
             Name:  "Michal Nezerka",

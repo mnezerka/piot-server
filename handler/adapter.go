@@ -8,25 +8,31 @@ import (
     "net/http"
     "github.com/op/go-logging"
     //"piot-server/model"
+    "github.com/mnezerka/go-piot"
     "github.com/mnezerka/go-piot/model"
-    "piot-server/service"
 )
 
-type Adapter struct { }
+type Adapter struct {
+    log *logging.Logger
+    piotDevices *piot.PiotDevices
+}
+
+func NewAdapter(log *logging.Logger, piotDevices *piot.PiotDevices) *Adapter {
+    return &Adapter{log: log, piotDevices: piotDevices}
+}
 
 func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-    ctx := r.Context()
-    ctx.Value("log").(*logging.Logger).Debugf("Incoming packet")
+    h.log.Debugf("Incoming packet")
 
     // get info of debug mode directly from logger
-    if ctx.Value("log").(*logging.Logger).IsEnabledFor(logging.DEBUG) {
+    if h.log.IsEnabledFor(logging.DEBUG) {
         body, err := ioutil.ReadAll(r.Body)
         if err == nil {
-            ctx.Value("log").(*logging.Logger).Errorf("Reading request body error: %s", err)
+            h.log.Errorf("Reading request body error: %s", err)
         }
         reqStr := ioutil.NopCloser(bytes.NewBuffer(body))
-        ctx.Value("log").(*logging.Logger).Debugf("Request body: %s", reqStr)
+        h.log.Debugf("Request body: %s", reqStr)
         r.Body = reqStr
     }
 
@@ -43,11 +49,9 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Packet decoded %v", devicePacket)
+    h.log.Debugf("Packet decoded %v", devicePacket)
 
-    // get instance of piot devices service
-    pd := ctx.Value("piotdevices").(*service.PiotDevices)
-    if err := pd.ProcessPacket(ctx, devicePacket); err != nil {
+    if err := h.piotDevices.ProcessPacket(devicePacket); err != nil {
         http.Error(w, err.Error(), 500)
         return
     }

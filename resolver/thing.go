@@ -11,7 +11,6 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
-    "piot-server/service"
 )
 
 type thingUpdateInput struct {
@@ -55,7 +54,11 @@ type thingSwitchDataUpdateInput struct {
 }
 
 type ThingResolver struct {
-    ctx context.Context
+    log *logging.Logger
+    orgs *piot.Orgs
+    things *piot.Things
+    users *piot.Users
+    db *mongo.Database
     t *model.Thing
 }
 
@@ -101,17 +104,15 @@ func (r *ThingResolver) LastSeenInterval() int32 {
 
 func (r *ThingResolver) Org() *OrgResolver {
 
-    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching org for thing: %s", r.t.Id.Hex())
+    r.log.Debugf("GQL: Fetching org for thing: %s", r.t.Id.Hex())
 
     if r.t.OrgId != primitive.NilObjectID {
 
-        orgs := r.ctx.Value("orgs").(*service.Orgs)
-
-        org, err := orgs.Get(r.ctx, r.t.OrgId)
+        org, err := r.orgs.Get(r.t.OrgId)
         if err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
+            r.log.Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
         } else {
-            return &OrgResolver{r.ctx, org}
+            return &OrgResolver{r.log, r.db, r.users, org}
         }
     }
 
@@ -120,17 +121,15 @@ func (r *ThingResolver) Org() *OrgResolver {
 
 func (r *ThingResolver) Parent() *ThingResolver {
 
-    r.ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetching parent for thing: %s", r.t.Id.Hex())
+    r.log.Debugf("GQL: Fetching parent for thing: %s", r.t.Id.Hex())
 
     if r.t.ParentId != primitive.NilObjectID {
 
-        things := r.ctx.Value("things").(*piot.Things)
-
-        parentThing , err := things.Get(r.t.ParentId)
+        parentThing , err := r.things.Get(r.t.ParentId)
         if err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching parent %v for thing %v failed", r.t.ParentId, r.t.Id)
+            r.log.Errorf("GQL: Fetching parent %v for thing %v failed", r.t.ParentId, r.t.Id)
         } else {
-            return &ThingResolver{r.ctx, parentThing}
+            return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, parentThing}
         }
     }
 
@@ -198,7 +197,7 @@ func (r *ThingResolver) LocationLngValue() string {
 func (r *ThingResolver) Sensor() *SensorResolver {
 
     if r.t.Type == model.THING_TYPE_SENSOR {
-        return &SensorResolver{r.ctx, r.t}
+        return &SensorResolver{r.log, r.t}
     }
 
     return nil
@@ -207,7 +206,7 @@ func (r *ThingResolver) Sensor() *SensorResolver {
 func (r *ThingResolver) Switch() *SwitchResolver {
 
     if r.t.Type == model.THING_TYPE_SWITCH {
-        return &SwitchResolver{r.ctx, r.t}
+        return &SwitchResolver{r.log, r.t}
     }
 
     return nil
@@ -217,38 +216,18 @@ func (r *ThingResolver) Switch() *SwitchResolver {
 /////////////// Sensor Data Resolver
 
 type SensorResolver struct {
-    ctx context.Context
+    log *logging.Logger
     t *model.Thing
 }
 
 func (r *SensorResolver) MeasurementTopic() string {
 
     return r.t.Sensor.MeasurementTopic
-
-    /*
-
-    // if thing is assigned to org
-    if r.t.OrgId != primitive.NilObjectID {
-
-        orgs := r.ctx.Value("orgs").(*service.Orgs)
-
-        org, err := orgs.Get(r.ctx, r.t.OrgId)
-        if err != nil {
-            r.ctx.Value("log").(*logging.Logger).Errorf("GQL: Fetching org %v for thing %v failed", r.t.OrgId, r.t.Id)
-            return ""
-        }
-
-        return strings.Join([]string{org.Name, r.t.Name, r.t.Sensor.MeasurementTopic}, "/")
-
-    }
-    return ""
-    */
 }
 
 func (r *SensorResolver) MeasurementValue() string {
     return r.t.Sensor.MeasurementValue
 }
-
 
 func (r *SensorResolver) Value() string {
     return r.t.Sensor.Value
@@ -265,7 +244,7 @@ func (r *SensorResolver) Class() string {
 /////////////// Switch Data Resolver
 
 type SwitchResolver struct {
-    ctx context.Context
+    log *logging.Logger
     t *model.Thing
 }
 
@@ -299,44 +278,40 @@ func (r *SwitchResolver) CommandOff() string {
 
 /////////////// Resolver
 
-func (r *Resolver) Thing(ctx context.Context, args struct {Id graphql.ID}) (*ThingResolver, error) {
+func (r *Resolver) Thing(args struct {Id graphql.ID}) (*ThingResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Fetch thing: %v", args.Id)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("GQL: Fetch thing: %v", args.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Id))
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        r.log.Errorf("Graphql error : %v", err)
         return nil, errors.New("Cannot decode ID")
     }
 
     thing := model.Thing{}
 
-    collection := db.Collection("things")
-    err = collection.FindOne(ctx, bson.D{{"_id", id}}).Decode(&thing)
+    collection := r.db.Collection("things")
+    err = collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&thing)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Graphql error : %v", err)
+        r.log.Errorf("Graphql error : %v", err)
         return nil, err
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Retrieved thing %v", thing)
-    return &ThingResolver{ctx, &thing}, nil
+    r.log.Debugf("GQL: Retrieved thing %v", thing)
+    return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
+func (r *Resolver) Things() ([]*ThingResolver, error) {
 
-    db := ctx.Value("db").(*mongo.Database)
-
-    collection := db.Collection("things")
+    collection := r.db.Collection("things")
 
     count, _ := collection.EstimatedDocumentCount(context.TODO())
-    ctx.Value("log").(*logging.Logger).Debugf("GQL: Estimated things count %d", count)
+    r.log.Debugf("GQL: Estimated things count %d", count)
 
     cur, err := collection.Find(context.TODO(), bson.D{})
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+        r.log.Errorf("GQL: error : %v", err)
         return nil, err
     }
     defer cur.Close(context.TODO())
@@ -348,10 +323,10 @@ func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
         thing := model.Thing{}
         err := cur.Decode(&thing)
         if err != nil {
-            ctx.Value("log").(*logging.Logger).Errorf("GQL: error : %v", err)
+            r.log.Errorf("GQL: error : %v", err)
             return nil, err
         }
-        result = append(result, &ThingResolver{ctx, &thing})
+        result = append(result, &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing})
     }
 
     if err := cur.Err(); err != nil {
@@ -361,7 +336,7 @@ func (r *Resolver) Things(ctx context.Context) ([]*ThingResolver, error) {
     return result, nil
 }
 
-func (r *Resolver) CreateThing(ctx context.Context, args *struct {Name string; Type string}) (*ThingResolver, error) {
+func (r *Resolver) CreateThing(args *struct {Name string; Type string}) (*ThingResolver, error) {
 
     thing := &model.Thing{
         Name: args.Name,
@@ -369,38 +344,34 @@ func (r *Resolver) CreateThing(ctx context.Context, args *struct {Name string; T
         Created: int32(time.Now().Unix()),
     }
 
-    ctx.Value("log").(*logging.Logger).Infof("Creating thing %s of type %s", args.Name, args.Type)
+    r.log.Infof("Creating thing %s of type %s", args.Name, args.Type)
 
     if args.Type != model.THING_TYPE_DEVICE && args.Type != model.THING_TYPE_SENSOR && args.Type != model.THING_TYPE_SWITCH {
         return nil, errors.New("Unknown type of Thing")
     }
 
-    db := ctx.Value("db").(*mongo.Database)
-
     // try to find existing thing
     var existingThing model.Thing
-    collection := db.Collection("things")
-    err := collection.FindOne(ctx, bson.D{{"name", args.Name}}).Decode(&existingThing)
+    collection := r.db.Collection("things")
+    err := collection.FindOne(context.TODO(), bson.D{{"name", args.Name}}).Decode(&existingThing)
     if err == nil {
         return nil, errors.New("Thing of such name already exists!")
     }
 
     // thing does not exist -> create new one
-    _, err = collection.InsertOne(ctx, thing)
+    _, err = collection.InsertOne(context.TODO(), thing)
     if err != nil {
         return nil, errors.New("Error while creating thing")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Created thing: %v", *thing)
+    r.log.Debugf("Created thing: %v", *thing)
 
-    return &ThingResolver{ctx, thing}, nil
+    return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, thing}, nil
 }
 
-func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpdateInput}) (*ThingResolver, error) {
+func (r *Resolver) UpdateThing(args struct {Thing thingUpdateInput}) (*ThingResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s", args.Thing.Id)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Updating thing %s", args.Thing.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Thing.Id))
@@ -410,8 +381,8 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
 
     // try to find thing to be updated
     var thing model.Thing
-    collection := db.Collection("things")
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    collection := r.db.Collection("things")
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Thing does not exist")
     }
@@ -419,7 +390,7 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     // try to find similar thing matching new name
     if args.Thing.Name != nil {
         var similarThing model.Thing
-        err := collection.FindOne(ctx, bson.M{"$and": []bson.M{bson.M{"name": args.Thing.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarThing)
+        err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"name": args.Thing.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarThing)
         if err == nil {
             return nil, errors.New("Thing of such name already exists")
         }
@@ -455,27 +426,25 @@ func (r *Resolver) UpdateThing(ctx context.Context, args struct {Thing thingUpda
     }
     update := bson.M{"$set": updateFields}
 
-    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    _, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        r.log.Errorf("Updating thing failed %v", err)
         return nil, errors.New("Error while updating thing")
     }
 
     // read thing
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Cannot fetch thing data")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Thing updated %v", thing)
-    return &ThingResolver{ctx, &thing}, nil
+    r.log.Debugf("Thing updated %v", thing)
+    return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data thingSensorDataUpdateInput}) (*ThingResolver, error) {
+func (r *Resolver) UpdateThingSensorData(args struct {Data thingSensorDataUpdateInput}) (*ThingResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s sensor data", args.Data.Id)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Updating thing %s sensor data", args.Data.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Data.Id))
@@ -485,8 +454,8 @@ func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data 
 
     // try to find thing to be updated
     var thing model.Thing
-    collection := db.Collection("things")
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    collection := r.db.Collection("things")
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Thing does not exist")
     }
@@ -498,27 +467,25 @@ func (r *Resolver) UpdateThingSensorData(ctx context.Context, args struct {Data 
     if args.Data.MeasurementValue != nil { updateFields["sensor.measurement_value"] = *args.Data.MeasurementValue}
     update := bson.M{"$set": updateFields}
 
-    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    _, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        r.log.Errorf("Updating thing failed %v", err)
         return nil, errors.New("Error while updating thing")
     }
 
     // read thing
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Cannot fetch thing data")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Thing sensor data updated %v", thing)
-    return &ThingResolver{ctx, &thing}, nil
+    r.log.Debugf("Thing sensor data updated %v", thing)
+    return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) UpdateThingSwitchData(ctx context.Context, args struct {Data thingSwitchDataUpdateInput}) (*ThingResolver, error) {
+func (r *Resolver) UpdateThingSwitchData(args struct {Data thingSwitchDataUpdateInput}) (*ThingResolver, error) {
 
-    ctx.Value("log").(*logging.Logger).Debugf("Updating thing %s switch data", args.Data.Id)
-
-    db := ctx.Value("db").(*mongo.Database)
+    r.log.Debugf("Updating thing %s switch data", args.Data.Id)
 
     // create ObjectID from string
     id, err := primitive.ObjectIDFromHex(string(args.Data.Id))
@@ -528,8 +495,8 @@ func (r *Resolver) UpdateThingSwitchData(ctx context.Context, args struct {Data 
 
     // try to find thing to be updated
     var thing model.Thing
-    collection := db.Collection("things")
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    collection := r.db.Collection("things")
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Thing does not exist")
     }
@@ -544,19 +511,19 @@ func (r *Resolver) UpdateThingSwitchData(ctx context.Context, args struct {Data 
     if args.Data.CommandOff != nil { updateFields["switch.command_off"] = *args.Data.CommandOff}
     update := bson.M{"$set": updateFields}
 
-    _, err = collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+    _, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
     if err != nil {
-        ctx.Value("log").(*logging.Logger).Errorf("Updating thing failed %v", err)
+        r.log.Errorf("Updating thing failed %v", err)
         return nil, errors.New("Error while updating thing")
     }
 
     // read thing
-    err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&thing)
+    err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
     if err != nil {
         return nil, errors.New("Cannot fetch thing data")
     }
 
-    ctx.Value("log").(*logging.Logger).Debugf("Thing switch data updated %v", thing)
-    return &ThingResolver{ctx, &thing}, nil
+    r.log.Debugf("Thing switch data updated and refetched %v", thing)
+    return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 

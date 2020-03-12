@@ -11,7 +11,6 @@ import (
     jwt "github.com/dgrijalva/jwt-go"
     "piot-server/model"
     "piot-server/config"
-    //"piot-server/service"
 )
 
 func Authorize(h http.Handler) http.Handler {

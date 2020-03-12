@@ -1,21 +1,22 @@
-package resolver
+package resolver_test
 
 import (
+    "context"
     "fmt"
     "testing"
     graphql "github.com/graph-gophers/graphql-go"
     "github.com/graph-gophers/graphql-go/gqltesting"
+    "github.com/mnezerka/go-piot/test"
     "piot-server/schema"
-    "piot-server/test"
 )
 
 func TestThingCreate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
+    db := test.GetDb(t)
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: `
             mutation {
                 createThing(name: "NewThing", type: "sensor") { name, type }
@@ -33,14 +34,15 @@ func TestThingCreate(t *testing.T) {
 }
 
 func TestThingsGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    thingId := test.CreateThing(t, ctx, "thing1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    thingId := test.CreateThing(t, db, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
-            Context: ctx,
-            Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+            Context: context.TODO(),
+            Schema: schema,
             Query: `
                 {
                     things { id, name }
@@ -61,15 +63,16 @@ func TestThingsGet(t *testing.T) {
 }
 
 func TestThingGet(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    thingId := test.CreateThing(t, ctx, "thing1")
-    orgId := test.CreateOrg(t, ctx, "org1")
-    test.AddOrgThing(t, ctx, orgId, "thing1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    thingId := test.CreateThing(t, db, "thing1")
+    orgId := test.CreateOrg(t, db, "org1")
+    test.AddOrgThing(t, db, orgId, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema:  schema,
         Query: fmt.Sprintf(`
             {
                 thing(id: "%s") {name, sensor {class, measurement_topic}}
@@ -86,15 +89,16 @@ func TestThingGet(t *testing.T) {
 }
 
 func TestThingUpdate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    id := test.CreateThing(t, ctx, "thing1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    id := test.CreateThing(t, db, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("Thing to be updated %s", id)
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 updateThing(
@@ -151,15 +155,16 @@ func TestThingUpdate(t *testing.T) {
 }
 
 func TestThingSensorDataUpdate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    id := test.CreateThing(t, ctx, "thing1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    id := test.CreateThing(t, db, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("Thing to be updated %s", id)
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 updateThingSensorData(data: {id: "%s", measurement_topic: "xyz"}) {sensor {measurement_topic}}
@@ -176,15 +181,16 @@ func TestThingSensorDataUpdate(t *testing.T) {
 }
 
 func TestThingSwitchDataUpdate(t *testing.T) {
-    ctx := test.CreateTestContext()
-    test.CleanDb(t, ctx)
-    id := test.CreateSwitch(t, ctx, "thing1")
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    id := test.CreateSwitch(t, db, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     t.Logf("Thing to be updated %s", id)
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: ctx,
-        Schema:  graphql.MustParseSchema(schema.GetRootSchema(), &Resolver{}),
+        Context: context.TODO(),
+        Schema: schema,
         Query: fmt.Sprintf(`
             mutation {
                 updateThingSwitchData(data: {id: "%s", state_topic: "statetopic"}) {switch {state_topic}}
