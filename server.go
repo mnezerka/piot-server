@@ -101,7 +101,7 @@ func runServer(c *cli.Context) {
     mqtt.SetUsername(mqttUsername)
     mqtt.SetPassword(mqttPassword)
     mqtt.SetClient(mqttClient)
-    err = mqtt.Connect()
+    err = mqtt.Connect(true)
     if err != nil {
         logger.Fatalf("Connect to mqtt server failed %v", err)
         os.Exit(1)
