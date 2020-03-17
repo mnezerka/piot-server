@@ -15,17 +15,17 @@ import (
     "golang.org/x/crypto/bcrypt"
 )
 
-type Login struct {
+type LoginHandler struct {
     log *logging.Logger
     db *mongo.Database
     params *config.Parameters
 }
 
-func NewLogin(log *logging.Logger, db *mongo.Database, params *config.Parameters) *Login {
-    return &Login{log: log, db: db, params: params}
+func NewLoginHandler(log *logging.Logger, db *mongo.Database, params *config.Parameters) *LoginHandler {
+    return &LoginHandler{log: log, db: db, params: params}
 }
 
-func (l *Login) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     // check http method, POST is required
     if r.Method != http.MethodPost {
@@ -76,7 +76,7 @@ func (l *Login) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     // generate new jwt token
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-    //ctx.Value("log").(*logging.Logger).Debugf("JWT Pass: %s", params.JwtPassword)
+    //l.log.Debugf("JWT Pass: %s", params.JwtPassword)
 
     tokenString, err := token.SignedString([]byte(l.params.JwtPassword))
     if err != nil {
@@ -85,7 +85,7 @@ func (l *Login) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    //ctx.Value("log").(*logging.Logger).Debugf("JWT Token: %s", tokenString)
+    //l.log.Debugf("JWT Token: %s", tokenString)
 
     var response model.Token
     response.Token = tokenString

@@ -8,12 +8,11 @@ import (
     "time"
     "github.com/urfave/cli"
     "piot-server/handler"
-    piotconfig "piot-server/config"
     "piot-server/resolver"
     "piot-server/schema"
+    piotconfig "piot-server/config"
     "github.com/mnezerka/go-piot"
     "github.com/mnezerka/go-piot/config"
-    piotcontext "piot-server/context"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
@@ -110,28 +109,6 @@ func runServer(c *cli.Context) {
     /////////////// PIOT DEVICES service instance
     piotDevices := piot.NewPiotDevices(logger, things, mqtt, cfg)
 
-    // create global context for all handlers
-    contextOptions := piotcontext.NewContextOptions()
-    contextOptions.DbUri = c.GlobalString("mongodb-uri")
-    contextOptions.DbName = "piot"
-    contextOptions.MqttUri = c.GlobalString("mqtt-uri")
-    contextOptions.MqttUsername = c.GlobalString("mqtt-user")
-    contextOptions.MqttPassword = c.GlobalString("mqtt-password")
-    contextOptions.MqttClient = c.GlobalString("mqtt-client")
-    contextOptions.InfluxDbUri = c.GlobalString("influxdb-uri")
-    contextOptions.InfluxDbUsername = c.GlobalString("influxdb-user")
-    contextOptions.InfluxDbPassword = c.GlobalString("influxdb-password")
-    contextOptions.MysqlDbHost = c.GlobalString("mysqldb-host")
-    contextOptions.MysqlDbUsername = c.GlobalString("mysqldb-user")
-    contextOptions.MysqlDbPassword = c.GlobalString("mysqldb-password")
-    contextOptions.MysqlDbName = c.GlobalString("mysqldb-name")
-    contextOptions.Params.LogLevel = c.GlobalString("log-level")
-    contextOptions.Params.DOSInterval = c.GlobalDuration("dos-interval")
-    contextOptions.Params.JwtPassword = c.GlobalString("jwt-password")
-    contextOptions.Params.JwtTokenExpiration = c.GlobalDuration("jwt-token-expiration")
-
-    ctx := piotcontext.NewContext(contextOptions)
-
     // Auto disconnect from mongo
     //defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
 
@@ -139,36 +116,58 @@ func runServer(c *cli.Context) {
 
     /////////////// HANDLERS
 
-    // create GraphQL schema together with resolver
-    resolver := resolver.NewResolver(logger, db, orgs, users, things)
-    graphqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), resolver)
-
     http.HandleFunc("/", handler.RootHandler)
 
     // endpoint for registration of new user
-    http.Handle("/register", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Registration()))))
+    http.Handle(
+        "/register",
+        handler.NewCORSHandler(
+            handler.NewLoggingHandler(
+                logger,
+                handler.NewRegistrationHandler(logger, db))))
 
     // endpoint for authentication - token is generaged
-    loginHandler := handler.NewLogin(logger, db, cfg)
-    http.Handle("/login", handler.CORS(handler.AddContext(ctx, handler.Logging(loginHandler))))
+    http.Handle(
+        "/login",
+        handler.NewCORSHandler(
+            handler.NewLoginHandler(logger, db, cfg)))
 
     // endpoint for refreshing nearly expired token
     //r.HandleFunc("/refresh", handler.RefreshHandler)
 
-    http.Handle("/query", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.GraphQL{Schema: graphqlSchema})))))
-    //http.Handle("/query", handler.AddContext(ctx, handler.Logging(&handler.GraphQL{Schema: graphqlSchema})))
+    // create GraphQL schema together with resolver
+    gqlResolver := resolver.NewResolver(logger, db, orgs, users, things)
+    gqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), gqlResolver)
+    http.Handle(
+        "/query",
+        handler.NewCORSHandler(
+            handler.NewLoggingHandler(
+                logger,
+                handler.NewAuthHandler(
+                    logger,
+                    cfg,
+                    handler.NewGraphQLHandler(gqlSchema),
+                ),
+            ),
+        ),
+    )
 
     // enpoint for interactive graphql web IDE
     http.Handle("/gql", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         http.ServeFile(w, r, "graphiql.html")
     }))
 
-    //http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(handler.Authorize(&handler.Adapter{})))))
-    adapterHandler := handler.NewAdapter(logger, piotDevices)
-    http.Handle("/adapter", handler.CORS(handler.AddContext(ctx, handler.Logging(adapterHandler))))
+    http.Handle(
+        "/adapter",
+        handler.NewCORSHandler(
+            handler.NewLoggingHandler(
+                logger,
+                handler.NewAdapter(logger, piotDevices),
+            ),
+        ),
+    )
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
-    //err = http.ListenAndServe(c.GlobalString("bind-address"), handlers.LoggingHandler(os.Stdout, r))
     err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
     FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
 }

@@ -6,11 +6,15 @@ import (
     "net/http"
 )
 
-type GraphQL struct {
-    Schema  *graphql.Schema
+type GraphQLHandler struct {
+    schema  *graphql.Schema
 }
 
-func (h *GraphQL) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewGraphQLHandler(schema  *graphql.Schema) *GraphQLHandler {
+    return &GraphQLHandler{schema: schema}
+}
+
+func (h *GraphQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     var params struct {
         Query         string                 `json:"query"`
         OperationName string                 `json:"operationName"`
@@ -24,7 +28,7 @@ func (h *GraphQL) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     // by mn ctx := h.Loaders.Attach(r.Context())
     ctx := r.Context()
 
-    response := h.Schema.Exec(ctx, params.Query, params.OperationName, params.Variables)
+    response := h.schema.Exec(ctx, params.Query, params.OperationName, params.Variables)
 
     responseJSON, err := json.Marshal(response)
     if err != nil {

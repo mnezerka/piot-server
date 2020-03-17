@@ -43,7 +43,7 @@ func LoginUser(t *testing.T, log *logging.Logger, db *mongo.Database, email stri
     rr := httptest.NewRecorder()
 
     //handler := handler.AddContext(*ctx, handler.LoginHandler())
-    handler := handler.NewLogin(log, db, test.GetConfig())
+    handler := handler.NewLoginHandler(log, db, test.GetConfig())
 
     handler.ServeHTTP(rr, req)
 

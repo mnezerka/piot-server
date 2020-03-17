@@ -4,28 +4,34 @@ import (
     "net/http"
 )
 
-func CORS(h http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+type CORSHandler struct {
+    handler http.Handler
+}
 
-        // Allow from any origin
-        w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Credentials", "true")
-        w.Header().Set("Access-Control-Max-Age", "86400")    // cache for 1 day
+func NewCORSHandler(handler http.Handler) *CORSHandler {
+    return &CORSHandler{handler: handler}
+}
 
-        // Handle pre-flight OPTIONS requests
-        if r.Method == http.MethodOptions {
+func (h *CORSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-            if r.Header.Get("Access-Control-Request-Method") != "" {
-                w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE")
-            }
+    // Allow from any origin
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Credentials", "true")
+    w.Header().Set("Access-Control-Max-Age", "86400")    // cache for 1 day
 
-            if r.Header.Get("Access-Control-Request-Headers") != "" {
-                w.Header().Set("Access-Control-Allow-Headers", r.Header.Get("Access-Control-Request-Headers"))
-            }
+    // Handle pre-flight OPTIONS requests
+    if r.Method == http.MethodOptions {
 
-            return
+        if r.Header.Get("Access-Control-Request-Method") != "" {
+            w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS, DELETE")
         }
 
-        h.ServeHTTP(w, r)
-    })
+        if r.Header.Get("Access-Control-Request-Headers") != "" {
+            w.Header().Set("Access-Control-Allow-Headers", r.Header.Get("Access-Control-Request-Headers"))
+        }
+
+        return
+    }
+
+    h.handler.ServeHTTP(w, r)
 }
