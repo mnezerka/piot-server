@@ -30,6 +30,7 @@ type thingUpdateInput struct {
     StoreMysqlDbInterval *int32
     LocationLat *float64
     LocationLng *float64
+    LocationTracking *bool
     LocationMqttTopic *string
     LocationMqttLatValue *string
     LocationMqttLngValue *string
@@ -184,6 +185,10 @@ func (r *ThingResolver) LocationSat() int32 {
 
 func (r *ThingResolver) LocationTs() int32 {
     return r.t.LocationTs
+}
+
+func (r *ThingResolver) LocationTracking() bool {
+    return r.t.LocationTracking
 }
 
 func (r *ThingResolver) LocationMqttTopic() string {
@@ -429,6 +434,7 @@ func (r *Resolver) UpdateThing(args struct {Thing thingUpdateInput}) (*ThingReso
     if args.Thing.LocationMqttTsValue != nil { updateFields["loc_mqtt_ts_value"] = *args.Thing.LocationMqttTsValue}
     if args.Thing.LocationLat != nil { updateFields["loc_lat"] = *args.Thing.LocationLat}
     if args.Thing.LocationLng != nil { updateFields["loc_lng"] = *args.Thing.LocationLng}
+    if args.Thing.LocationTracking != nil { updateFields["loc_tracking"] = *args.Thing.LocationTracking}
 
     if args.Thing.OrgId != nil {
         // create ObjectID from string

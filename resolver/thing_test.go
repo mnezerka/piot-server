@@ -117,7 +117,8 @@ func TestThingUpdate(t *testing.T) {
                         location_mqtt_sat_value: "lsatval",
                         location_mqtt_ts_value: "ltsval",
                         location_lat: 34.555,
-                        location_lng: 10.121212
+                        location_lng: 10.121212,
+                        location_tracking: true
                     }
                 ) {
                     name,
@@ -135,7 +136,8 @@ func TestThingUpdate(t *testing.T) {
                     location_lat,
                     location_lng,
                     location_sat,
-                    location_ts
+                    location_ts,
+                    location_tracking
                 }
             }
         `, id.Hex()),
@@ -157,7 +159,8 @@ func TestThingUpdate(t *testing.T) {
                     "location_lat": 34.555,
                     "location_lng": 10.121212,
                     "location_sat": 0,
-                    "location_ts": 0
+                    "location_ts": 0,
+                    "location_tracking": true
                 }
             }
         `,

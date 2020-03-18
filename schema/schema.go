@@ -106,6 +106,7 @@ func GetRootSchema() string {
             location_lng: Float!
             location_sat: Int!
             location_ts: Int!
+            location_tracking: Boolean!
             location_mqtt_topic: String!
             location_mqtt_lat_value: String!
             location_mqtt_lng_value: String!
@@ -140,6 +141,7 @@ func GetRootSchema() string {
             store_mysqldb_interval: Int
             location_lat: Float
             location_lng: Float
+            location_tracking: Boolean
             location_mqtt_topic: String
             location_mqtt_lat_value: String
             location_mqtt_lng_value: String
