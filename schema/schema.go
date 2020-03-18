@@ -102,11 +102,15 @@ func GetRootSchema() string {
             store_mysqldb_interval: Int!
             sensor: SensorData
             switch: SwitchData
-            location_lat: Float
-            location_lng: Float
-            location_topic: String!
-            location_lat_value: String!
-            location_lng_value: String!
+            location_lat: Float!
+            location_lng: Float!
+            location_sat: Int!
+            location_ts: Int!
+            location_mqtt_topic: String!
+            location_mqtt_lat_value: String!
+            location_mqtt_lng_value: String!
+            location_mqtt_sat_value: String!
+            location_mqtt_ts_value: String!
         }
 
         input UserUpdate {
@@ -136,9 +140,11 @@ func GetRootSchema() string {
             store_mysqldb_interval: Int
             location_lat: Float
             location_lng: Float
-            location_topic: String
-            location_lat_value: String
-            location_lng_value: String
+            location_mqtt_topic: String
+            location_mqtt_lat_value: String
+            location_mqtt_lng_value: String
+            location_mqtt_sat_value: String
+            location_mqtt_ts_value: String
         }
 
         input ThingSensorDataUpdate {

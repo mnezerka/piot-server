@@ -30,9 +30,11 @@ type thingUpdateInput struct {
     StoreMysqlDbInterval *int32
     LocationLat *float64
     LocationLng *float64
-    LocationTopic *string
-    LocationLatValue *string
-    LocationLngValue *string
+    LocationMqttTopic *string
+    LocationMqttLatValue *string
+    LocationMqttLngValue *string
+    LocationMqttSatValue *string
+    LocationMqttTsValue *string
 }
 
 type thingSensorDataUpdateInput struct {
@@ -168,30 +170,40 @@ func (r *ThingResolver) StoreMysqlDbInterval() int32 {
     return r.t.StoreMysqlDbInterval
 }
 
-func (r *ThingResolver) LocationLat() *float64 {
-    if r.t.Location != nil {
-        return &r.t.Location.Latitude
-    }
-    return nil
+func (r *ThingResolver) LocationLat() float64 {
+    return r.t.LocationLatitude
 }
 
-func (r *ThingResolver) LocationLng() *float64 {
-    if r.t.Location != nil {
-        return &r.t.Location.Longitude
-    }
-    return nil
+func (r *ThingResolver) LocationLng() float64 {
+    return r.t.LocationLongitude
 }
 
-func (r *ThingResolver) LocationTopic() string {
-    return r.t.LocationTopic
+func (r *ThingResolver) LocationSat() int32 {
+    return r.t.LocationSatelites
 }
 
-func (r *ThingResolver) LocationLatValue() string {
-    return r.t.LocationLatValue
+func (r *ThingResolver) LocationTs() int32 {
+    return r.t.LocationTs
 }
 
-func (r *ThingResolver) LocationLngValue() string {
-    return r.t.LocationLngValue
+func (r *ThingResolver) LocationMqttTopic() string {
+    return r.t.LocationMqttTopic
+}
+
+func (r *ThingResolver) LocationMqttLatValue() string {
+    return r.t.LocationMqttLatValue
+}
+
+func (r *ThingResolver) LocationMqttLngValue() string {
+    return r.t.LocationMqttLngValue
+}
+
+func (r *ThingResolver) LocationMqttSatValue() string {
+    return r.t.LocationMqttSatValue
+}
+
+func (r *ThingResolver) LocationMqttTsValue() string {
+    return r.t.LocationMqttTsValue
 }
 
 func (r *ThingResolver) Sensor() *SensorResolver {
@@ -410,11 +422,13 @@ func (r *Resolver) UpdateThing(args struct {Thing thingUpdateInput}) (*ThingReso
     if args.Thing.StoreInfluxDb != nil { updateFields["store_influxdb"] = *args.Thing.StoreInfluxDb}
     if args.Thing.StoreMysqlDb != nil { updateFields["store_mysqldb"] = *args.Thing.StoreMysqlDb}
     if args.Thing.StoreMysqlDbInterval != nil { updateFields["store_mysqldb_interval"] = *args.Thing.StoreMysqlDbInterval}
-    if args.Thing.LocationTopic != nil { updateFields["location_topic"] = *args.Thing.LocationTopic}
-    if args.Thing.LocationLatValue != nil { updateFields["location_lat_value"] = *args.Thing.LocationLatValue}
-    if args.Thing.LocationLngValue != nil { updateFields["location_lng_value"] = *args.Thing.LocationLngValue}
-    if args.Thing.LocationLat != nil { updateFields["location.latitude"] = *args.Thing.LocationLat}
-    if args.Thing.LocationLng != nil { updateFields["location.longitude"] = *args.Thing.LocationLng}
+    if args.Thing.LocationMqttTopic != nil { updateFields["loc_mqtt_topic"] = *args.Thing.LocationMqttTopic}
+    if args.Thing.LocationMqttLatValue != nil { updateFields["loc_mqtt_lat_value"] = *args.Thing.LocationMqttLatValue}
+    if args.Thing.LocationMqttLngValue != nil { updateFields["loc_mqtt_lng_value"] = *args.Thing.LocationMqttLngValue}
+    if args.Thing.LocationMqttSatValue != nil { updateFields["loc_mqtt_sat_value"] = *args.Thing.LocationMqttSatValue}
+    if args.Thing.LocationMqttTsValue != nil { updateFields["loc_mqtt_ts_value"] = *args.Thing.LocationMqttTsValue}
+    if args.Thing.LocationLat != nil { updateFields["loc_lat"] = *args.Thing.LocationLat}
+    if args.Thing.LocationLng != nil { updateFields["loc_lng"] = *args.Thing.LocationLng}
 
     if args.Thing.OrgId != nil {
         // create ObjectID from string

@@ -111,9 +111,11 @@ func TestThingUpdate(t *testing.T) {
                         telemetry_topic: "tt",
                         store_mysqldb: true,
                         store_mysqldb_interval: 60,
-                        location_topic: "ltopic",
-                        location_lat_value: "llatval",
-                        location_lng_value: "llngval",
+                        location_mqtt_topic: "ltopic",
+                        location_mqtt_lat_value: "llatval",
+                        location_mqtt_lng_value: "llngval",
+                        location_mqtt_sat_value: "lsatval",
+                        location_mqtt_ts_value: "ltsval",
                         location_lat: 34.555,
                         location_lng: 10.121212
                     }
@@ -125,11 +127,15 @@ func TestThingUpdate(t *testing.T) {
                     telemetry_topic
                     store_mysqldb,
                     store_mysqldb_interval,
-                    location_topic,
-                    location_lat_value,
-                    location_lng_value,
+                    location_mqtt_topic,
+                    location_mqtt_lat_value,
+                    location_mqtt_lng_value,
+                    location_mqtt_sat_value,
+                    location_mqtt_ts_value,
                     location_lat,
-                    location_lng
+                    location_lng,
+                    location_sat,
+                    location_ts
                 }
             }
         `, id.Hex()),
@@ -143,11 +149,15 @@ func TestThingUpdate(t *testing.T) {
                     "telemetry_topic": "tt",
                     "store_mysqldb": true,
                     "store_mysqldb_interval": 60,
-                    "location_topic": "ltopic",
-                    "location_lat_value": "llatval",
-                    "location_lng_value": "llngval",
+                    "location_mqtt_topic": "ltopic",
+                    "location_mqtt_lat_value": "llatval",
+                    "location_mqtt_lng_value": "llngval",
+                    "location_mqtt_sat_value": "lsatval",
+                    "location_mqtt_ts_value": "ltsval",
                     "location_lat": 34.555,
-                    "location_lng": 10.121212
+                    "location_lng": 10.121212,
+                    "location_sat": 0,
+                    "location_ts": 0
                 }
             }
         `,
