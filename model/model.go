@@ -29,4 +29,10 @@ type Claims struct {
     jwt.StandardClaims
 }
 
-
+// this becomes part of context that is propagated to all handlers - e.g. graphql
+type UserProfile struct {
+    Email     string    // user email
+    IsAdmin   bool      // is user administrator?
+    Org       *Org      // current org
+    Orgs      []Org     // orgs user is member of
+}

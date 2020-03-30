@@ -7,12 +7,8 @@ import (
     "os"
     "time"
     "github.com/urfave/cli"
-    "piot-server/handler"
-    "piot-server/resolver"
     "piot-server/schema"
-    piotconfig "piot-server/config"
-    "github.com/mnezerka/go-piot"
-    "github.com/mnezerka/go-piot/config"
+    "piot-server/config"
     graphql "github.com/graph-gophers/graphql-go"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
@@ -29,7 +25,7 @@ func runServer(c *cli.Context) {
     cfg.LogLevel = c.GlobalString("log-level")
 
     ///////////////// LOGGER instance
-    logger, err := piot.NewLogger(LOG_FORMAT, cfg.LogLevel)
+    logger, err := NewLogger(LOG_FORMAT, cfg.LogLevel)
     if err != nil {
         log.Fatalf("Cannot create logger for level %s (%v)", cfg.LogLevel, err)
         os.Exit(1)
@@ -55,14 +51,14 @@ func runServer(c *cli.Context) {
     db := dbClient.Database("piot")
 
     /////////////// USERS service
-    users := piot.NewUsers(logger, db)
+    users := NewUsers(logger, db)
 
     /////////////// ORGS service
-    orgs := piot.NewOrgs(logger, db)
+    orgs := NewOrgs(logger, db)
 
     /////////////// HTTP CLIENT service
-    var httpClient piot.IHttpClient
-    httpClient = piot.NewHttpClient(logger)
+    var httpClient IHttpClient
+    httpClient = NewHttpClient(logger)
 
     /////////////// PIOT INFLUXDB SERVICE
 
@@ -70,7 +66,7 @@ func runServer(c *cli.Context) {
     influxDbUri := c.GlobalString("influxdb-uri")
     influxDbUsername := c.GlobalString("influxdb-user")
     influxDbPassword := c.GlobalString("influxdb-password")
-    influxDb := piot.NewInfluxDb(logger, orgs, httpClient, influxDbUri, influxDbUsername, influxDbPassword)
+    influxDb := NewInfluxDb(logger, orgs, httpClient, influxDbUri, influxDbUsername, influxDbPassword)
 
     /////////////// PIOT MYSQLDB SERVICE
 
@@ -81,7 +77,7 @@ func runServer(c *cli.Context) {
     mysqlDbName := c.GlobalString("mysqldb-name")
 
     // real mysqldb service instance
-    mysqlDb := piot.NewMysqlDb(logger, orgs, mysqlDbHost, mysqlDbUsername, mysqlDbPassword, mysqlDbName)
+    mysqlDb := NewMysqlDb(logger, orgs, mysqlDbHost, mysqlDbUsername, mysqlDbPassword, mysqlDbName)
     err = mysqlDb.Open()
     if err != nil {
         logger.Fatalf("Connect to mysql server failed %v", err)
@@ -89,14 +85,14 @@ func runServer(c *cli.Context) {
     }
 
     //////////////// THINGS service instance
-    things := piot.NewThings(db, logger)
+    things := NewThings(db, logger)
 
     /////////////// PIOT MQTT service instance
     mqttUri := c.GlobalString("mqtt-uri")
     mqttUsername := c.GlobalString("mqtt-user")
     mqttPassword := c.GlobalString("mqtt-password")
     mqttClient := c.GlobalString("mqtt-client")
-    mqtt := piot.NewMqtt(mqttUri, logger, things, orgs, influxDb, mysqlDb)
+    mqtt := NewMqtt(mqttUri, logger, things, orgs, influxDb, mysqlDb)
     mqtt.SetUsername(mqttUsername)
     mqtt.SetPassword(mqttPassword)
     mqtt.SetClient(mqttClient)
@@ -107,46 +103,47 @@ func runServer(c *cli.Context) {
     }
 
     /////////////// PIOT DEVICES service instance
-    piotDevices := piot.NewPiotDevices(logger, things, mqtt, cfg)
+    piotDevices := NewPiotDevices(logger, things, mqtt, cfg)
 
     // Auto disconnect from mongo
     //defer ctx.Value("dbClient").(*mongo.Client).Disconnect(ctx)
 
-    logger.Infof("Starting PIOT server %s", piotconfig.VersionString())
+    logger.Infof("Starting PIOT server %s", config.VersionString())
 
     /////////////// HANDLERS
 
-    http.HandleFunc("/", handler.RootHandler)
+    http.HandleFunc("/", RootHandler)
 
     // endpoint for registration of new user
     http.Handle(
         "/register",
-        handler.NewCORSHandler(
-            handler.NewLoggingHandler(
+        NewCORSHandler(
+            NewLoggingHandler(
                 logger,
-                handler.NewRegistrationHandler(logger, db))))
+                NewRegistrationHandler(logger, db))))
 
     // endpoint for authentication - token is generaged
     http.Handle(
         "/login",
-        handler.NewCORSHandler(
-            handler.NewLoginHandler(logger, db, cfg)))
+        NewCORSHandler(
+            NewLoginHandler(logger, db, cfg)))
 
     // endpoint for refreshing nearly expired token
     //r.HandleFunc("/refresh", handler.RefreshHandler)
 
     // create GraphQL schema together with resolver
-    gqlResolver := resolver.NewResolver(logger, db, orgs, users, things)
+    gqlResolver := NewResolver(logger, db, orgs, users, things)
     gqlSchema := graphql.MustParseSchema(schema.GetRootSchema(), gqlResolver)
     http.Handle(
         "/query",
-        handler.NewCORSHandler(
-            handler.NewLoggingHandler(
+        NewCORSHandler(
+            NewLoggingHandler(
                 logger,
-                handler.NewAuthHandler(
+                NewAuthHandler(
                     logger,
                     cfg,
-                    handler.NewGraphQLHandler(gqlSchema),
+                    users,
+                    NewGraphQLHandler(gqlSchema),
                 ),
             ),
         ),
@@ -159,10 +156,10 @@ func runServer(c *cli.Context) {
 
     http.Handle(
         "/adapter",
-        handler.NewCORSHandler(
-            handler.NewLoggingHandler(
+        NewCORSHandler(
+            NewLoggingHandler(
                 logger,
-                handler.NewAdapter(logger, piotDevices),
+                NewAdapter(logger, piotDevices),
             ),
         ),
     )
@@ -183,7 +180,7 @@ func main() {
     app := cli.NewApp()
 
     app.Name = "PIOT Server"
-    app.Version = piotconfig.VersionString()
+    app.Version = config.VersionString()
     app.Authors = []cli.Author{
         {
             Name:  "Michal Nezerka",
