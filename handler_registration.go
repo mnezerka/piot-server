@@ -47,7 +47,7 @@ func (h *RegistrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
         WriteErrorResponse(w, errors.New("Password field is empty or not specified!"), 400)
         return
     }
-    if !validateEmail(credentials.Email) {
+    if !ValidateEmail(credentials.Email) {
         WriteErrorResponse(w, errors.New("Email field has wrong format!"), 400)
         return
     }

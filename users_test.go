@@ -31,3 +31,21 @@ func TestFindUserByExistingEmail(t *testing.T) {
     Equals(t, 1, len(user.Orgs))
     Equals(t, "testorg", user.Orgs[0].Name)
 }
+
+func TestCreateUser(t *testing.T) {
+    db := GetDb(t)
+    log := GetLogger(t)
+    users := main.NewUsers(log, db)
+
+    CleanDb(t, db)
+    user, err := users.Create("test1@test.com", "pass")
+    Ok(t, err)
+
+    //compare ids
+
+    userRead, err := users.FindByEmail("test1@test.com")
+    Ok(t, err)
+    Equals(t, user.Id, userRead.Id)
+    Equals(t, "test1@test.com", userRead.Email)
+    Equals(t, 0, len(userRead.Orgs))
+}

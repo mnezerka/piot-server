@@ -79,7 +79,7 @@ func TestUserCreate(t *testing.T) {
         Schema: schema,
         Query: `
             mutation {
-                createUser(user: {email: "user_new@test.com"}) { email }
+                createUser(email: "user_new@test.com", password: "pwd") { email }
             }
         `,
         ExpectedResult: `

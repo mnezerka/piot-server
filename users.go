@@ -3,6 +3,7 @@ package main
 import (
     "context"
     "errors"
+    "time"
     "github.com/op/go-logging"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
@@ -99,3 +100,45 @@ func (t *Users) SetActiveOrg(id primitive.ObjectID, orgId primitive.ObjectID) (e
     return nil
 }
 
+func (t *Users) Create(email, password string) (*model.User, error) {
+
+    // check required attributes
+    if len(email) == 0 {
+        return nil, errors.New("Email field is empty or not specified!")
+    }
+
+    if len(password) == 0 {
+        return nil, errors.New("Password field is empty or not specified!")
+    }
+    if !ValidateEmail(email) {
+        return nil, errors.New("Email field has wrong format!")
+    }
+
+    // try to find existing user
+    var user model.User
+    collection := t.db.Collection("users")
+    err := collection.FindOne(context.TODO(), bson.D{{"email", email}}).Decode(&user)
+    if err == nil {
+        return nil, errors.New("User identified by this email already exists!")
+    }
+
+    // generate hash for given password (we don't store passwords in plain form)
+    hash, err := GetPasswordHash(password)
+    if err != nil {
+        return nil, errors.New("Error while hashing password, try again")
+    }
+
+    // user does not exist -> create new one
+    user.Email = email
+    user.Password = hash
+    user.Created = int32(time.Now().Unix())
+
+    res, err := collection.InsertOne(context.TODO(), user)
+    if err != nil {
+        return nil, errors.New("User while creating user, try again")
+    }
+
+    user.Id = res.InsertedID.(primitive.ObjectID)
+
+    return &user, nil
+}

@@ -35,16 +35,25 @@ func TestThingCreate(t *testing.T) {
 func TestThingsGet(t *testing.T) {
     db := GetDb(t)
     CleanDb(t, db)
-    thingId := CreateThing(t, db, "thing1")
+    userId := CreateUser(t, db, "test@test.com", "passwd")
+    thing2Id := CreateThing(t, db, "thing2")
+    thing1Id := CreateThing(t, db, "thing1")
+    thing3Id := CreateThing(t, db, "thing3")
+    CreateThing(t, db, "thingX")  // this thing is created to test filtering based on active org
+    orgId := CreateOrg(t, db, "org1")
+    AddOrgThing(t, db, orgId, "thing3")
+    AddOrgThing(t, db, orgId, "thing1")
+    AddOrgThing(t, db, orgId, "thing2")
+
     schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
-            Context: context.TODO(),
+            Context: AuthContext(t, userId, orgId, false),
             Schema: schema,
             Query: `
                 {
-                    things { id, name }
+                    things(sort: {field: name, order: asc}) { id, name }
                 }
             `,
             ExpectedResult: fmt.Sprintf(`
@@ -53,10 +62,18 @@ func TestThingsGet(t *testing.T) {
                         {
                             "id": "%s",
                             "name": "thing1"
+                        },
+                        {
+                            "id": "%s",
+                            "name": "thing2"
+                        },
+                        {
+                            "id": "%s",
+                            "name": "thing3"
                         }
                     ]
                 }
-            `, thingId.Hex()),
+            `, thing1Id.Hex(), thing2Id.Hex(), thing3Id.Hex()),
         },
     })
 }

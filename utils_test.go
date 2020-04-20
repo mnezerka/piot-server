@@ -16,6 +16,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "piot-server"
+    "piot-server/model"
     "piot-server/config"
 )
 
@@ -53,6 +54,25 @@ func Equals(tb testing.TB, exp, act interface{}) {
 
 func Contains(t *testing.T, str, pattern string) {
     Assert(t, strings.Contains(str, pattern), "String <" + str + "> doesn't contain <" + pattern + ">")
+}
+
+func AuthContext(t *testing.T, userId, orgId primitive.ObjectID, isAdmin bool) context.Context {
+
+    var user model.User
+
+    err := db.Collection("users").FindOne(context.TODO(), bson.M{"_id": userId}).Decode(&user)
+    Ok(t, err)
+
+    ctx := context.Background()
+    ctx = context.WithValue(ctx, "profile", &model.UserProfile{
+        user.Id,          // user id
+        user.Email,       // email
+        isAdmin,          // is admin
+        orgId,            // active org id
+        []primitive.ObjectID{orgId},         // org ids
+    })
+
+    return ctx
 }
 
 func CleanDb(t *testing.T, db *mongo.Database) {

@@ -14,7 +14,7 @@ func GetRootSchema() string {
             users(): [User]!
             orgs(): [Org]!
             org(id: ID!): Org
-            things(): [Thing]!
+            things(sort: ThingSort): [Thing]!
             thing(id: ID!): Thing
         }
 
@@ -23,9 +23,11 @@ func GetRootSchema() string {
             updateOrg(org: OrgUpdate!): Org
             removeOrgUser(orgId: ID!, userId: ID!): Boolean
 
-            createUser(user: UserCreate!): User
+            createUser(email: String!, password: String!): User
             updateUser(user: UserUpdate!): User
             addOrgUser(orgId: ID!, userId: ID!): Boolean
+
+            updateUserProfile(profile: UserProfileUpdate!): UserProfile
 
             createThing(name: String!, type: String!): Thing
             updateThing(thing: ThingUpdate!): Thing
@@ -34,16 +36,35 @@ func GetRootSchema() string {
             setThingAlarm(id: ID!, active: Boolean!): Boolean
         }
 
+        enum SortOrder {
+            asc
+            desc
+        }
+
+        enum ThingSortFields {
+            name
+            created
+        }
+
+        input ThingSort {
+            field: ThingSortFields!
+            order: SortOrder!
+        }
+
         type User {
             id: ID!
             email: String!
             password: String!
             created: Int!
             orgs: [Org!]!
+            is_admin: Boolean!
         }
 
         type UserProfile {
             email: String!
+            is_admin: Boolean!
+            org_id: ID!
+            orgs: [Org!]!
         }
 
         type Org {
@@ -119,12 +140,13 @@ func GetRootSchema() string {
 
         input UserUpdate {
             id: ID!
+            is_admin: Boolean
             email: String
+            password: String
         }
 
-        input UserCreate {
-            email: String!
-            orgId: ID
+        input UserProfileUpdate {
+            org_id: ID!
         }
 
         input ThingUpdate {

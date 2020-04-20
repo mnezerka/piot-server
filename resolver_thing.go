@@ -6,6 +6,7 @@ import (
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
@@ -326,14 +327,39 @@ func (r *Resolver) Thing(args struct {Id graphql.ID}) (*ThingResolver, error) {
     return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) Things() ([]*ThingResolver, error) {
+func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field string; Order string}}) ([]*ThingResolver, error) {
+
+    // authorization checks
+    profileValue := ctx.Value("profile")
+    if profileValue == nil {
+        r.log.Errorf("GQL: Missing user profile")
+        return nil, errors.New("Missing user profile")
+    }
+    profile := profileValue.(*model.UserProfile)
+    r.log.Debugf("ctx %v", profile)
+    r.log.Debugf("ctx %v", args.Sort)
+
+    if profile.OrgId.IsZero() {
+        r.log.Errorf("GQL: No organization assigned")
+        return nil, errors.New("No organization assigned")
+    }
+
+    // prepare filter
+    filter := bson.M{"org_id": profile.OrgId}
+
+    // prepare sorting
+    opts := options.Find().SetSort(bson.D{{"name", 1}})
+    if args.Sort != nil {
+        order := 1
+        if args.Sort.Order == "desc" {
+            order = -1
+        }
+        opts.SetSort(bson.D{{args.Sort.Field, order}})
+    }
 
     collection := r.db.Collection("things")
 
-    count, _ := collection.EstimatedDocumentCount(context.TODO())
-    r.log.Debugf("GQL: Estimated things count %d", count)
-
-    cur, err := collection.Find(context.TODO(), bson.D{})
+    cur, err := collection.Find(context.TODO(), filter, opts)
     if err != nil {
         r.log.Errorf("GQL: error : %v", err)
         return nil, err

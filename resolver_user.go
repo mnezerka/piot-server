@@ -2,7 +2,6 @@ package main
 
 import (
     "errors"
-    "time"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
@@ -15,11 +14,8 @@ import (
 type userUpdateInput struct {
     Id      graphql.ID
     Email   *string
-    OrgId   *graphql.ID
-}
-
-type userCreateInput struct {
-    Email   string
+    Password *string
+    IsAdmin *bool
     OrgId   *graphql.ID
 }
 
@@ -41,8 +37,9 @@ func (r *UserResolver) Email() string {
 }
 
 func (r *UserResolver) Password() string {
-    maskedPassword := "********"
-    return maskedPassword
+    //maskedPassword := "********"
+    //return maskedPassword
+    return r.u.Password
 }
 
 func (r *UserResolver) Created() int32 {
@@ -67,14 +64,8 @@ func (r *UserResolver) Orgs() []*OrgResolver {
     return result
 }
 
-/////////// UserProfileResolver
-
-type UserProfileResolver struct {
-    u *model.User
-}
-
-func (r *UserProfileResolver) Email() string {
-    return r.u.Email
+func (r *UserResolver) IsAdmin() bool {
+    return r.u.IsAdmin
 }
 
 /////////// Resolver
@@ -139,49 +130,14 @@ func (r *Resolver) Users(ctx context.Context) ([]*UserResolver, error) {
     return result, nil
 }
 
-// get active user profile
-func (r *Resolver) UserProfile(ctx context.Context) (*UserProfileResolver, error) {
+func (r *Resolver) CreateUser(ctx context.Context, args struct {Email, Password string}) (*UserResolver, error) {
 
-    currentUserEmail := ctx.Value("user_email").(*string)
+    r.log.Infof("Creating user %s", args.Email)
 
-    r.log.Debugf("GQL: Getting user profile for %s", *currentUserEmail)
-
-    user := model.User{}
-
-    collection := r.db.Collection("users")
-    err := collection.FindOne(context.TODO(), bson.D{{"email", currentUserEmail}}).Decode(&user)
+    user, err := r.users.Create(args.Email, args.Password)
     if err != nil {
-        r.log.Errorf("Graphql error : %v", err)
         return nil, err
     }
-
-    return &UserProfileResolver{&user}, nil
-}
-
-func (r *Resolver) CreateUser(ctx context.Context, args struct {User userCreateInput}) (*UserResolver, error) {
-
-    user := &model.User{
-        Email: args.User.Email,
-        Created: int32(time.Now().Unix()),
-    }
-
-    r.log.Infof("Creating user %s", args.User.Email)
-
-    // try to find existing user of same email
-    var userExisting model.User
-    collection := r.db.Collection("users")
-    err := collection.FindOne(context.TODO(), bson.D{{"email", args.User.Email}}).Decode(&userExisting)
-    if err == nil {
-        return nil, errors.New("User of such email already exists!")
-    }
-
-    // user does not exist -> create new one
-    _, err = collection.InsertOne(context.TODO(), user)
-    if err != nil {
-        return nil, errors.New("Error while creating user")
-    }
-
-    r.log.Debugf("Created user: %s", args.User.Email)
 
     return &UserResolver{r.log, r.users, r.db, user}, nil
 }
@@ -216,6 +172,20 @@ func (r *Resolver) UpdateUser(args struct {User userUpdateInput}) (*UserResolver
     // user exists -> update it
     updateFields := bson.M{}
     if args.User.Email != nil { updateFields["email"] = args.User.Email}
+
+    // if password was specified
+    if args.User.Password != nil {
+        if len(*args.User.Password) > 0 {
+            // generate hash for given password (we don't store passwords in plain form)
+            hash, err := GetPasswordHash(*args.User.Password)
+            if err != nil {
+                return nil, errors.New("Error while hashing password, try again")
+            }
+            updateFields["password"] = hash
+        }
+    }
+
+    if args.User.IsAdmin != nil { updateFields["is_admin"] = args.User.IsAdmin}
     update := bson.M{"$set": updateFields}
 
     _, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)

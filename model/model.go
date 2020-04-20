@@ -32,8 +32,9 @@ type Claims struct {
 
 // this becomes part of context that is propagated to all handlers - e.g. graphql
 type UserProfile struct {
-    Email     string    // user email
-    IsAdmin   bool      // is user administrator?
-    OrgId     primitive.ObjectID `json:"org_id" bson:"org_id,omitempty"`
-    OrgIds    []primitive.ObjectID     // orgs user is member of
+    Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+    Email     string            `json:"email" bson:"email"`
+    IsAdmin   bool      `json:"is_admin" bson:"is_admin"`
+    OrgId     primitive.ObjectID `json:"org_id" bson:"org_id"`
+    OrgIds    []primitive.ObjectID `json:"orgs" bson:"orgs"`
 }

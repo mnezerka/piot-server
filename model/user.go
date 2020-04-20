@@ -11,5 +11,6 @@ type User struct {
     Password    string `json:"password"`
     Created     int32  `json:"created"`
     Orgs        []Org  `json:"orgs"`
+    IsAdmin     bool   `json:"is_admin" bson:"is_admin"`
     ActiveOrgId primitive.ObjectID `json:"active_org_id" bson:"active_org_id"`
 }

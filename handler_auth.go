@@ -85,7 +85,9 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     // 3. Find user in database to prepare user profile
     user, err := h.users.FindByEmail(claims.Email)
 
+    // TO BE REMOVED
     ctx = context.WithValue(ctx, "user_email", &claims.Email)
+    // TO BE REMOVED
     ctx = context.WithValue(ctx, "is_authorized", isAuthorized)
 
     // orgs -> org ids
@@ -94,12 +96,34 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         orgs = append(orgs, user.Orgs[i].Id)
     }
 
-    // TODO: REMOVE
-    h.log.Debugf("USER ORG: %s", user.ActiveOrgId.Hex())
+    // if there is an active org, check if it is assigned
+    var isActiveOrgValid bool = false
+    if !user.ActiveOrgId.IsZero() {
+        for _, org := range user.Orgs {
+            if org.Id == user.ActiveOrgId {
+                isActiveOrgValid = true;
+                break;
+            }
+        }
+    }
+    if !isActiveOrgValid {
+        user.ActiveOrgId = primitive.NilObjectID
+    }
+
+    // if there is no active org, use first one and store it permanently
+    if user.ActiveOrgId.IsZero() {
+        err = h.users.SetActiveOrg(user.Id, orgs[0])
+        user.ActiveOrgId = orgs[0]
+        if err != nil {
+            WriteErrorResponse(w, errors.New("Setting active organization failed"), 500)
+            return
+        }
+    }
 
     ctx = context.WithValue(ctx, "profile", &model.UserProfile{
-        claims.Email,       // email
-        false,              // is admin
+        user.Id,            // id
+        user.Email,         // email
+        user.IsAdmin,       // is admin
         user.ActiveOrgId,   // active org id
         orgs,               // org ids
     })
