@@ -217,3 +217,27 @@ func TestThingSwitchDataUpdate(t *testing.T) {
         `,
     })
 }
+
+func TestThingSetAlarm(t *testing.T) {
+    db := GetDb(t)
+    CleanDb(t, db)
+    id := CreateThing(t, db, "thing1")
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
+
+    t.Logf("Thing to set alarm %s", id)
+
+    gqltesting.RunTest(t, &gqltesting.Test{
+        Context: context.TODO(),
+        Schema: schema,
+        Query: fmt.Sprintf(`
+            mutation {
+                setThingAlarm(id: "%s", active: true)
+            }
+        `, id.Hex()),
+        ExpectedResult: `
+            {
+                "setThingAlarm": true
+            }
+        `,
+    })
+}

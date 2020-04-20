@@ -210,6 +210,14 @@ func (r *ThingResolver) LocationMqttTsValue() string {
     return r.t.LocationMqttTsValue
 }
 
+func (r *ThingResolver) AlarmActive() bool {
+    return r.t.AlarmActive
+}
+
+func (r *ThingResolver) AlarmActivated() int32 {
+    return r.t.AlarmActivated
+}
+
 func (r *ThingResolver) Sensor() *SensorResolver {
 
     if r.t.Type == model.THING_TYPE_SENSOR {
@@ -546,3 +554,24 @@ func (r *Resolver) UpdateThingSwitchData(args struct {Data thingSwitchDataUpdate
     return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
+func (r *Resolver) SetThingAlarm(args *struct {Id graphql.ID; Active bool}) (*bool, error) {
+
+    r.log.Debugf("Updating thing %s alarm to %v", args.Id, args.Active)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Id))
+    if err != nil {
+        return nil, err
+    }
+
+    // set alarm
+    err = r.things.SetAlarm(id, args.Active)
+
+    if err != nil {
+        r.log.Errorf("Setting thing alarm failed %v", err)
+        return nil, err
+    }
+
+    r.log.Debugf("Thing alarm updated")
+    return &args.Active, nil
+}

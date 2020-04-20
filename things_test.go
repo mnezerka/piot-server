@@ -18,7 +18,6 @@ func TestGetExistingThing(t *testing.T) {
     Assert(t, thing.Name == "thing1", "Wrong thing name")
 }
 
-
 func TestGetUnknownThing(t *testing.T) {
     db := GetDb(t)
     CleanDb(t, db)
@@ -196,4 +195,29 @@ func TestSetSensorAttributes(t *testing.T) {
     Equals(t, THING_NAME, thing.Name)
     Equals(t, "value", thing.Sensor.MeasurementTopic)
     Equals(t, "temperature", thing.Sensor.Class)
+}
+
+func TestSetAlarm(t *testing.T) {
+    const THING_NAME = "parent"
+    db := GetDb(t)
+    CleanDb(t, db)
+    id := CreateThing(t, db, "thing")
+
+    things := main.NewThings(GetDb(t), GetLogger(t))
+
+    err := things.SetAlarm(id, true)
+    Ok(t, err)
+
+    thing, err := things.Get(id)
+    Ok(t, err)
+    Equals(t, true, thing.AlarmActive)
+    // TODO check date
+
+    err = things.SetAlarm(id, false)
+    Ok(t, err)
+
+    thing, err = things.Get(id)
+    Ok(t, err)
+    Equals(t, false, thing.AlarmActive)
+    // TODO check date
 }

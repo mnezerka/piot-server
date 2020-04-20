@@ -105,6 +105,12 @@ type Thing struct {
     // Persistency of location changes
     LocationTracking bool `json:"loc_tracking" bson:"loc_tracking"`
 
+    // is alarm active
+    AlarmActive bool   `json:"alarm_active" bson:"alarm_active"`
+
+    // time when alarm was activated
+    AlarmActivated int32  `json:"alarm_activated" bson:"alarm_activated"`
+
     // The unit of measurement that the sensor is expressed in.
     Sensor SensorData `json:"sensor" bson:"sensor"`
 

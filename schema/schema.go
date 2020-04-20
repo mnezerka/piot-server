@@ -31,6 +31,7 @@ func GetRootSchema() string {
             updateThing(thing: ThingUpdate!): Thing
             updateThingSensorData(data: ThingSensorDataUpdate!): Thing
             updateThingSwitchData(data: ThingSwitchDataUpdate!): Thing
+            setThingAlarm(id: ID!, active: Boolean!): Boolean
         }
 
         type User {
@@ -112,6 +113,8 @@ func GetRootSchema() string {
             location_mqtt_lng_value: String!
             location_mqtt_sat_value: String!
             location_mqtt_ts_value: String!
+            alarm_active: Boolean!
+            alarm_activated: Int!
         }
 
         input UserUpdate {

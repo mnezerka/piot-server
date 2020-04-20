@@ -323,3 +323,38 @@ func (t *Things) TouchThing(id primitive.ObjectID) (error) {
     return nil
 }
 
+func (t *Things) SetAlarm(id primitive.ObjectID, active bool) (error) {
+    t.Log.Debugf("Setting thing <%s> alarm to %v", id.Hex(), active)
+
+    // try to find thing to be updated
+    var thing model.Thing
+    collection := t.Db.Collection("things")
+    err := collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
+    if err != nil {
+        return errors.New("Thing does not exist")
+    }
+
+    if (thing.AlarmActive == active) {
+        // no need to set same value again
+        return nil
+    }
+
+    _, err = t.Db.Collection("things").UpdateOne(
+        context.TODO(),
+        bson.M{"_id": id},
+        bson.M{
+            "$set": bson.M{
+                "alarm_active": active,
+                "alarm_activated": int32(time.Now().Unix()),
+            },
+        },
+    )
+
+    if err != nil {
+        t.Log.Errorf("Thing %s alarm cannot be set (%v)", id.Hex(), err)
+        return errors.New("Error while setting thing alarm")
+    }
+
+    return nil
+}
+
