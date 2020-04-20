@@ -158,10 +158,19 @@ func CreateOrg(t *testing.T, db *mongo.Database, name string) (primitive.ObjectI
 }
 
 func AddOrgUser(t *testing.T, db *mongo.Database, orgId, userId primitive.ObjectID) {
+    // assign user to org
     _, err := db.Collection("orgusers").InsertOne(context.TODO(), bson.M{
         "org_id": orgId,
         "user_id": userId,
         "created": int32(time.Now().Unix()),
+    })
+    Ok(t, err)
+
+    // set active user org
+    _, err = db.Collection("users").UpdateOne(
+        context.TODO(),
+        bson.M{"_id": userId},
+        bson.M{"$set": bson.M{"active_org_id": orgId},
     })
     Ok(t, err)
 

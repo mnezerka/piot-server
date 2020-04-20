@@ -107,6 +107,6 @@ func TestAuthValid(t *testing.T) {
     Assert(t, profile != nil, "User profile not initialized")
     Equals(t, profile.Email, ADMIN_EMAIL)
     Equals(t, profile.IsAdmin, false)
-    //Assert(t, profile.Org != nil, "User profile has no org")
-    Equals(t, 1, len(profile.Orgs))
+    Equals(t, profile.OrgId, orgId)
+    Equals(t, 1, len(profile.OrgIds))
 }

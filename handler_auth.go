@@ -8,6 +8,7 @@ import (
     "golang.org/x/net/context"
     "strings"
     jwt "github.com/dgrijalva/jwt-go"
+    "go.mongodb.org/mongo-driver/bson/primitive"
     "piot-server/model"
     "piot-server/config"
 )
@@ -82,17 +83,25 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 
     // 3. Find user in database to prepare user profile
-
     user, err := h.users.FindByEmail(claims.Email)
 
     ctx = context.WithValue(ctx, "user_email", &claims.Email)
     ctx = context.WithValue(ctx, "is_authorized", isAuthorized)
 
+    // orgs -> org ids
+    var orgs []primitive.ObjectID
+    for i := range user.Orgs {
+        orgs = append(orgs, user.Orgs[i].Id)
+    }
+
+    // TODO: REMOVE
+    h.log.Debugf("USER ORG: %s", user.ActiveOrgId.Hex())
+
     ctx = context.WithValue(ctx, "profile", &model.UserProfile{
         claims.Email,       // email
         false,              // is admin
-        nil,
-        user.Orgs,
+        user.ActiveOrgId,   // active org id
+        orgs,               // org ids
     })
 
     h.handler.ServeHTTP(w, r.WithContext(ctx))

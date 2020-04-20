@@ -2,6 +2,7 @@ package model
 
 import (
     jwt "github.com/dgrijalva/jwt-go"
+    "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Used to read the email and password from the token
@@ -33,6 +34,6 @@ type Claims struct {
 type UserProfile struct {
     Email     string    // user email
     IsAdmin   bool      // is user administrator?
-    Org       *Org      // current org
-    Orgs      []Org     // orgs user is member of
+    OrgId     primitive.ObjectID `json:"org_id" bson:"org_id,omitempty"`
+    OrgIds    []primitive.ObjectID     // orgs user is member of
 }
