@@ -5,7 +5,7 @@ import (
     "github.com/op/go-logging"
     "golang.org/x/net/context"
     "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/bson"
+    //"go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     graphql "github.com/graph-gophers/graphql-go"
     "piot-server/model"
@@ -86,10 +86,10 @@ func (r *Resolver) UpdateUserProfile(ctx context.Context, args struct {Profile u
 
     profile := profileValue.(*model.UserProfile)
 
-    updateFields := bson.M{}
-
     // try to find similar user matching new email
     if args.Profile.OrgId != nil {
+
+        r.log.Debugf("Updating user profile active org to <%s>", string(*args.Profile.OrgId))
 
         // create ObjectID from string
         orgId, err := primitive.ObjectIDFromHex(string(*args.Profile.OrgId))
@@ -97,17 +97,13 @@ func (r *Resolver) UpdateUserProfile(ctx context.Context, args struct {Profile u
             return nil, err
         }
 
-        updateFields["org_id"] = orgId
+        // set active org
+        err = r.users.SetActiveOrg(profile.Id, orgId)
+        if err != nil {
+            return nil, err
+        }
+
         profile.OrgId = orgId
-    }
-
-    update := bson.M{"$set": updateFields}
-
-    collection := r.db.Collection("users")
-    _, err := collection.UpdateOne(context.TODO(), bson.M{"_id": profile.Id}, update)
-    if err != nil {
-        r.log.Errorf("Updating user profile failed %v", err)
-        return nil, errors.New("Error while updating user profile")
     }
 
     r.log.Debugf("User profile updated")

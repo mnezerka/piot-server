@@ -146,7 +146,7 @@ func GetRootSchema() string {
         }
 
         input UserProfileUpdate {
-            org_id: ID!
+            org_id: ID
         }
 
         input ThingUpdate {
