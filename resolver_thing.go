@@ -348,7 +348,7 @@ func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field 
     filter := bson.M{"org_id": profile.OrgId}
 
     // prepare sorting
-    opts := options.Find().SetSort(bson.D{{"name", 1}})
+    opts := options.Find().SetSort(bson.D{{"created", -1}})
     if args.Sort != nil {
         order := 1
         if args.Sort.Order == "desc" {
