@@ -607,3 +607,24 @@ func (r *Resolver) SetThingAlarm(args *struct {Id graphql.ID; Active bool}) (*bo
     r.log.Debugf("Thing alarm updated")
     return &args.Active, nil
 }
+
+func (r *Resolver) DeleteThing(args *struct {Id graphql.ID}) (*bool, error) {
+
+    r.log.Debugf("Delete thing %s", args.Id)
+
+    // create ObjectID from string
+    id, err := primitive.ObjectIDFromHex(string(args.Id))
+    if err != nil {
+        return nil, err
+    }
+
+    err = r.things.Delete(id)
+
+    if err != nil {
+        r.log.Errorf("Delete thing failed %v", err)
+        return nil, err
+    }
+
+    r.log.Debugf("Thing deleted")
+    return nil, nil
+}

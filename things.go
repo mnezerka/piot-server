@@ -358,3 +358,17 @@ func (t *Things) SetAlarm(id primitive.ObjectID, active bool) (error) {
     return nil
 }
 
+func (t *Things) Delete(id primitive.ObjectID) (error) {
+
+    t.Log.Debugf("Deleting thing <%s>", id.Hex())
+
+    collection := t.Db.Collection("things")
+    _, err := collection.DeleteOne(context.TODO(), bson.M{"_id": id})
+    if err != nil {
+        t.Log.Errorf("Cannot delete thing %s (%v)", id.Hex(), err)
+        return errors.New("Error while deleting thing")
+    }
+
+    t.Log.Debugf("Thing %s deleted", id.Hex())
+    return nil
+}

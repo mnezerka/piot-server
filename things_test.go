@@ -221,3 +221,18 @@ func TestSetAlarm(t *testing.T) {
     Equals(t, false, thing.AlarmActive)
     // TODO check date
 }
+
+func TestDelete(t *testing.T) {
+    const THING_NAME = "parent"
+    db := GetDb(t)
+    CleanDb(t, db)
+    id := CreateThing(t, db, "thing")
+
+    things := main.NewThings(GetDb(t), GetLogger(t))
+
+    err := things.Delete(id)
+    Ok(t, err)
+
+    _, err = things.Get(id)
+    Fail(t, err)
+}

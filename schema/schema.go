@@ -34,6 +34,7 @@ func GetRootSchema() string {
             updateThingSensorData(data: ThingSensorDataUpdate!): Thing
             updateThingSwitchData(data: ThingSwitchDataUpdate!): Thing
             setThingAlarm(id: ID!, active: Boolean!): Boolean
+            deleteThing(id: ID!): Boolean
         }
 
         enum SortOrder {
