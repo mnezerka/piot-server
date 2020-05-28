@@ -56,6 +56,9 @@ type Thing struct {
     // time the thing was seen last time
     LastSeen    int32  `json:"last_seen" bson:"last_seen"`
 
+    // voltage
+    Voltage     float64  `json:"voltage" bson:"voltage"`
+
     // maximal interval (in seconds) for which device can be unseen
     // (see LastSeen attribute). Default value is 0, which disables
     // this feature

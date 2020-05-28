@@ -22,6 +22,7 @@ type thingUpdateInput struct {
     Alias   *string
     Enabled *bool
     LastSeenInterval *int32
+    Voltage *float64
     OrgId   *graphql.ID
     AvailabilityTopic   *string
     TelemetryTopic   *string
@@ -99,6 +100,10 @@ func (r *ThingResolver) Created() int32 {
 
 func (r *ThingResolver) LastSeen() int32 {
     return r.t.LastSeen
+}
+
+func (r *ThingResolver) Voltage() float64 {
+    return r.t.Voltage
 }
 
 func (r *ThingResolver) LastSeenInterval() int32 {
@@ -455,6 +460,7 @@ func (r *Resolver) UpdateThing(args struct {Thing thingUpdateInput}) (*ThingReso
     if args.Thing.Alias != nil { updateFields["alias"] = *args.Thing.Alias}
     if args.Thing.Enabled != nil { updateFields["enabled"] = *args.Thing.Enabled}
     if args.Thing.LastSeenInterval != nil { updateFields["last_seen_interval"] = *args.Thing.LastSeenInterval}
+    if args.Thing.Voltage != nil { updateFields["voltage"] = *args.Thing.Voltage}
     if args.Thing.AvailabilityTopic != nil { updateFields["availability_topic"] = *args.Thing.AvailabilityTopic}
     if args.Thing.TelemetryTopic != nil { updateFields["telemetry_topic"] = *args.Thing.TelemetryTopic}
     if args.Thing.StoreInfluxDb != nil { updateFields["store_influxdb"] = *args.Thing.StoreInfluxDb}

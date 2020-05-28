@@ -112,6 +112,7 @@ func GetRootSchema() string {
             created: Int!
             last_seen: Int!
             last_seen_interval: Int!
+            voltage: Float!
             org: Org
             parent: Thing
             availability_topic: String!
@@ -159,6 +160,7 @@ func GetRootSchema() string {
             orgId: ID
             enabled: Boolean
             last_seen_interval: Int
+            voltage: Float
             availability_topic: String
             telemetry_topic: String
             store_influxdb: Boolean
