@@ -164,6 +164,16 @@ func runServer(c *cli.Context) {
         ),
     )
 
+    http.Handle(
+        "/api/readings",
+        NewCORSHandler(
+            NewLoggingHandler(
+                logger,
+                NewAdapter(logger, piotDevices),
+            ),
+        ),
+    )
+
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
     FatalOnError(err, "Failed to bind on %s: ", c.GlobalString("bind-address"))
