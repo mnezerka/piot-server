@@ -159,17 +159,7 @@ func runServer(c *cli.Context) {
         NewCORSHandler(
             NewLoggingHandler(
                 logger,
-                NewAdapter(logger, piotDevices),
-            ),
-        ),
-    )
-
-    http.Handle(
-        "/api/readings",
-        NewCORSHandler(
-            NewLoggingHandler(
-                logger,
-                NewAdapter(logger, piotDevices),
+                NewAdapter(logger, piotDevices, c.GlobalString("piot-password")),
             ),
         ),
     )
@@ -292,6 +282,11 @@ func main() {
             Name:   "mysqldb-name",
             Usage:  "Mysql database name",
             EnvVar: "MYSQLDB_NAME",
+        },
+        cli.StringFlag{
+            Name:   "piot-password",
+            Usage:  "PIOT device protocol encryption password",
+            EnvVar: "PIOT_PASSWORD",
         },
     }
 

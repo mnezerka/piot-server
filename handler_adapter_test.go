@@ -1,6 +1,7 @@
 package main_test
 
 import (
+    "crypto/aes"
     "net/http"
     "net/http/httptest"
     "strings"
@@ -15,7 +16,7 @@ func getAdapter(t *testing.T) *main.Adapter {
     mqtt := GetMqtt(t, log)
     pdevices := GetPiotDevices(t, log, things, mqtt)
 
-    return main.NewAdapter(log, pdevices)
+    return main.NewAdapter(log, pdevices, "1234567890123456")
 }
 
 /* GET method is not supported */
@@ -30,7 +31,6 @@ func TestForbiddenGet(t *testing.T) {
 
     CheckStatusCode(t, rr, 405)
 }
-
 
 /* Post data for device that is not registered  */
 func TestPacketForUnknownThing(t *testing.T) {
@@ -89,3 +89,57 @@ func TestPacketShortNotationForUnknownThing(t *testing.T) {
 
     // TODO: Check if device is registered
 }
+
+/* Post encrypted data  */
+func TestPacketEncrypted(t *testing.T) {
+    db := GetDb(t)
+    CleanDb(t, db)
+
+
+    raw := `
+    {
+        "device": "Device123",
+        "readings": [
+            {
+                "address": "SensorXYZ",
+                "t": 23
+            }
+        ]
+    }`
+
+    /*
+    * key The key used for encryption. The key length can be any of 128bit, 192bit, and 256bit.
+    * 16-bit key corresponds to 128bit
+    */
+    key := "1234567890123456"
+
+    size := 16
+
+    padding := size - len(raw) % size
+    t.Logf("raw text size: %d, right padding with %d spaces", len(raw), padding)
+    if padding > 0 {
+        raw = raw + strings.Repeat(" ", padding)
+    }
+
+    cipher, err := aes.NewCipher([]byte(key))
+    Ok(t, err)
+
+    encrypted := make([]byte, len(raw))
+    open := []byte(raw)
+    for bs, be := 0, size; bs < len(open); bs, be = bs + size, be + size {
+        cipher.Encrypt(encrypted[bs:be], open[bs:be])
+    }
+
+    req, err := http.NewRequest("POST", "/", strings.NewReader(string(encrypted)))
+    Ok(t, err)
+
+    rr := httptest.NewRecorder()
+
+    adapter := getAdapter(t)
+    adapter.ServeHTTP(rr, req)
+
+    CheckStatusCode(t, rr, 200)
+
+    // TODO: Check if device is registered
+}
+
