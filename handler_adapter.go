@@ -4,6 +4,7 @@ import (
     "bytes"
     "crypto/aes"
     "encoding/json"
+    "encoding/hex"
     "errors"
     "io/ioutil"
     "net/http"
@@ -34,6 +35,10 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    bodyLen := len(body)
+
+    h.log.Debugf("Packet body length: %d", bodyLen)
+
     // log message content in DEBUG mode
     // get info of debug mode directly from logger
     if h.log.IsEnabledFor(logging.DEBUG) {
@@ -61,8 +66,8 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         }
 
         // body shall have length which is multiplication of cipher size (size constant)
-        if len(body) % size != 0 {
-            h.log.Errorf("Invalid length of body for decryption %d", len(body))
+        if bodyLen % size != 0 {
+            h.log.Errorf("Invalid length of body for decryption %d", bodyLen)
             WriteErrorResponse(w, errors.New("Invalid length of body for decryption"), http.StatusBadRequest)
             return
         }
@@ -70,18 +75,36 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         // json decode from raw data failed => try to decrypt first
         cipher, _ := aes.NewCipher([]byte(h.password))
 
-        decrypted := make([]byte, len(body))
+        decrypted := make([]byte, bodyLen)
 
-        // decrypt by blocks
-        for bs, be := 0, size; bs < len(body); bs, be = bs + size, be + size {
+        // decrypt by individual blocks
+        decryptedLen := 0
+        for bs, be := 0, size; bs < bodyLen; bs, be = bs + size, be + size {
             cipher.Decrypt(decrypted[bs:be], body[bs:be])
+
+            // last block needs special attention due to padding that must be removed
+            // before json parsing
+            if bs + size == bodyLen {
+                // strip pkcs7 padding
+                stripped, err := pkcs7strip(decrypted[bs:be], size)
+                if err != nil {
+                    h.log.Errorf("PKCS#7 padding stripping failed (%e)", err.Error())
+                    WriteErrorResponse(w, errors.New("Wrong PKCS#7 padding of encrypted content"), http.StatusBadRequest)
+                }
+
+                decryptedLen += len(stripped)
+
+            } else {
+                decryptedLen += size
+            }
         }
 
-        h.log.Debugf("Decrypted message <%s>", decrypted)
+        h.log.Debugf("Decrypted message <%s>", decrypted[:decryptedLen])
+        h.log.Debugf("%s", hex.Dump(decrypted))
 
         // try to decode decrypted data
-        if err := json.Unmarshal(decrypted, &devicePacket); err != nil {
-            h.log.Debugf("Decrypted data json decode failed")
+        if err := json.Unmarshal(decrypted[:decryptedLen], &devicePacket); err != nil {
+            h.log.Debugf("Decrypted data json decode failed (%s)", err.Error())
 
             http.Error(w, err.Error(), http.StatusBadRequest)
             return
@@ -94,4 +117,35 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+}
+
+
+// pkcs7strip remove pkcs7 padding
+func pkcs7strip(data []byte, blockSize int) ([]byte, error) {
+
+    length := len(data)
+
+    // no empty blocks can exist
+    if length == 0 {
+        return nil, errors.New("pkcs7: data is empty")
+    }
+
+    // all bytes are always filled (padding values are always non zero)
+    if length % blockSize != 0 {
+        return nil, errors.New("pkcs7: data is not block-aligned")
+    }
+
+    // get number of bytes used for padding from last block byte
+    padLen := int(data[length-1])
+
+    // generate sequence of bytes that should match end of the block
+    ref := bytes.Repeat([]byte{byte(padLen)}, padLen)
+
+    // check if padding is encoded correctly - it must be smaller than block size,
+    // non zero and match generated sequence
+    if padLen > blockSize || padLen == 0 || !bytes.HasSuffix(data, ref) {
+        return nil, errors.New("pkcs7: invalid padding")
+    }
+
+    return data[:length-padLen], nil
 }

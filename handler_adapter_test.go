@@ -1,7 +1,9 @@
 package main_test
 
 import (
+    "bytes"
     "crypto/aes"
+    "encoding/hex"
     "net/http"
     "net/http/httptest"
     "strings"
@@ -95,7 +97,6 @@ func TestPacketEncrypted(t *testing.T) {
     db := GetDb(t)
     CleanDb(t, db)
 
-
     raw := `
     {
         "device": "Device123",
@@ -116,10 +117,15 @@ func TestPacketEncrypted(t *testing.T) {
     size := 16
 
     padding := size - len(raw) % size
-    t.Logf("raw text size: %d, right padding with %d spaces", len(raw), padding)
+    t.Logf("raw text size: %d, right padding with %d PKCS#7 bytes", len(raw), padding)
+    // padding of block for pkcs#7 padding
     if padding > 0 {
-        raw = raw + strings.Repeat(" ", padding)
+        raw = raw + string(bytes.Repeat([]byte{byte(padding)}, padding))
+    // add empty block for pkcs#7 padding
+    } else {
+        raw = raw + string(bytes.Repeat([]byte{byte(size)}, size))
     }
+    t.Logf("%s", hex.Dump([]byte(raw)))
 
     cipher, err := aes.NewCipher([]byte(key))
     Ok(t, err)
