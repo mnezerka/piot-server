@@ -20,7 +20,7 @@ func TestUserProfile(t *testing.T) {
     schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
 
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: AuthContext(t, userId, orgId, false),
+        Context: AuthContext(t, userId, orgId),
         Schema:  schema,
         Query: fmt.Sprintf(`
             {
@@ -53,7 +53,7 @@ func TestUserProfileUpdate(t *testing.T) {
 
     // set second org as active
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: AuthContext(t, userId, orgId, false),
+        Context: AuthContext(t, userId, orgId),
         Schema:  schema,
         Query: fmt.Sprintf(`
             mutation {
@@ -71,7 +71,7 @@ func TestUserProfileUpdate(t *testing.T) {
 
     // set first org as active
     gqltesting.RunTest(t, &gqltesting.Test{
-        Context: AuthContext(t, userId, orgId, false),
+        Context: AuthContext(t, userId, orgId),
         Schema:  schema,
         Query: fmt.Sprintf(`
             mutation {

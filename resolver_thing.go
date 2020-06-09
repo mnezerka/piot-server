@@ -332,7 +332,7 @@ func (r *Resolver) Thing(args struct {Id graphql.ID}) (*ThingResolver, error) {
     return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field string; Order string}}) ([]*ThingResolver, error) {
+func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field string; Order string}; All *bool}) ([]*ThingResolver, error) {
 
     // authorization checks
     profileValue := ctx.Value("profile")
@@ -343,14 +343,38 @@ func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field 
     profile := profileValue.(*model.UserProfile)
     r.log.Debugf("ctx %v", profile)
     r.log.Debugf("ctx %v", args.Sort)
+    r.log.Debugf("ctx is admin %v", profile.IsAdmin)
 
-    if profile.OrgId.IsZero() {
-        r.log.Errorf("GQL: No organization assigned")
-        return nil, errors.New("No organization assigned")
+    all := false
+
+    // if caller provided all atribute
+    if args.All != nil {
+
+        // and its value is true
+        if *args.All {
+
+            // check if caller is authorized to get all things
+            if !profile.IsAdmin {
+                r.log.Errorf("GQL: No authorization to request all things")
+                return nil, errors.New("No authorization to request all things")
+
+            } else {
+                all = true
+            }
+        }
     }
 
-    // prepare filter
-    filter := bson.M{"org_id": profile.OrgId}
+    filter := bson.M{}
+
+    if !all {
+        if profile.OrgId.IsZero() {
+            r.log.Errorf("GQL: No organization assigned")
+            return nil, errors.New("No organization assigned")
+        }
+
+        // prepare filter
+        filter = bson.M{"org_id": profile.OrgId}
+    }
 
     // prepare sorting
     opts := options.Find().SetSort(bson.D{{"created", -1}})

@@ -14,7 +14,7 @@ func GetRootSchema() string {
             users(): [User]!
             orgs(): [Org]!
             org(id: ID!): Org
-            things(sort: ThingSort): [Thing]!
+            things(sort: ThingSort, all: Boolean): [Thing]!
             thing(id: ID!): Thing
         }
 

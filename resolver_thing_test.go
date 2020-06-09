@@ -49,7 +49,7 @@ func TestThingsGet(t *testing.T) {
 
     gqltesting.RunTests(t, []*gqltesting.Test{
         {
-            Context: AuthContext(t, userId, orgId, false),
+            Context: AuthContext(t, userId, orgId),
             Schema: schema,
             Query: `
                 {
@@ -74,6 +74,57 @@ func TestThingsGet(t *testing.T) {
                     ]
                 }
             `, thing1Id.Hex(), thing2Id.Hex(), thing3Id.Hex()),
+        },
+    })
+}
+
+func TestThingsGetAll(t *testing.T) {
+    db := GetDb(t)
+    CleanDb(t, db)
+    userId := CreateAdmin(t, db, "admin@test.com", "passwd")
+    thing2Id := CreateThing(t, db, "thing2")
+    thing1Id := CreateThing(t, db, "thing1")
+    thing3Id := CreateThing(t, db, "thing3")
+    thingXId := CreateThing(t, db, "thingX")  // this thing is created to test filtering based on active org
+    orgId := CreateOrg(t, db, "org1")
+    AddOrgThing(t, db, orgId, "thing3")
+    AddOrgThing(t, db, orgId, "thing1")
+    AddOrgThing(t, db, orgId, "thing2")
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
+
+    gqltesting.RunTests(t, []*gqltesting.Test{
+        {
+            Context: AuthContext(t, userId, orgId),
+            Schema: schema,
+            Query: `
+                {
+                    things(sort: {field: name, order: asc}, all: true) { id, name }
+                }
+            `,
+            ExpectedResult: fmt.Sprintf(`
+                {
+                    "things": [
+                        {
+                            "id": "%s",
+                            "name": "thing1"
+                        },
+                        {
+                            "id": "%s",
+                            "name": "thing2"
+                        },
+                        {
+                            "id": "%s",
+                            "name": "thing3"
+                        },
+                        {
+                            "id": "%s",
+                            "name": "thingX"
+                        }
+
+                    ]
+                }
+            `, thing1Id.Hex(), thing2Id.Hex(), thing3Id.Hex(), thingXId.Hex()),
         },
     })
 }

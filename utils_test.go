@@ -66,7 +66,7 @@ func Contains(t *testing.T, str, pattern string) {
     Assert(t, strings.Contains(str, pattern), "String <" + str + "> doesn't contain <" + pattern + ">")
 }
 
-func AuthContext(t *testing.T, userId, orgId primitive.ObjectID, isAdmin bool) context.Context {
+func AuthContext(t *testing.T, userId, orgId primitive.ObjectID) context.Context {
 
     var user model.User
 
@@ -77,7 +77,7 @@ func AuthContext(t *testing.T, userId, orgId primitive.ObjectID, isAdmin bool) c
     ctx = context.WithValue(ctx, "profile", &model.UserProfile{
         user.Id,          // user id
         user.Email,       // email
-        isAdmin,          // is admin
+        user.IsAdmin,     // is admin
         orgId,            // active org id
         []primitive.ObjectID{orgId},         // org ids
     })
@@ -160,6 +160,23 @@ func CreateUser(t *testing.T, db *mongo.Database, email, password string) (primi
     res, err := db.Collection("users").InsertOne(context.TODO(), bson.M{
         "email": email,
         "password": hash,
+        "created": int32(time.Now().Unix()),
+    })
+    Ok(t, err)
+
+    t.Logf("Created user %v", res.InsertedID)
+
+    return res.InsertedID.(primitive.ObjectID)
+}
+
+func CreateAdmin(t *testing.T, db *mongo.Database, email, password string) (primitive.ObjectID) {
+    hash, err := main.GetPasswordHash(password)
+    Ok(t, err)
+
+    res, err := db.Collection("users").InsertOne(context.TODO(), bson.M{
+        "email": email,
+        "password": hash,
+        "is_admin": true,
         "created": int32(time.Now().Unix()),
     })
     Ok(t, err)
