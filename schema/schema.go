@@ -1,5 +1,6 @@
 package schema
 
+
 func GetRootSchema() string {
 
     return `
@@ -14,7 +15,7 @@ func GetRootSchema() string {
             users(): [User]!
             orgs(): [Org]!
             org(id: ID!): Org
-            things(sort: ThingSort, all: Boolean): [Thing]!
+            things(sort: ThingSort, filter: ThingFilter, all: Boolean): [Thing]!
             thing(id: ID!): Thing
         }
 
@@ -35,6 +36,11 @@ func GetRootSchema() string {
             updateThingSwitchData(data: ThingSwitchDataUpdate!): Thing
             setThingAlarm(id: ID!, active: Boolean!): Boolean
             deleteThing(id: ID!): Boolean
+        }
+
+        input ThingFilter {
+            name: String
+            nameContains: String
         }
 
         enum SortOrder {

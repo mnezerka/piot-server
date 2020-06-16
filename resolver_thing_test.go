@@ -78,6 +78,74 @@ func TestThingsGet(t *testing.T) {
     })
 }
 
+func TestThingsGetFiltered(t *testing.T) {
+    db := GetDb(t)
+    CleanDb(t, db)
+    userId := CreateUser(t, db, "test@test.com", "passwd")
+    thing1Id := CreateThing(t, db, "thing1")
+    CreateThing(t, db, "thing2")
+    CreateThing(t, db, "somedevice")
+    CreateThing(t, db, "thingX")  // this thing is created to test filtering based on active org
+    orgId := CreateOrg(t, db, "org1")
+    AddOrgThing(t, db, orgId, "thing1")
+    AddOrgThing(t, db, orgId, "thing2")
+    AddOrgThing(t, db, orgId, "somedevice")
+
+    schema := graphql.MustParseSchema(schema.GetRootSchema(), getResolver(t, db))
+
+    // filter by name
+    gqltesting.RunTests(t, []*gqltesting.Test{
+        {
+            Context: AuthContext(t, userId, orgId),
+            Schema: schema,
+            Query: `
+                {
+                    things(filter: {name: "thing1"}) { id, name }
+                }
+            `,
+            ExpectedResult: fmt.Sprintf(`
+                {
+                    "things": [
+                        {
+                            "id": "%s",
+                            "name": "thing1"
+                        }
+                    ]
+                }
+            `, thing1Id.Hex()),
+        },
+    })
+
+    // filter by name 
+    gqltesting.RunTests(t, []*gqltesting.Test{
+        {
+            Context: AuthContext(t, userId, orgId),
+            Schema: schema,
+            Query: `
+                {
+                    things(filter: {nameContains: "thing"}) { name }
+                }
+            `,
+            ExpectedResult: `
+                {
+                    "things": [
+                        {
+                            "name": "thing1"
+                        },
+                        {
+                            "name": "thing2"
+                        }
+
+                    ]
+                }
+            `,
+        },
+    })
+
+}
+
+
+
 func TestThingsGetAll(t *testing.T) {
     db := GetDb(t)
     CleanDb(t, db)

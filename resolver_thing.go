@@ -2,6 +2,7 @@ package main
 
 import (
     "errors"
+    //"fmt"
     "time"
     "github.com/op/go-logging"
     "golang.org/x/net/context"
@@ -308,6 +309,17 @@ func (r *SwitchResolver) CommandOff() string {
 
 /////////////// Resolver
 
+type ThingFilter struct {
+    Name *string
+    NameContains *string
+}
+
+type ThingSort struct {
+    Field string
+    Order string
+}
+
+
 func (r *Resolver) Thing(args struct {Id graphql.ID}) (*ThingResolver, error) {
 
     r.log.Debugf("GQL: Fetch thing: %v", args.Id)
@@ -332,7 +344,7 @@ func (r *Resolver) Thing(args struct {Id graphql.ID}) (*ThingResolver, error) {
     return &ThingResolver{r.log, r.orgs, r.things, r.users, r.db, &thing}, nil
 }
 
-func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field string; Order string}; All *bool}) ([]*ThingResolver, error) {
+func (r *Resolver) Things(ctx context.Context, args struct {Sort *ThingSort; Filter *ThingFilter; All *bool}) ([]*ThingResolver, error) {
 
     // authorization checks
     profileValue := ctx.Value("profile")
@@ -341,9 +353,10 @@ func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field 
         return nil, errors.New("Missing user profile")
     }
     profile := profileValue.(*model.UserProfile)
-    r.log.Debugf("ctx %v", profile)
-    r.log.Debugf("ctx %v", args.Sort)
-    r.log.Debugf("ctx is admin %v", profile.IsAdmin)
+    r.log.Debugf("profile %v", profile)
+    r.log.Debugf("is admin %v", profile.IsAdmin)
+    r.log.Debugf("sort %v", args.Sort)
+    r.log.Debugf("filter %v", args.Filter)
 
     all := false
 
@@ -373,7 +386,17 @@ func (r *Resolver) Things(ctx context.Context, args struct {Sort *struct {Field 
         }
 
         // prepare filter
-        filter = bson.M{"org_id": profile.OrgId}
+        filter["org_id"] = profile.OrgId
+    }
+
+    if args.Filter != nil {
+        if args.Filter.Name != nil {
+            filter["name"] = *args.Filter.Name
+        }
+
+        if args.Filter.NameContains != nil {
+            filter["name"] = bson.M{"$regex": *args.Filter.NameContains}
+        }
     }
 
     // prepare sorting
