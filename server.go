@@ -188,6 +188,7 @@ func runServer(c *cli.Context) {
             things,
             cfg,
             users,
+            orgs,
         )
 
         // run first check immediately

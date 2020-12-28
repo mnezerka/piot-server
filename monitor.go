@@ -16,6 +16,7 @@ type Monitor struct {
     things *Things
     params *config.Parameters
     users *Users
+    orgs *Orgs
 }
 
 func NewMonitor(log *logging.Logger,
@@ -23,14 +24,16 @@ func NewMonitor(log *logging.Logger,
                 mailClient IMailClient,
                 things *Things,
                 params *config.Parameters,
-                users *Users) *Monitor {
+                users *Users,
+                orgs *Orgs) *Monitor {
                     return &Monitor{
                         log: log,
                         db: db,
                         mailClient: mailClient,
                         things: things,
                         params: params,
-                        users: users}
+                        users: users,
+                        orgs: orgs}
 }
 
 func (m *Monitor) Check() {
@@ -43,6 +46,12 @@ func (m *Monitor) Check() {
     things, err := m.things.GetFiltered(filter)
     if err != nil {
         m.log.Errorf("Monitor check error, falied fetching of things: %s", err.Error())
+        return
+    }
+
+    orgs, err := m.orgs.GetAll()
+    if err != nil {
+        m.log.Errorf("Monitor check error, falied fetching of orgs: %s", err.Error())
         return
     }
 
@@ -59,9 +68,20 @@ func (m *Monitor) Check() {
 
         if diff > thing.LastSeenInterval {
 
+            m.log.Infof("thing %v", thing.OrgId)
+
             lastSeen := time.Unix(int64(thing.LastSeen), 0)
 
-            msgLine := fmt.Sprintf("%s (LastSeen: %s, LastSeenInterval: %d sec., Id: %s)",
+            // look for org
+            orgName := "n/a"
+            for j := 0; j < len(orgs); j++ {
+                if orgs[j].Id == thing.OrgId {
+                    orgName = orgs[j].Name
+                }
+            }
+
+            msgLine := fmt.Sprintf("%s/%s (LastSeen: %s, LastSeenInterval: %d sec., Id: %s)",
+                orgName,
                 thing.Name,
                 lastSeen,
                 thing.LastSeenInterval,

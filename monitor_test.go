@@ -31,6 +31,7 @@ func TestMonitorCheckClear(t *testing.T) {
     things := GetThings(t, log, db)
     cfg := GetConfig()
     users := GetUsers(t, log, db)
+    orgs := GetOrgs(t, log, db)
 
     now := int32(time.Now().Unix())
 
@@ -66,7 +67,7 @@ func TestMonitorCheckClear(t *testing.T) {
 
     mockMail := GetMockMailClient(t, log);
 
-    monitor := main.NewMonitor(log, db, mockMail, things, cfg, users)
+    monitor := main.NewMonitor(log, db, mockMail, things, cfg, users, orgs)
 
     monitor.Check()
 
@@ -75,6 +76,6 @@ func TestMonitorCheckClear(t *testing.T) {
     Equals(t, mockMail.Calls[0].From, cfg.MailFrom)
     Equals(t, mockMail.Calls[0].To, []string{"admin1@com", "admin2@com"})
     Contains(t, mockMail.Calls[0].Message, "Following")
-    Contains(t, mockMail.Calls[0].Message, "device3")
-    Contains(t, mockMail.Calls[0].Message, "device4")
+    Contains(t, mockMail.Calls[0].Message, "org1/device3")
+    Contains(t, mockMail.Calls[0].Message, "org1/device4")
 }

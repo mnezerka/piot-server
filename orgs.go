@@ -47,3 +47,30 @@ func (t *Orgs) GetByName(name string) (*model.Org, error) {
 
     return &org, nil
 }
+
+func (t *Orgs) GetAll() ([]*model.Org, error) {
+    ctx := context.TODO()
+
+    var result []*model.Org
+
+    // try to find thing in DB by its name
+    cur, err := t.db.Collection("orgs").Find(ctx, bson.M{})
+    if err != nil {
+        t.log.Errorf("Orgs service error: %v", err)
+        return nil, err
+    }
+    defer cur.Close(ctx)
+
+    for cur.Next(ctx) {
+        // To decode into a struct, use cursor.Decode()
+        org := model.Org{}
+        err := cur.Decode(&org)
+        if err != nil {
+            t.log.Errorf("Orgs service error: %v", err)
+            return nil, err
+        }
+        result = append(result, &org)
+    }
+
+    return result, nil
+}
