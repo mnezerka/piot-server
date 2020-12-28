@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Register Device
-echo Senting data packet to register device "script" ans sensor "sensor1"
+echo Sending data packet to register device "script" ans sensor "sensor1"
 curl -s -X POST --data '
 {
    "device": "script",

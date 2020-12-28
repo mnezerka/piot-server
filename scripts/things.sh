@@ -1,3 +1,5 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
-curl -s -X POST http://localhost:9096/query -d '{"query":"{things {id, name, org {id, name} availability_topic}}"}' -H "$(cat headers.curl)" | jq
+source $(dirname "$0")/base.sh
+
+send_gql_query '{"query":"{things {id, name, org {id, name} availability_topic}}"}'

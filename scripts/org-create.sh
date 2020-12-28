@@ -1,5 +1,7 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 
-curl -X POST -H "$(cat headers.curl)" --data '
+source $(dirname "$0")/base.sh
+
+send_gql_query '
 { "query": "mutation {createOrg(name: \"test\", description: \"test organization\") {id, name}}" }
-' http://localhost:9096/query | jq
+'
