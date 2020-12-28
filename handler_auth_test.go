@@ -7,6 +7,7 @@ import (
     "testing"
     "github.com/op/go-logging"
     "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/bson/primitive"
     "piot-server"
     "piot-server/model"
 )
@@ -109,4 +110,51 @@ func TestAuthValid(t *testing.T) {
     Equals(t, profile.IsAdmin, false)
     Equals(t, profile.OrgId, orgId)
     Equals(t, 1, len(profile.OrgIds))
+}
+
+// Authentication of valid user without any org assigned (corner scenario)
+// This test verifies correct behavior of server in corner conditions:
+// - user entry exists
+// - no orgs exist
+// it was important to test this scenario since it can happen that
+// fresh system (that is often created during tests) doesn't have
+// any org created and system was getting into panic before bugfix related
+// to "auto assignment roles inside auth handler" block
+func TestAuthNoOrgs(t *testing.T) {
+    log := GetLogger(t)
+    db := GetDb(t)
+    CleanDb(t, db)
+    CreateUser(t, db, ADMIN_EMAIL, ADMIN_PASSWORD)
+    token := LoginUser(t, log, db, ADMIN_EMAIL, ADMIN_PASSWORD, http.StatusOK)
+
+    // send some request and let handler to initiate user profile section of
+    // context associated with request
+    req, err := http.NewRequest("POST", "/", strings.NewReader(""))
+    req.Header.Add("Authorization", "Bearer " + token)
+
+    Ok(t, err)
+
+    rr := httptest.NewRecorder()
+
+    mh := getMockHandler(log)
+
+    handler := getAuthHandler(t, db, mh)
+    handler.ServeHTTP(rr, req)
+
+    CheckStatusCode(t, rr, 200)
+
+    // check if child handler was called
+    Equals(t, 1, len(mh.Calls))
+
+    // get context associated with child request
+    ctx := mh.Calls[0].Request.Context()
+
+    // verify that context contains user profile
+    profile := ctx.Value("profile").(*model.UserProfile)
+
+    Assert(t, profile != nil, "User profile not initialized")
+    Equals(t, profile.Email, ADMIN_EMAIL)
+    Equals(t, profile.IsAdmin, false)
+    Equals(t, profile.OrgId, primitive.NilObjectID)
+    Equals(t, 0, len(profile.OrgIds))
 }

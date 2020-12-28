@@ -81,7 +81,6 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
     h.log.Debugf("Token is valid, email: %s", claims.Email)
 
-
     // 3. Find user in database to prepare user profile
     user, err := h.users.FindByEmail(claims.Email)
 
@@ -105,13 +104,19 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
                 break;
             }
         }
+    } else {
+        h.log.Debugf("User has no active organization assigned")
     }
     if !isActiveOrgValid {
         user.ActiveOrgId = primitive.NilObjectID
+        h.log.Debugf("Active organization of user does not exist")
     }
 
     // if there is no active org, use first one and store it permanently
-    if user.ActiveOrgId.IsZero() {
+    if user.ActiveOrgId.IsZero() && len(orgs) > 0 {
+
+        h.log.Debugf("Assigning active organization to user")
+
         err = h.users.SetActiveOrg(user.Id, orgs[0])
         user.ActiveOrgId = orgs[0]
         if err != nil {
