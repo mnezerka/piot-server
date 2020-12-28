@@ -5,6 +5,7 @@ import (
 )
 
 type mailClientMockCall struct {
+    Subject string
     From string
     To []string
     Message string
@@ -16,8 +17,8 @@ type MailClientMock struct {
     Calls []mailClientMockCall
 }
 
-func (c *MailClientMock) SendMail(from string, to []string, message string) error {
+func (c *MailClientMock) SendMail(subject, from string, to []string, message string) error {
     c.Log.Debugf("Mock Mail Client - mail from %s", from)
-    c.Calls = append(c.Calls, mailClientMockCall{from, to, message})
+    c.Calls = append(c.Calls, mailClientMockCall{subject, from, to, message})
     return nil
 }

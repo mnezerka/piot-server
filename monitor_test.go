@@ -71,6 +71,7 @@ func TestMonitorCheckClear(t *testing.T) {
     monitor.Check()
 
     Equals(t, 1, len(mockMail.Calls))
+    Equals(t, mockMail.Calls[0].Subject, "[piot][alarm] Not Available Devices")
     Equals(t, mockMail.Calls[0].From, cfg.MailFrom)
     Equals(t, mockMail.Calls[0].To, []string{"admin1@com", "admin2@com"})
     Contains(t, mockMail.Calls[0].Message, "Following")

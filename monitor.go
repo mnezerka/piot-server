@@ -88,7 +88,7 @@ func (m *Monitor) Check() {
             adminEmails = append(adminEmails, admins[i].Email)
         }
 
-        err = m.mailClient.SendMail(m.params.MailFrom, adminEmails, msg)
+        err = m.mailClient.SendMail("[piot][alarm] Not Available Devices", m.params.MailFrom, adminEmails, msg)
         if err != nil {
             m.log.Error(err)
         }

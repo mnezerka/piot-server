@@ -9,7 +9,7 @@ import (
 )
 
 type IMailClient interface {
-    SendMail(from string, to []string, message string) error
+    SendMail(subject, from string, to []string, message string) error
 }
 
 type MailClient struct {
@@ -25,6 +25,9 @@ func NewMailClient(log *logging.Logger, params *config.Parameters) IMailClient {
 }
 
 /*
+Commented out since it was not possbile to disable authentication, which is
+not needed if sending to docker swarm/compose smtp relay host
+
 func (c *MailClient) SendMail(from string, to []string, message string) error {
     c.log.Debugf("SendMail from %s to %v", from, to)
     c.log.Debugf("- smtp host: %s", c.params.SmtpHost)
@@ -60,9 +63,7 @@ func (c *MailClient) SendMail(from string, to []string, message string) error {
     return nil
 }
 */
-func (c *MailClient) SendMail(from string, to []string, message string) error {
-
-    subject := "Monitoring"
+func (c *MailClient) SendMail(subject, from string, to []string, message string) error {
 
     c.log.Debugf("SendMail from %s to %v", from, to)
     c.log.Debugf("- smtp host: %s", c.params.SmtpHost)
