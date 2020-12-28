@@ -353,10 +353,10 @@ func (r *Resolver) Things(ctx context.Context, args struct {Sort *ThingSort; Fil
         return nil, errors.New("Missing user profile")
     }
     profile := profileValue.(*model.UserProfile)
-    r.log.Debugf("profile %v", profile)
-    r.log.Debugf("is admin %v", profile.IsAdmin)
-    r.log.Debugf("sort %v", args.Sort)
-    r.log.Debugf("filter %v", args.Filter)
+    r.log.Debugf("arg.all: %v", args.All)
+    r.log.Debugf("arg.sort: %v", args.Sort)
+    r.log.Debugf("arg.filter %v", args.Filter)
+    r.log.Debugf("ctx.is admin: %v", profile.IsAdmin)
 
     all := false
 
