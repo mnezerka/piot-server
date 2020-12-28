@@ -11,6 +11,11 @@ type Parameters struct {
     JwtPassword string
     DbUri string
     DbName string
+    SmtpHost string
+    SmtpPort int
+    SmtpUser string
+    SmtpPassword string
+    MailFrom string
 }
 
 func NewParameters() *Parameters {
@@ -21,7 +26,11 @@ func NewParameters() *Parameters {
         JwtPassword: "jwt-secret",
         DbUri: "",
         DbName: "",
+        SmtpHost: "",
+        SmtpPort: 25,
+        SmtpUser: "",
+        SmtpPassword: "",
+        MailFrom: "",
     }
     return p
 }
-

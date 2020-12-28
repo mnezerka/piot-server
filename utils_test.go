@@ -277,6 +277,7 @@ func SetSwitchStateTopic(t *testing.T, db *mongo.Database, thingId primitive.Obj
 func GetConfig() *config.Parameters{
     cfg := config.NewParameters()
     cfg.LogLevel = "DEBUG"
+    cfg.MailFrom = "test@test.com"
     return cfg
 }
 
@@ -335,6 +336,10 @@ func GetOrgs(t *testing.T, logger *logging.Logger, db *mongo.Database) *main.Org
 
 func GetHttpClient(t *testing.T, logger *logging.Logger) *HttpClientMock {
     return &HttpClientMock{Log: logger}
+}
+
+func GetMockMailClient(t *testing.T, logger *logging.Logger) *MailClientMock {
+    return &MailClientMock{Log: logger}
 }
 
 func GetInfluxDb(t *testing.T, logger *logging.Logger) *InfluxDbMock {

@@ -33,5 +33,13 @@ services:
     ports:
       - 1883:1883
 
+  smtp:
+    image: boky/postfix
+    restart: always
+    ports:
+      - "8587:587"
+    environment:
+      ALLOWED_SENDER_DOMAINS: test.com
+
 volumes:
     mongodb:

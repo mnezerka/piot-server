@@ -32,6 +32,24 @@ func TestFindUserByExistingEmail(t *testing.T) {
     Equals(t, "testorg", user.Orgs[0].Name)
 }
 
+func TestGetAdmins(t *testing.T) {
+    db := GetDb(t)
+    log := GetLogger(t)
+    users := main.NewUsers(log, db)
+
+    CleanDb(t, db)
+    CreateUser(t, db, "test1@com", "pass")
+    CreateUser(t, db, "test2@com", "pass2")
+    CreateAdmin(t, db, "admin1@com", "admpass1")
+    CreateAdmin(t, db, "admin2@com", "admpass2")
+
+    admins, err := users.GetAdmins()
+    Ok(t, err)
+    Equals(t, 2, len(admins))
+    Equals(t, "admin1@com", admins[0].Email)
+    Equals(t, "admin2@com", admins[1].Email)
+}
+
 func TestCreateUser(t *testing.T) {
     db := GetDb(t)
     log := GetLogger(t)

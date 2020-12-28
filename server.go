@@ -24,6 +24,12 @@ func runServer(c *cli.Context) {
     cfg.DbName = "piot"
     cfg.LogLevel = c.GlobalString("log-level")
 
+    cfg.SmtpHost = c.GlobalString("smtp-host")
+    cfg.SmtpPort = c.GlobalInt("smtp-port")
+    cfg.SmtpUser = c.GlobalString("smtp-user")
+    cfg.SmtpPassword= c.GlobalString("smtp-password")
+    cfg.MailFrom = c.GlobalString("mail-from")
+
     ///////////////// LOGGER instance
     logger, err := NewLogger(LOG_FORMAT, cfg.LogLevel)
     if err != nil {
@@ -59,6 +65,10 @@ func runServer(c *cli.Context) {
     /////////////// HTTP CLIENT service
     var httpClient IHttpClient
     httpClient = NewHttpClient(logger)
+
+    /////////////// MAIL CLIENT service
+    var mailClient IMailClient
+    mailClient = NewMailClient(logger, cfg)
 
     /////////////// PIOT INFLUXDB SERVICE
 
@@ -163,6 +173,48 @@ func runServer(c *cli.Context) {
             ),
         ),
     )
+
+    ///////////////////// MONITOR ///////////
+    // Start monitor if configured. Instance of monitor is wrapped
+    // by go scheduled routine
+    if int64(c.GlobalDuration("monitor-interval")) > 0 {
+        logger.Infof("Monitor is configured for interval: %s", c.GlobalDuration("monitor-interval"))
+
+        // new instance of monitor
+        m := NewMonitor(
+            logger,
+            db,
+            mailClient,
+            things,
+            cfg,
+            users,
+        )
+
+        // run first check immediately
+        m.Check()
+
+        // ticker is wrapper around channel which will receive value
+        // on each scheduled tick
+        ticker := time.NewTicker(c.GlobalDuration("monitor-interval"))
+        defer ticker.Stop()
+
+        // channel that allows to stop following routine (not used currently)
+        done := make(chan bool)
+
+        // run monitoring routine
+        //go runMonitor(ticker, done)
+        go func () {
+            for {
+                select {
+                case <-done:
+                    ticker.Stop()
+                    return
+                case <-ticker.C:
+                    m.Check()
+                }
+            }
+        }()
+    }
 
     logger.Infof("Listening on %s...", c.GlobalString("bind-address"))
     err = http.ListenAndServe(c.GlobalString("bind-address"), nil)
@@ -287,6 +339,37 @@ func main() {
             Name:   "piot-password",
             Usage:  "PIOT device protocol encryption password",
             EnvVar: "PIOT_PASSWORD",
+        },
+        cli.DurationFlag{
+            Name:   "monitor-interval",
+            Usage:  "The interval for monitoring active piot devices",
+            EnvVar: "MONITOR_INTERVAL",
+        },
+        cli.StringFlag{
+            Name:   "smtp-user",
+            Usage:  "Username for SMTP server",
+            EnvVar: "SMTP_USER",
+        },
+        cli.StringFlag{
+            Name:   "smtp-password",
+            Usage:  "Password for SMTP server",
+            EnvVar: "SMTP_PASSWORD",
+        },
+        cli.StringFlag{
+            Name:   "smtp-host",
+            Usage:  "SMTP server hostname",
+            EnvVar: "SMTP_HOST",
+        },
+        cli.IntFlag{
+            Name:   "smtp-port",
+            Usage:  "SMTP server port number",
+            EnvVar: "SMTP_PORT",
+            Value: 25,
+        },
+        cli.StringFlag{
+            Name:   "mail-from",
+            Usage:  "address to be used for outgoing service mails",
+            EnvVar: "MAIL_FROM",
         },
     }
 

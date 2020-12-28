@@ -88,6 +88,32 @@ func (t *Users) FindUserOrgs(id primitive.ObjectID) ([]model.Org, error) {
     return result, nil
 }
 
+func (t *Users) GetAdmins() ([]*model.User, error) {
+    ctx := context.TODO()
+
+    var result []*model.User
+
+    cur, err := t.db.Collection("users").Find(ctx, bson.M{"is_admin": true})
+    if err != nil {
+        t.log.Errorf("Users service error: %v", err)
+        return nil, err
+    }
+    defer cur.Close(ctx)
+
+    for cur.Next(ctx) {
+        // To decode into a struct, use cursor.Decode()
+        user := model.User{}
+        err := cur.Decode(&user)
+        if err != nil {
+            t.log.Errorf("Users service error: %v", err)
+            return nil, err
+        }
+        result = append(result, &user)
+    }
+
+    return result, nil
+}
+
 func (t *Users) SetActiveOrg(id primitive.ObjectID, orgId primitive.ObjectID) (error) {
     t.log.Debugf("Setting user <%s> active org to to <%s>", id.Hex(), orgId.Hex())
 
