@@ -9,7 +9,7 @@ require (
 	github.com/graph-gophers/graphql-go v0.0.0-20200309224638-dae41bde9ef9
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/tidwall/gjson v1.6.0
+	github.com/tidwall/gjson v1.9.3
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.3.2
 	golang.org/x/crypto v0.0.0-20200420104511-884d27f42877
