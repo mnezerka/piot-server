@@ -64,7 +64,7 @@ func (r *Resolver) UserProfile(ctx context.Context) (*UserProfileResolver, error
 	profileValue := ctx.Value("profile")
 	if profileValue == nil {
 		r.log.Errorf("GQL: Missing user profile")
-		return nil, errors.New("Missing user profile")
+		return nil, errors.New("missing user profile")
 	}
 	profile := profileValue.(*UserProfile)
 	r.log.Debugf("ctx %v", profile)
@@ -80,7 +80,7 @@ func (r *Resolver) UpdateUserProfile(ctx context.Context, args struct{ Profile u
 	profileValue := ctx.Value("profile")
 	if profileValue == nil {
 		r.log.Errorf("GQL: Missing user profile")
-		return nil, errors.New("Missing user profile")
+		return nil, errors.New("missing user profile")
 	}
 
 	profile := profileValue.(*UserProfile)

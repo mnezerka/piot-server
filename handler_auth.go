@@ -38,7 +38,7 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// second - try to get auth token from authorization header
 		auth := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 		if len(auth) != 2 || auth[0] != "Bearer" {
-			WriteErrorResponse(w, errors.New("Invalid or missing authorization header"), 401)
+			WriteErrorResponse(w, errors.New("invalid or missing authorization header"), 401)
 			return
 		}
 		tokenString = auth[1]
@@ -58,7 +58,7 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(h.cfg.JwtPassword), nil
 	})
@@ -83,6 +83,10 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Find user in database to prepare user profile
 	user, err := h.users.FindByEmail(claims.Email)
+	if err != nil {
+		WriteErrorResponse(w, err, http.StatusInternalServerError)
+		return
+	}
 
 	// TO BE REMOVED
 	ctx = context.WithValue(ctx, "user_email", &claims.Email)
@@ -120,7 +124,7 @@ func (h *AuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err = h.users.SetActiveOrg(user.Id, orgs[0])
 		user.ActiveOrgId = orgs[0]
 		if err != nil {
-			WriteErrorResponse(w, errors.New("Setting active organization failed"), 500)
+			WriteErrorResponse(w, errors.New("setting active organization failed"), 500)
 			return
 		}
 	}

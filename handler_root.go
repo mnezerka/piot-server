@@ -1,10 +1,10 @@
 package main
 
 import (
-    "errors"
-    "fmt"
-    "net/http"
-    "piot-server/config"
+	"errors"
+	"fmt"
+	"net/http"
+	"piot-server/config"
 )
 
 var landingPage = []byte(fmt.Sprintf(`<html>
@@ -18,12 +18,12 @@ var landingPage = []byte(fmt.Sprintf(`<html>
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 
-    // check http method, POST is required
-    if r.Method != http.MethodGet {
-        WriteErrorResponse(w, errors.New("Only GET method is allowed"), http.StatusMethodNotAllowed)
-        return
-    }
+	// check http method, POST is required
+	if r.Method != http.MethodGet {
+		WriteErrorResponse(w, errors.New("only GET method is allowed"), http.StatusMethodNotAllowed)
+		return
+	}
 
-    w.Header().Set("Content-Type", "text/html; charset=utf-8")
-    w.Write(landingPage)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(landingPage)
 }

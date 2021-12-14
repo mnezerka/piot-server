@@ -148,7 +148,7 @@ func (t *Mqtt) PushThingData(thing *Thing, topic, value string) error {
 
 	// post data to MQTT if device is enabled
 	if thing.OrgId == primitive.NilObjectID {
-		err := fmt.Errorf("Rejecting push to mqtt due to missing organization assignment of thing \"%s\"", thing.Name)
+		err := fmt.Errorf("rejecting push to mqtt due to missing organization assignment of thing \"%s\"", thing.Name)
 		t.log.Infof(err.Error())
 		return err
 	}
@@ -443,7 +443,7 @@ func (t *Mqtt) ProcessSwitches(org *Org, topic, payload string) {
 			err = t.things.SetSwitchState(thing.Id, false)
 			dbValue = "0"
 		default:
-			err = errors.New("Unknown switch state")
+			err = errors.New("unknown switch state")
 		}
 		if err != nil {
 			t.log.Warningf("Issue with processing of switch %s MQTT state messsage: %s", thing.Name, err.Error())

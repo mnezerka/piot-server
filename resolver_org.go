@@ -142,7 +142,7 @@ func (r *Resolver) Org(args struct{ Id graphql.ID }) (*OrgResolver, error) {
 	id, err := primitive.ObjectIDFromHex(string(args.Id))
 	if err != nil {
 		r.log.Errorf("Graphql error : %v", err)
-		return nil, errors.New("Cannot decode ID")
+		return nil, errors.New("cannot decode ID")
 	}
 
 	collection := r.db.Collection("orgs")
@@ -208,15 +208,15 @@ func (r *Resolver) CreateOrg(args *struct {
 	// try to find existing user
 	var orgExisting Org
 	collection := r.db.Collection("orgs")
-	err := collection.FindOne(context.TODO(), bson.D{{"name", args.Name}}).Decode(&orgExisting)
+	err := collection.FindOne(context.TODO(), bson.M{"name": args.Name}).Decode(&orgExisting)
 	if err == nil {
-		return nil, errors.New("Organization of such name already exists!")
+		return nil, errors.New("organization of such name already exists")
 	}
 
 	// org does not exist -> create new one
 	_, err = collection.InsertOne(context.TODO(), org)
 	if err != nil {
-		return nil, errors.New("Error while creating organizaton")
+		return nil, errors.New("error while creating organizaton")
 	}
 
 	r.log.Debugf("Created organization: %v", *org)
@@ -246,7 +246,7 @@ func (r *Resolver) UpdateOrg(args struct{ Org orgUpdateInput }) (*OrgResolver, e
 	if args.Org.Name != nil {
 		var similarOrg Org
 		collection := r.db.Collection("orgs")
-		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"name": args.Org.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
+		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{{"name": args.Org.Name}, {"_id": bson.M{"$ne": id}}}}).Decode(&similarOrg)
 		if err == nil {
 			return nil, errors.New("Org of such name already exists")
 		}
@@ -290,13 +290,13 @@ func (r *Resolver) UpdateOrg(args struct{ Org orgUpdateInput }) (*OrgResolver, e
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 	if err != nil {
 		r.log.Errorf("Updating org failed %v", err)
-		return nil, errors.New("Error while updating org")
+		return nil, errors.New("error while updating org")
 	}
 
 	// read org
 	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&org)
 	if err != nil {
-		return nil, errors.New("Cannot fetch org data")
+		return nil, errors.New("cannot fetch org data")
 	}
 
 	r.log.Debugf("Org updated %v", org)
@@ -323,7 +323,7 @@ func (r *Resolver) AddOrgUser(args *struct {
 	// try to find existing assignment
 	var similarOrgUser OrgUser
 	collection := r.db.Collection("orgusers")
-	err = collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}}).Decode(&similarOrgUser)
+	err = collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{{"user_id": userId}, {"org_id": orgId}}}).Decode(&similarOrgUser)
 	if err == nil {
 		return nil, errors.New("User is allready assigned to given organization")
 	}
@@ -336,7 +336,7 @@ func (r *Resolver) AddOrgUser(args *struct {
 	}
 	_, err = collection.InsertOne(context.TODO(), orgUser)
 	if err != nil {
-		return nil, errors.New("Error while adding user to organization")
+		return nil, errors.New("error while adding user to organization")
 	}
 
 	r.log.Debugf("User %s added to Org %s", userId, orgId)
@@ -361,10 +361,10 @@ func (r *Resolver) RemoveOrgUser(args *struct {
 	}
 
 	collection := r.db.Collection("orgusers")
-	_, err = collection.DeleteOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"user_id": userId}, bson.M{"org_id": orgId}}})
+	_, err = collection.DeleteOne(context.TODO(), bson.M{"$and": []bson.M{{"user_id": userId}, {"org_id": orgId}}})
 	if err != nil {
 		r.log.Errorf("Cannot remove user %s from org %s (%v)", args.UserId, args.OrgId, err)
-		return nil, errors.New("Remove user from organization failed")
+		return nil, errors.New("remove user from organization failed")
 	}
 
 	r.log.Debugf("User %s removed from  org %s", args.UserId, args.OrgId)

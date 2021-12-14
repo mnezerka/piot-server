@@ -79,13 +79,13 @@ func (r *Resolver) User(args struct{ Id graphql.ID }) (*UserResolver, error) {
 	id, err := primitive.ObjectIDFromHex(string(args.Id))
 	if err != nil {
 		r.log.Errorf("Graphql error : %v", err)
-		return nil, errors.New("Cannot decode ID")
+		return nil, errors.New("cannot decode ID")
 	}
 
 	user := User{}
 
 	collection := r.db.Collection("users")
-	err = collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&user)
+	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		r.log.Errorf("Graphql error : %v", err)
 		return nil, err
@@ -163,7 +163,7 @@ func (r *Resolver) UpdateUser(args struct{ User userUpdateInput }) (*UserResolve
 	// try to find similar user matching new email
 	if args.User.Email != nil {
 		var similarUser User
-		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"email": args.User.Email}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarUser)
+		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{{"email": args.User.Email}, {"_id": bson.M{"$ne": id}}}}).Decode(&similarUser)
 		if err == nil {
 			return nil, errors.New("User of such name already exists")
 		}
@@ -181,7 +181,7 @@ func (r *Resolver) UpdateUser(args struct{ User userUpdateInput }) (*UserResolve
 			// generate hash for given password (we don't store passwords in plain form)
 			hash, err := GetPasswordHash(*args.User.Password)
 			if err != nil {
-				return nil, errors.New("Error while hashing password, try again")
+				return nil, errors.New("error while hashing password, try again")
 			}
 			updateFields["password"] = hash
 		}
@@ -195,13 +195,13 @@ func (r *Resolver) UpdateUser(args struct{ User userUpdateInput }) (*UserResolve
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 	if err != nil {
 		r.log.Errorf("Updating user failed %v", err)
-		return nil, errors.New("Error while updating user")
+		return nil, errors.New("error while updating user")
 	}
 
 	// read user
 	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
-		return nil, errors.New("Cannot fetch user data")
+		return nil, errors.New("cannot fetch user data")
 	}
 
 	r.log.Debugf("User updated %v", user)

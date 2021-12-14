@@ -164,7 +164,7 @@ type SensorData struct {
 	Validity int32 `json:"validity" bson:"validity"`
 
 	// The unit of measurement that the sensor is expressed in.
-	Unit string `json:"unit bson"unit""`
+	Unit string `json:"unit" bson:"unit"`
 }
 
 // Represents switch (e.g. high voltage power switch)
@@ -207,7 +207,7 @@ func NewThing(db *mongo.Database, log *logging.Logger, name string, ttype string
 	// try to find existing thing
 	var existingThing Thing
 	collection := db.Collection("things")
-	err := collection.FindOne(context.TODO(), bson.D{{"name", name}}).Decode(&existingThing)
+	err := collection.FindOne(context.TODO(), bson.M{"name": name}).Decode(&existingThing)
 	if err == nil {
 		return nil, fmt.Errorf("thing of such name (%s) already exists", name)
 	}

@@ -73,6 +73,7 @@ func AuthContext(t *testing.T, userId, orgId primitive.ObjectID) context.Context
 	Ok(t, err)
 
 	ctx := context.Background()
+	//lint:ignore SA1029 should not use built-in type string as key for value; define your own type to avoid collisions
 	ctx = context.WithValue(ctx, "profile", &main.UserProfile{
 		user.Id,                     // user id
 		user.Email,                  // email

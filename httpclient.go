@@ -30,6 +30,11 @@ func (c *HttpClient) PostString(url, body string, username *string, password *st
 	c.log.Debugf("Http POST to %s", url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader([]byte(body)))
+	if err != nil {
+		c.log.Errorf("Http Post failed (%s)", err.Error())
+		return
+	}
+
 	if username != nil && password != nil {
 		req.SetBasicAuth(*username, *password)
 	}

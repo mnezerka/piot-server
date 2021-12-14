@@ -26,7 +26,7 @@ func (h *RegistrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	// check http method, POST is required
 	if r.Method != http.MethodPost {
-		WriteErrorResponse(w, errors.New("Only POST method is allowed"), http.StatusMethodNotAllowed)
+		WriteErrorResponse(w, errors.New("only POST method is allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -40,31 +40,31 @@ func (h *RegistrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	// check required attributes
 	if len(credentials.Email) == 0 {
-		WriteErrorResponse(w, errors.New("Email field is empty or not specified!"), 400)
+		WriteErrorResponse(w, errors.New("email field is empty or not specified"), 400)
 		return
 	}
 	if len(credentials.Password) == 0 {
-		WriteErrorResponse(w, errors.New("Password field is empty or not specified!"), 400)
+		WriteErrorResponse(w, errors.New("password field is empty or not specified"), 400)
 		return
 	}
 	if !ValidateEmail(credentials.Email) {
-		WriteErrorResponse(w, errors.New("Email field has wrong format!"), 400)
+		WriteErrorResponse(w, errors.New("email field has wrong format"), 400)
 		return
 	}
 
 	// try to find existing user
 	var user User
 	collection := h.db.Collection("users")
-	err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+	err = collection.FindOne(context.TODO(), bson.M{"email": credentials.Email}).Decode(&user)
 	if err == nil {
-		WriteErrorResponse(w, errors.New("User identified by this email already exists!"), 409)
+		WriteErrorResponse(w, errors.New("user identified by this email already exists"), 409)
 		return
 	}
 
 	// generate hash for given password (we don't store passwords in plain form)
 	hash, err := utils.GetPasswordHash(credentials.Password)
 	if err != nil {
-		WriteErrorResponse(w, errors.New("Error while hashing password, try again"), 500)
+		WriteErrorResponse(w, errors.New("error while hashing password, try again"), 500)
 		return
 	}
 	user.Email = credentials.Email

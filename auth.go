@@ -20,10 +20,10 @@ func (a *Auth) AuthUser(ctx context.Context, email, password string) error {
 	// try to find user in database
 	var user User
 	collection := db.Collection("users")
-	err := collection.FindOne(ctx, bson.D{{"email", email}}).Decode(&user)
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-		return fmt.Errorf("User identified by email %s does not exist or provided credentials are wrong.", email)
+		return fmt.Errorf("user identified by email %s does not exist or provided credentials are wrong", email)
 	}
 
 	ctx.Value("log").(*logging.Logger).Debugf("User %s exists", email)
@@ -32,7 +32,7 @@ func (a *Auth) AuthUser(ctx context.Context, email, password string) error {
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		ctx.Value("log").(*logging.Logger).Errorf(err.Error())
-		return fmt.Errorf("User identified by email %s does not exist or provided credentials are wrong.", email)
+		return fmt.Errorf("user identified by email %s does not exist or provided credentials are wrong", email)
 	}
 
 	ctx.Value("log").(*logging.Logger).Debugf("Authentication for user %s passed", email)

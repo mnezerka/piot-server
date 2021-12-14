@@ -120,7 +120,7 @@ func (t *Users) SetActiveOrg(id primitive.ObjectID, orgId primitive.ObjectID) er
 	_, err := t.db.Collection("users").UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": bson.M{"active_org_id": orgId}})
 	if err != nil {
 		t.log.Errorf("User %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating user active org")
+		return errors.New("error while updating user active org")
 	}
 
 	return nil
@@ -130,28 +130,28 @@ func (t *Users) Create(email, password string) (*User, error) {
 
 	// check required attributes
 	if len(email) == 0 {
-		return nil, errors.New("Email field is empty or not specified!")
+		return nil, errors.New("email field is empty or not specified")
 	}
 
 	if len(password) == 0 {
-		return nil, errors.New("Password field is empty or not specified!")
+		return nil, errors.New("password field is empty or not specified")
 	}
 	if !ValidateEmail(email) {
-		return nil, errors.New("Email field has wrong format!")
+		return nil, errors.New("email field has wrong format")
 	}
 
 	// try to find existing user
 	var user User
 	collection := t.db.Collection("users")
-	err := collection.FindOne(context.TODO(), bson.D{{"email", email}}).Decode(&user)
+	err := collection.FindOne(context.TODO(), bson.M{"email": email}).Decode(&user)
 	if err == nil {
-		return nil, errors.New("User identified by this email already exists!")
+		return nil, errors.New("user identified by this email already exists")
 	}
 
 	// generate hash for given password (we don't store passwords in plain form)
 	hash, err := GetPasswordHash(password)
 	if err != nil {
-		return nil, errors.New("Error while hashing password, try again")
+		return nil, errors.New("error while hashing password, try again")
 	}
 
 	// user does not exist -> create new one
@@ -161,7 +161,7 @@ func (t *Users) Create(email, password string) (*User, error) {
 
 	res, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
-		return nil, errors.New("User while creating user, try again")
+		return nil, errors.New("error while creating user, try again")
 	}
 
 	user.Id = res.InsertedID.(primitive.ObjectID)

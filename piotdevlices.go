@@ -44,17 +44,17 @@ func (p *PiotDevices) ProcessPacket(packet PiotDevicePacket) error {
 	// allow to process data from this packet only if it didn't come too close
 	// to previous packet from the same device (treshold in seconds is defined)
 	if lastSeen, ok := p.cache[packet.Device]; ok {
-		delta := time.Now().Sub(lastSeen)
+		delta := time.Since(lastSeen)
 		p.log.Debugf("Time cache holds entry for device: %s, time diff is %f seconds", packet.Device, delta.Seconds())
 
 		if delta <= p.params.DOSInterval {
-			return errors.New("Exceeded dos protection treshold")
+			return errors.New("exceeded dos protection treshold")
 		}
 	}
 
 	// name of the device cannot be empty
 	if packet.Device == "" {
-		return errors.New("Device name cannot be empty")
+		return errors.New("device name cannot be empty")
 	}
 
 	// store device name to cache together with date it was seen

@@ -199,7 +199,6 @@ func TestSetSensorAttributes(t *testing.T) {
 }
 
 func TestSetAlarm(t *testing.T) {
-	const THING_NAME = "parent"
 	db := GetDb(t)
 	CleanDb(t, db)
 	id := CreateThing(t, db, "thing")
@@ -224,7 +223,6 @@ func TestSetAlarm(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	const THING_NAME = "parent"
 	db := GetDb(t)
 	CleanDb(t, db)
 	id := CreateThing(t, db, "thing")

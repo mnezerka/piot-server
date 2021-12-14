@@ -29,7 +29,7 @@ func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// check http method, POST is required
 	if r.Method != http.MethodPost {
-		WriteErrorResponse(w, errors.New("Only POST method is allowed"), http.StatusMethodNotAllowed)
+		WriteErrorResponse(w, errors.New("only POST method is allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -44,10 +44,10 @@ func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// try to find user in database
 	var user User
 	collection := l.db.Collection("users")
-	err = collection.FindOne(context.TODO(), bson.D{{"email", credentials.Email}}).Decode(&user)
+	err = collection.FindOne(context.TODO(), bson.M{"email": credentials.Email}).Decode(&user)
 	if err != nil {
 		l.log.Errorf(err.Error())
-		WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 401)
+		WriteErrorResponse(w, errors.New("user identified by this email does not exist or provided credentials are wrong"), 401)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
 	if err != nil {
 		l.log.Errorf(err.Error())
-		WriteErrorResponse(w, errors.New("User identified by this email does not exist or provided credentials are wrong!"), 401)
+		WriteErrorResponse(w, errors.New("user identified by this email does not exist or provided credentials are wrong"), 401)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tokenString, err := token.SignedString([]byte(l.params.JwtPassword))
 	if err != nil {
 		l.log.Errorf(err.Error())
-		WriteErrorResponse(w, errors.New("Error while encrypting token, try again"), 500)
+		WriteErrorResponse(w, errors.New("error while encrypting token, try again"), 500)
 		return
 	}
 
@@ -94,6 +94,4 @@ func (l *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-
-	return
 }

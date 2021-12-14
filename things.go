@@ -112,7 +112,7 @@ func (t *Things) RegisterPiot(id string, deviceType string) (*Thing, error) {
 	// check if string of same name already exists
 	_, err := t.FindPiot(id)
 	if err == nil {
-		return nil, errors.New(fmt.Sprintf("Piot Thing identified by %s already exists", id))
+		return nil, fmt.Errorf("piot Thing identified by %s already exists", id)
 	}
 
 	// thing does not exist -> create new one
@@ -126,7 +126,7 @@ func (t *Things) RegisterPiot(id string, deviceType string) (*Thing, error) {
 	res, err := t.Db.Collection("things").InsertOne(context.TODO(), thing)
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be stored (%v)", id, err)
-		return nil, errors.New("Error while storing new thing")
+		return nil, errors.New("error while storing new thing")
 	}
 
 	thing.Id = res.InsertedID.(primitive.ObjectID)
@@ -140,7 +140,7 @@ func (t *Things) SetParent(id primitive.ObjectID, id_parent primitive.ObjectID) 
 	_, err := t.Get(id)
 	if err != nil {
 		t.Log.Errorf("Thing %s not found", id.Hex())
-		return errors.New("Child thing not found when setting new parent")
+		return errors.New("child thing not found when setting new parent")
 	}
 
 	_, err = t.Get(id_parent)
@@ -152,7 +152,7 @@ func (t *Things) SetParent(id primitive.ObjectID, id_parent primitive.ObjectID) 
 	_, err = t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"parent_id": id_parent}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing parent")
+		return errors.New("error while updating thing parent")
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func (t *Things) SetAvailabilityTopic(id primitive.ObjectID, topic string) error
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"availability_topic": topic}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -176,7 +176,7 @@ func (t *Things) SetAvailabilityYesNo(id primitive.ObjectID, yes, no string) err
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"availability_yes": yes, "availability_no": no}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -188,7 +188,7 @@ func (t *Things) SetTelemetry(id primitive.ObjectID, telemetry string) error {
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"telemetry": telemetry}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func (t *Things) SetLocationMqttTopic(id primitive.ObjectID, topic string) error
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"loc_mqtt_topic": topic}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -218,7 +218,7 @@ func (t *Things) SetLocationMqttValues(id primitive.ObjectID, lat, lng, sat, ts 
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": params})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -256,7 +256,7 @@ func (t *Things) SetLocation(id primitive.ObjectID, lat, lng float64, sat, ts in
 
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -268,7 +268,7 @@ func (t *Things) SetSensorMeasurementTopic(id primitive.ObjectID, topic string) 
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"sensor.measurement_topic": topic}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -280,7 +280,7 @@ func (t *Things) SetSensorClass(id primitive.ObjectID, class string) error {
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"sensor.class": class}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -292,7 +292,7 @@ func (t *Things) SetSensorValue(id primitive.ObjectID, value string) error {
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"sensor.value": value}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -304,7 +304,7 @@ func (t *Things) SetSwitchState(id primitive.ObjectID, value bool) error {
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"switch.state": value}})
 	if err != nil {
 		t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
-		return errors.New("Error while updating thing attributes")
+		return errors.New("error while updating thing attributes")
 	}
 
 	return nil
@@ -315,7 +315,7 @@ func (t *Things) TouchThing(id primitive.ObjectID) error {
 
 	_, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"last_seen": int32(time.Now().Unix())}})
 	if err != nil {
-		e := fmt.Errorf("Thing <%s> cannot be touched (%v)", id.Hex(), err)
+		e := fmt.Errorf("thing <%s> cannot be touched (%v)", id.Hex(), err)
 		t.Log.Errorf(e.Error())
 		return e
 	}
@@ -331,7 +331,7 @@ func (t *Things) SetAlarm(id primitive.ObjectID, active bool) error {
 	collection := t.Db.Collection("things")
 	err := collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
 	if err != nil {
-		return errors.New("Thing does not exist")
+		return errors.New("thing does not exist")
 	}
 
 	if thing.AlarmActive == active {
@@ -352,7 +352,7 @@ func (t *Things) SetAlarm(id primitive.ObjectID, active bool) error {
 
 	if err != nil {
 		t.Log.Errorf("Thing %s alarm cannot be set (%v)", id.Hex(), err)
-		return errors.New("Error while setting thing alarm")
+		return errors.New("error while setting thing alarm")
 	}
 
 	return nil
@@ -366,7 +366,7 @@ func (t *Things) Delete(id primitive.ObjectID) error {
 	_, err := collection.DeleteOne(context.TODO(), bson.M{"_id": id})
 	if err != nil {
 		t.Log.Errorf("Cannot delete thing %s (%v)", id.Hex(), err)
-		return errors.New("Error while deleting thing")
+		return errors.New("error while deleting thing")
 	}
 
 	t.Log.Debugf("Thing %s deleted", id.Hex())

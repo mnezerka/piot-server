@@ -344,13 +344,13 @@ func (r *Resolver) Thing(args struct{ Id graphql.ID }) (*ThingResolver, error) {
 	id, err := primitive.ObjectIDFromHex(string(args.Id))
 	if err != nil {
 		r.log.Errorf("Graphql error : %v", err)
-		return nil, errors.New("Cannot decode ID")
+		return nil, errors.New("cannot decode ID")
 	}
 
 	thing := Thing{}
 
 	collection := r.db.Collection("things")
-	err = collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&thing)
+	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
 	if err != nil {
 		r.log.Errorf("Graphql error : %v", err)
 		return nil, err
@@ -370,7 +370,7 @@ func (r *Resolver) Things(ctx context.Context, args struct {
 	profileValue := ctx.Value("profile")
 	if profileValue == nil {
 		r.log.Errorf("GQL: Missing user profile")
-		return nil, errors.New("Missing user profile")
+		return nil, errors.New("missing user profile")
 	}
 	profile := profileValue.(*UserProfile)
 	r.log.Debugf("arg.all: %v", args.All)
@@ -389,7 +389,7 @@ func (r *Resolver) Things(ctx context.Context, args struct {
 			// check if caller is authorized to get all things
 			if !profile.IsAdmin {
 				r.log.Errorf("GQL: No authorization to request all things")
-				return nil, errors.New("No authorization to request all things")
+				return nil, errors.New("no authorization to request all things")
 
 			} else {
 				all = true
@@ -402,7 +402,7 @@ func (r *Resolver) Things(ctx context.Context, args struct {
 	if !all {
 		if profile.OrgId.IsZero() {
 			r.log.Errorf("GQL: No organization assigned")
-			return nil, errors.New("No organization assigned")
+			return nil, errors.New("no organization assigned")
 		}
 
 		// prepare filter
@@ -420,13 +420,13 @@ func (r *Resolver) Things(ctx context.Context, args struct {
 	}
 
 	// prepare sorting
-	opts := options.Find().SetSort(bson.D{{"created", -1}})
+	opts := options.Find().SetSort(bson.M{"created": -1})
 	if args.Sort != nil {
 		order := 1
 		if args.Sort.Order == "desc" {
 			order = -1
 		}
-		opts.SetSort(bson.D{{args.Sort.Field, order}})
+		opts.SetSort(bson.M{args.Sort.Field: order})
 	}
 
 	collection := r.db.Collection("things")
@@ -492,7 +492,7 @@ func (r *Resolver) UpdateThing(args struct{ Thing thingUpdateInput }) (*ThingRes
 	// try to find similar thing matching new name
 	if args.Thing.Name != nil {
 		var similarThing Thing
-		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{bson.M{"name": args.Thing.Name}, bson.M{"_id": bson.M{"$ne": id}}}}).Decode(&similarThing)
+		err := collection.FindOne(context.TODO(), bson.M{"$and": []bson.M{{"name": args.Thing.Name}, {"_id": bson.M{"$ne": id}}}}).Decode(&similarThing)
 		if err == nil {
 			return nil, errors.New("Thing of such name already exists")
 		}
@@ -586,13 +586,13 @@ func (r *Resolver) UpdateThing(args struct{ Thing thingUpdateInput }) (*ThingRes
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 	if err != nil {
 		r.log.Errorf("Updating thing failed %v", err)
-		return nil, errors.New("Error while updating thing")
+		return nil, errors.New("error while updating thing")
 	}
 
 	// read thing
 	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
 	if err != nil {
-		return nil, errors.New("Cannot fetch thing data")
+		return nil, errors.New("cannot fetch thing data")
 	}
 
 	r.log.Debugf("Thing updated %v", thing)
@@ -633,13 +633,13 @@ func (r *Resolver) UpdateThingSensorData(args struct{ Data thingSensorDataUpdate
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 	if err != nil {
 		r.log.Errorf("Updating thing failed %v", err)
-		return nil, errors.New("Error while updating thing")
+		return nil, errors.New("error while updating thing")
 	}
 
 	// read thing
 	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
 	if err != nil {
-		return nil, errors.New("Cannot fetch thing data")
+		return nil, errors.New("cannot fetch thing data")
 	}
 
 	r.log.Debugf("Thing sensor data updated %v", thing)
@@ -689,13 +689,13 @@ func (r *Resolver) UpdateThingSwitchData(args struct{ Data thingSwitchDataUpdate
 	_, err = collection.UpdateOne(context.TODO(), bson.M{"_id": id}, update)
 	if err != nil {
 		r.log.Errorf("Updating thing failed %v", err)
-		return nil, errors.New("Error while updating thing")
+		return nil, errors.New("error while updating thing")
 	}
 
 	// read thing
 	err = collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&thing)
 	if err != nil {
-		return nil, errors.New("Cannot fetch thing data")
+		return nil, errors.New("cannot fetch thing data")
 	}
 
 	r.log.Debugf("Thing switch data updated and refetched %v", thing)

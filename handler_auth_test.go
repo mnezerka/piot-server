@@ -1,5 +1,7 @@
 package main_test
 
+//lint:file-ignore SA5011 possible nil pointer dereference
+
 import (
 	"net/http"
 	"net/http/httptest"
@@ -152,8 +154,13 @@ func TestAuthNoOrgs(t *testing.T) {
 	profile := ctx.Value("profile").(*main.UserProfile)
 
 	Assert(t, profile != nil, "User profile not initialized")
+	//lint:ignore SA5011 possible nil pointer dereference
 	Equals(t, profile.Email, ADMIN_EMAIL)
+	//lint:ignore SA5011 possible nil pointer dereference
+	//lint:ignore SA5011 possible nil pointer dereference
 	Equals(t, profile.IsAdmin, false)
+	//lint:ignore SA5011 possible nil pointer dereference
 	Equals(t, profile.OrgId, primitive.NilObjectID)
+	//lint:ignore SA5011 possible nil pointer dereference
 	Equals(t, 0, len(profile.OrgIds))
 }

@@ -49,7 +49,7 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// check http method, POST is required
 	if r.Method != http.MethodPost {
-		WriteErrorResponse(w, errors.New("Only POST method is allowed"), http.StatusMethodNotAllowed)
+		WriteErrorResponse(w, errors.New("only POST method is allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -61,14 +61,14 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if len(h.password) != 16 {
 			h.log.Error("Failed to decrypt, PIOT password not configured or doesn't have 16 chars")
-			WriteErrorResponse(w, errors.New("Missing or wrong encryption configuration"), 500)
+			WriteErrorResponse(w, errors.New("missing or wrong encryption configuration"), 500)
 			return
 		}
 
 		// body shall have length which is multiplication of cipher size (size constant)
 		if bodyLen%size != 0 {
 			h.log.Errorf("Invalid length of body for decryption %d", bodyLen)
-			WriteErrorResponse(w, errors.New("Invalid length of body for decryption"), http.StatusBadRequest)
+			WriteErrorResponse(w, errors.New("invalid length of body for decryption"), http.StatusBadRequest)
 			return
 		}
 
@@ -89,7 +89,7 @@ func (h *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				stripped, err := pkcs7strip(decrypted[bs:be], size)
 				if err != nil {
 					h.log.Errorf("PKCS#7 padding stripping failed (%e)", err.Error())
-					WriteErrorResponse(w, errors.New("Wrong PKCS#7 padding of encrypted content"), http.StatusBadRequest)
+					WriteErrorResponse(w, errors.New("wrong PKCS#7 padding of encrypted content"), http.StatusBadRequest)
 				}
 
 				decryptedLen += len(stripped)
