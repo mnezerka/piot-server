@@ -1,9 +1,8 @@
 package schema
 
-
 func GetRootSchema() string {
 
-    return `
+	return `
         schema {
             query: Query
             mutation: Mutation
@@ -144,6 +143,10 @@ func GetRootSchema() string {
             location_mqtt_ts_value: String!
             alarm_active: Boolean!
             alarm_activated: Int!
+            battery_level: Int!
+            battery_level_tracking: Boolean!
+            battery_mqtt_topic: String!
+            battery_mqtt_level_value: String!
         }
 
         input UserUpdate {
@@ -181,6 +184,9 @@ func GetRootSchema() string {
             location_mqtt_lng_value: String
             location_mqtt_sat_value: String
             location_mqtt_ts_value: String
+            battery_level_tracking: Boolean
+            battery_mqtt_topic: String
+            battery_mqtt_level_value: String
         }
 
         input ThingSensorDataUpdate {

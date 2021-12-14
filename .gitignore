@@ -3,4 +3,4 @@ token
 headers.curl
 *tmp
 *swp
-
+.env

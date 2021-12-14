@@ -51,7 +51,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    var response model.Token
+    var response Token
     response.Token = newTokenString
 
     w.Header().Set("Content-Type", "application/json")
